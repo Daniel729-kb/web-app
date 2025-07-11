@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作業効率管理デジタルホワイトボード</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>作業効率管理ボード</h1>
+
+        <div class="control-panel">
+            <div class="control-section">
+                <h3>作業員追加</h3>
+                <div class="input-group">
+                    <input type="text" id="workerNameInput" placeholder="名前を入力">
+                    <button class="btn-primary" onclick="addWorker()">
+                        <span>＋</span> 追加
+                    </button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>作業内容追加</h3>
+                <div class="input-group">
+                    <input type="text" id="workAreaInput" placeholder="作業内容を入力">
+                    <button class="btn-success" onclick="addWorkArea()">
+                        <span>＋</span> 追加
+                    </button>
+                </div>
+            </div>
+
+            <button class="btn-purple" onclick="exportToCSV()">
+                <span>📥</span> CSV出力
+            </button>
+        </div>
+
+        <div class="whiteboard" id="whiteboard"></div>
+
+        <div class="logs-section">
+            <h2>作業ログ</h2>
+            <table id="logsTable">
+                <thead>
+                    <tr>
+                        <th>作業員</th>
+                        <th>作業内容</th>
+                        <th>開始時刻</th>
+                        <th>終了時刻</th>
+                        <th>作業時間</th>
+                    </tr>
+                </thead>
+                <tbody id="logsBody">
+                    <tr>
+                        <td colspan="5" class="empty-logs">まだ作業ログがありません</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
