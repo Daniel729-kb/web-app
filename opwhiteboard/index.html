@@ -102,6 +102,50 @@
             background-color: #7c3aed;
         }
 
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        .btn-import {
+            background-color: #f59e0b;
+            color: white;
+            cursor: pointer;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-import:hover {
+            background-color: #d97706;
+        }
+
+        .import-section {
+            margin-top: 20px;
+            grid-column: 1 / -1;
+        }
+
+        .import-section h3 {
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .import-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
         .whiteboard {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -286,6 +330,17 @@
             .worker-card {
                 touch-action: none;
             }
+
+            .import-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .import-buttons button,
+            .import-buttons label {
+                width: 100%;
+                justify-content: center;
+            }
         }
 
         /* タッチデバイス向けの調整 */
@@ -338,6 +393,22 @@
             <button class="btn-purple" onclick="exportToCSV()">
                 <span>📥</span> CSV出力
             </button>
+        </div>
+
+        <div class="import-section">
+            <h3>データインポート</h3>
+            <div class="import-buttons">
+                <button class="btn-secondary" onclick="downloadTemplate('workers')">
+                    <span>📄</span> 作業員テンプレート
+                </button>
+                <button class="btn-secondary" onclick="downloadTemplate('areas')">
+                    <span>📄</span> 作業内容テンプレート
+                </button>
+                <label class="btn-import">
+                    <span>📤</span> CSVインポート
+                    <input type="file" id="csvImport" accept=".csv" onchange="handleFileImport(event)" style="display: none;">
+                </label>
+            </div>
         </div>
 
         <div class="whiteboard" id="whiteboard"></div>
@@ -820,6 +891,148 @@
             link.href = URL.createObjectURL(blob);
             link.download = `作業ログ_${new Date().toLocaleDateString('ja-JP').replace(/\//g, '-')}.csv`;
             link.click();
+        }
+
+        // テンプレートダウンロード
+        function downloadTemplate(type) {
+            let csvContent = '';
+            let filename = '';
+
+            if (type === 'workers') {
+                csvContent = '作業員名\n田中太郎\n山田花子\n鈴木一郎';
+                filename = '作業員テンプレート.csv';
+            } else if (type === 'areas') {
+                csvContent = '作業内容,色\n作業内容A,blue\n作業内容B,green\n作業内容C,yellow';
+                filename = '作業内容テンプレート.csv';
+            }
+
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        // CSVインポート処理
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                processCSV(content);
+            };
+            reader.readAsText(file, 'UTF-8');
+            
+            // ファイル選択をリセット
+            event.target.value = '';
+        }
+
+        // CSV処理
+        function processCSV(content) {
+            const lines = content.trim().split('\n');
+            if (lines.length < 2) {
+                alert('CSVファイルにデータがありません');
+                return;
+            }
+
+            const headers = lines[0].split(',').map(h => h.trim());
+            const data = lines.slice(1).map(line => {
+                const values = line.split(',').map(v => v.trim());
+                const obj = {};
+                headers.forEach((header, index) => {
+                    obj[header] = values[index] || '';
+                });
+                return obj;
+            });
+
+            // 作業員データのインポート
+            if (headers.includes('作業員名')) {
+                importWorkers(data);
+            }
+            // 作業内容データのインポート
+            else if (headers.includes('作業内容')) {
+                importWorkAreas(data);
+            }
+            else {
+                alert('認識できないCSVフォーマットです。テンプレートを確認してください。');
+            }
+        }
+
+        // 作業員インポート
+        function importWorkers(data) {
+            let addedCount = 0;
+            let skippedCount = 0;
+
+            data.forEach(row => {
+                const name = row['作業員名'];
+                if (!name) return;
+
+                // 重複チェック
+                const exists = workers.some(w => w.name === name);
+                if (exists) {
+                    skippedCount++;
+                    return;
+                }
+
+                const newWorker = {
+                    id: Date.now() + Math.random(),
+                    name: name
+                };
+
+                workers.push(newWorker);
+                workerPositions[newWorker.id] = 'waiting';
+                addedCount++;
+            });
+
+            renderWhiteboard();
+            
+            let message = `${addedCount}名の作業員を追加しました。`;
+            if (skippedCount > 0) {
+                message += `\n${skippedCount}名は既に登録されているためスキップしました。`;
+            }
+            alert(message);
+        }
+
+        // 作業内容インポート
+        function importWorkAreas(data) {
+            let addedCount = 0;
+            let skippedCount = 0;
+            const validColors = ['blue', 'green', 'yellow', 'purple', 'pink'];
+
+            data.forEach(row => {
+                const name = row['作業内容'];
+                const color = row['色'] || validColors[workAreas.length % validColors.length];
+                
+                if (!name) return;
+
+                // 重複チェック
+                const exists = workAreas.some(a => a.name === name && a.id !== 'waiting');
+                if (exists) {
+                    skippedCount++;
+                    return;
+                }
+
+                const finalColor = validColors.includes(color) ? color : validColors[workAreas.length % validColors.length];
+                
+                const newArea = {
+                    id: `task_${Date.now()}_${Math.random()}`,
+                    name: name,
+                    color: finalColor
+                };
+
+                workAreas.push(newArea);
+                addedCount++;
+            });
+
+            renderWhiteboard();
+            
+            let message = `${addedCount}件の作業内容を追加しました。`;
+            if (skippedCount > 0) {
+                message += `\n${skippedCount}件は既に登録されているためスキップしました。`;
+            }
+            alert(message);
         }
 
         // Enterキーで追加
