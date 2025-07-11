@@ -4,7 +4,311 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>作業効率管理デジタルホワイトボード</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f3f4f6;
+            padding: 20px;
+            touch-action: pan-y;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .control-section h3 {
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
+        }
+
+        .btn-purple {
+            background-color: #8b5cf6;
+            color: white;
+        }
+
+        .btn-purple:hover {
+            background-color: #7c3aed;
+        }
+
+        .whiteboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .work-area {
+            min-height: 200px;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .work-area.waiting {
+            background-color: #f3f4f6;
+        }
+
+        .work-area.blue {
+            background-color: #dbeafe;
+        }
+
+        .work-area.green {
+            background-color: #d1fae5;
+        }
+
+        .work-area.yellow {
+            background-color: #fef3c7;
+        }
+
+        .work-area.purple {
+            background-color: #e9d5ff;
+        }
+
+        .work-area.pink {
+            background-color: #fce7f3;
+        }
+
+        .area-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .area-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .area-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            padding: 4px 8px;
+            background: transparent;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .icon-btn:hover {
+            color: #333;
+        }
+
+        .icon-btn.delete:hover {
+            color: #ef4444;
+        }
+
+        .worker-card {
+            background-color: white;
+            padding: 12px 16px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: move;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .worker-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .worker-card.dragging {
+            opacity: 0.5;
+        }
+
+        .worker-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .timer {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .delete-worker {
+            padding: 2px 6px;
+            background: transparent;
+            color: #ef4444;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .logs-section {
+            margin-top: 40px;
+        }
+
+        .logs-section h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #e5e7eb;
+        }
+
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #555;
+        }
+
+        tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .empty-logs {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+        }
+
+        .dragover {
+            background-color: rgba(59, 130, 246, 0.1);
+            border: 2px dashed #3b82f6;
+        }
+
+        .edit-input {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .control-panel {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .whiteboard {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            .worker-card {
+                touch-action: none;
+            }
+        }
+
+        /* タッチデバイス向けの調整 */
+        @media (hover: none) and (pointer: coarse) {
+            button {
+                padding: 10px 20px;
+                font-size: 16px;
+            }
+
+            .worker-card {
+                padding: 16px 20px;
+                margin-bottom: 12px;
+            }
+
+            .icon-btn {
+                padding: 8px 12px;
+            }
+
+            input[type="text"] {
+                font-size: 16px; /* iOSのズーム防止 */
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -59,6 +363,477 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script>
+        let workers = [
+            { id: 1, name: '田中太郎' },
+            { id: 2, name: '山田花子' },
+            { id: 3, name: '鈴木一郎' }
+        ];
+
+        let workAreas = [
+            { id: 'waiting', name: '待機エリア', color: 'waiting' },
+            { id: 'taskA', name: '作業内容A', color: 'blue' },
+            { id: 'taskB', name: '作業内容B', color: 'green' }
+        ];
+
+        let workerPositions = {};
+        let workLogs = [];
+        let activeTimers = {};
+        let timerIntervals = {};
+        let elapsedTimes = {};
+
+        // 初期化
+        function init() {
+            workers.forEach(worker => {
+                workerPositions[worker.id] = 'waiting';
+            });
+            renderWhiteboard();
+            startGlobalTimer();
+        }
+
+        // グローバルタイマー
+        function startGlobalTimer() {
+            setInterval(() => {
+                Object.keys(activeTimers).forEach(workerId => {
+                    const elapsed = Math.floor((Date.now() - activeTimers[workerId]) / 1000);
+                    updateTimerDisplay(workerId, elapsed);
+                });
+            }, 1000);
+        }
+
+        // タイマー表示更新
+        function updateTimerDisplay(workerId, seconds) {
+            const timerElement = document.getElementById(`timer-${workerId}`);
+            if (timerElement) {
+                timerElement.textContent = formatTime(seconds);
+            }
+        }
+
+        // 時間フォーマット
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        // ホワイトボード描画
+        function renderWhiteboard() {
+            const whiteboard = document.getElementById('whiteboard');
+            whiteboard.innerHTML = '';
+
+            workAreas.forEach(area => {
+                const areaDiv = document.createElement('div');
+                areaDiv.className = `work-area ${area.color}`;
+                areaDiv.id = `area-${area.id}`;
+                areaDiv.ondragover = handleDragOver;
+                areaDiv.ondrop = (e) => handleDrop(e, area.id);
+                areaDiv.ondragenter = handleDragEnter;
+                areaDiv.ondragleave = handleDragLeave;
+
+                const header = document.createElement('div');
+                header.className = 'area-header';
+
+                const title = document.createElement('div');
+                title.className = 'area-title';
+                title.id = `title-${area.id}`;
+                title.textContent = area.name;
+
+                const controls = document.createElement('div');
+                controls.className = 'area-controls';
+
+                if (area.id !== 'waiting') {
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'icon-btn';
+                    editBtn.textContent = '✏️';
+                    editBtn.onclick = () => editAreaName(area.id);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'icon-btn delete';
+                    deleteBtn.textContent = '❌';
+                    deleteBtn.onclick = () => removeWorkArea(area.id);
+
+                    controls.appendChild(editBtn);
+                    controls.appendChild(deleteBtn);
+                }
+
+                header.appendChild(title);
+                header.appendChild(controls);
+                areaDiv.appendChild(header);
+
+                const workersContainer = document.createElement('div');
+                workersContainer.className = 'workers-container';
+
+                workers.filter(w => workerPositions[w.id] === area.id).forEach(worker => {
+                    const workerCard = createWorkerCard(worker);
+                    workersContainer.appendChild(workerCard);
+                });
+
+                areaDiv.appendChild(workersContainer);
+                whiteboard.appendChild(areaDiv);
+            });
+        }
+
+        // 作業員カード作成
+        function createWorkerCard(worker) {
+            const card = document.createElement('div');
+            card.className = 'worker-card';
+            card.id = `worker-${worker.id}`;
+            card.draggable = true;
+            card.ondragstart = (e) => handleDragStart(e, worker.id);
+            card.ondragend = handleDragEnd;
+            
+            // タッチイベント追加
+            card.ontouchstart = (e) => handleTouchStart(e, worker.id);
+            card.ontouchmove = handleTouchMove;
+            card.ontouchend = handleTouchEnd;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'worker-name';
+            nameSpan.textContent = worker.name;
+
+            const rightSection = document.createElement('div');
+            rightSection.style.display = 'flex';
+            rightSection.style.alignItems = 'center';
+            rightSection.style.gap = '10px';
+
+            if (activeTimers[worker.id]) {
+                const timer = document.createElement('div');
+                timer.className = 'timer';
+                timer.innerHTML = `⏱️ <span id="timer-${worker.id}">00:00:00</span>`;
+                rightSection.appendChild(timer);
+            }
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-worker';
+            deleteBtn.textContent = '×';
+            deleteBtn.onclick = () => removeWorker(worker.id);
+
+            rightSection.appendChild(deleteBtn);
+
+            card.appendChild(nameSpan);
+            card.appendChild(rightSection);
+
+            return card;
+        }
+
+        // ドラッグイベント
+        let draggedWorkerId = null;
+        let touchItem = null;
+        let touchOffset = { x: 0, y: 0 };
+
+        function handleDragStart(e, workerId) {
+            draggedWorkerId = workerId;
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        function handleDragEnter(e) {
+            if (e.currentTarget.classList.contains('work-area')) {
+                e.currentTarget.classList.add('dragover');
+            }
+        }
+
+        function handleDragLeave(e) {
+            if (e.currentTarget.classList.contains('work-area')) {
+                e.currentTarget.classList.remove('dragover');
+            }
+        }
+
+        // タッチイベント対応
+        function handleTouchStart(e, workerId) {
+            const touch = e.touches[0];
+            const element = e.target.closest('.worker-card');
+            
+            draggedWorkerId = workerId;
+            touchItem = element.cloneNode(true);
+            touchItem.style.position = 'fixed';
+            touchItem.style.zIndex = '1000';
+            touchItem.style.opacity = '0.8';
+            touchItem.style.pointerEvents = 'none';
+            
+            const rect = element.getBoundingClientRect();
+            touchOffset.x = touch.clientX - rect.left;
+            touchOffset.y = touch.clientY - rect.top;
+            
+            touchItem.style.left = `${touch.clientX - touchOffset.x}px`;
+            touchItem.style.top = `${touch.clientY - touchOffset.y}px`;
+            touchItem.style.width = `${rect.width}px`;
+            
+            document.body.appendChild(touchItem);
+            element.style.opacity = '0.5';
+            
+            e.preventDefault();
+        }
+
+        function handleTouchMove(e) {
+            if (!touchItem) return;
+            
+            const touch = e.touches[0];
+            touchItem.style.left = `${touch.clientX - touchOffset.x}px`;
+            touchItem.style.top = `${touch.clientY - touchOffset.y}px`;
+            
+            // ドロップ先のハイライト
+            const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+            const workArea = dropTarget?.closest('.work-area');
+            
+            document.querySelectorAll('.work-area').forEach(area => {
+                area.classList.remove('dragover');
+            });
+            
+            if (workArea) {
+                workArea.classList.add('dragover');
+            }
+            
+            e.preventDefault();
+        }
+
+        function handleTouchEnd(e) {
+            if (!touchItem || !draggedWorkerId) return;
+            
+            const touch = e.changedTouches[0];
+            const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+            const workArea = dropTarget?.closest('.work-area');
+            
+            if (workArea) {
+                const areaId = workArea.id.replace('area-', '');
+                handleDrop({ preventDefault: () => {} }, areaId);
+            }
+            
+            // クリーンアップ
+            if (touchItem) {
+                touchItem.remove();
+                touchItem = null;
+            }
+            
+            document.querySelectorAll('.worker-card').forEach(card => {
+                card.style.opacity = '1';
+            });
+            
+            document.querySelectorAll('.work-area').forEach(area => {
+                area.classList.remove('dragover');
+            });
+            
+            draggedWorkerId = null;
+            e.preventDefault();
+        }
+
+        function handleDrop(e, targetAreaId) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+
+            if (!draggedWorkerId) return;
+
+            const workerId = draggedWorkerId;
+            const worker = workers.find(w => w.id === workerId);
+            const currentArea = workerPositions[workerId];
+
+            if (currentArea === targetAreaId) return;
+
+            // 待機エリアから作業エリアへ（作業開始）
+            if (currentArea === 'waiting' && targetAreaId !== 'waiting') {
+                activeTimers[workerId] = Date.now();
+            }
+            // 作業エリアから待機エリアへ（作業終了）
+            else if (currentArea !== 'waiting' && targetAreaId === 'waiting') {
+                const startTime = activeTimers[workerId];
+                const endTime = Date.now();
+                const duration = Math.floor((endTime - startTime) / 1000);
+
+                const log = {
+                    id: Date.now(),
+                    workerName: worker.name,
+                    workArea: workAreas.find(a => a.id === currentArea)?.name,
+                    startTime: new Date(startTime).toLocaleString('ja-JP'),
+                    endTime: new Date(endTime).toLocaleString('ja-JP'),
+                    duration: duration
+                };
+
+                workLogs.push(log);
+                delete activeTimers[workerId];
+                updateLogsTable();
+            }
+            // 作業エリア間の移動
+            else if (currentArea !== 'waiting' && targetAreaId !== 'waiting') {
+                const startTime = activeTimers[workerId];
+                const endTime = Date.now();
+                const duration = Math.floor((endTime - startTime) / 1000);
+
+                const log = {
+                    id: Date.now(),
+                    workerName: worker.name,
+                    workArea: workAreas.find(a => a.id === currentArea)?.name,
+                    startTime: new Date(startTime).toLocaleString('ja-JP'),
+                    endTime: new Date(endTime).toLocaleString('ja-JP'),
+                    duration: duration
+                };
+
+                workLogs.push(log);
+                activeTimers[workerId] = Date.now();
+                updateLogsTable();
+            }
+
+            workerPositions[workerId] = targetAreaId;
+            renderWhiteboard();
+        }
+
+        // 作業員追加
+        function addWorker() {
+            const input = document.getElementById('workerNameInput');
+            const name = input.value.trim();
+            if (!name) return;
+
+            const newWorker = {
+                id: Date.now(),
+                name: name
+            };
+
+            workers.push(newWorker);
+            workerPositions[newWorker.id] = 'waiting';
+            input.value = '';
+            renderWhiteboard();
+        }
+
+        // 作業員削除
+        function removeWorker(workerId) {
+            workers = workers.filter(w => w.id !== workerId);
+            delete workerPositions[workerId];
+            delete activeTimers[workerId];
+            renderWhiteboard();
+        }
+
+        // 作業エリア追加
+        function addWorkArea() {
+            const input = document.getElementById('workAreaInput');
+            const name = input.value.trim();
+            if (!name) return;
+
+            const colors = ['yellow', 'purple', 'pink', 'blue', 'green'];
+            const newArea = {
+                id: `task_${Date.now()}`,
+                name: name,
+                color: colors[workAreas.length % colors.length]
+            };
+
+            workAreas.push(newArea);
+            input.value = '';
+            renderWhiteboard();
+        }
+
+        // 作業エリア削除
+        function removeWorkArea(areaId) {
+            if (areaId === 'waiting') return;
+
+            // 該当エリアの作業員を待機エリアに戻す
+            Object.entries(workerPositions).forEach(([workerId, position]) => {
+                if (position === areaId) {
+                    workerPositions[workerId] = 'waiting';
+                    delete activeTimers[workerId];
+                }
+            });
+
+            workAreas = workAreas.filter(a => a.id !== areaId);
+            renderWhiteboard();
+        }
+
+        // エリア名編集
+        function editAreaName(areaId) {
+            const titleElement = document.getElementById(`title-${areaId}`);
+            const currentName = titleElement.textContent;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'edit-input';
+            input.value = currentName;
+            
+            input.onblur = () => saveAreaName(areaId, input.value);
+            input.onkeypress = (e) => {
+                if (e.key === 'Enter') {
+                    saveAreaName(areaId, input.value);
+                }
+            };
+
+            titleElement.innerHTML = '';
+            titleElement.appendChild(input);
+            input.focus();
+        }
+
+        function saveAreaName(areaId, newName) {
+            const area = workAreas.find(a => a.id === areaId);
+            if (area) {
+                area.name = newName.trim() || area.name;
+            }
+            renderWhiteboard();
+        }
+
+        // ログテーブル更新
+        function updateLogsTable() {
+            const tbody = document.getElementById('logsBody');
+            
+            if (workLogs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-logs">まだ作業ログがありません</td></tr>';
+                return;
+            }
+
+            const recentLogs = workLogs.slice(-10).reverse();
+            tbody.innerHTML = recentLogs.map(log => `
+                <tr>
+                    <td>${log.workerName}</td>
+                    <td>${log.workArea}</td>
+                    <td>${log.startTime}</td>
+                    <td>${log.endTime}</td>
+                    <td>${formatTime(log.duration)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // CSV出力
+        function exportToCSV() {
+            if (workLogs.length === 0) {
+                alert('エクスポートする作業ログがありません');
+                return;
+            }
+
+            const headers = ['作業員名', '作業内容', '開始時刻', '終了時刻', '作業時間(秒)'];
+            const rows = workLogs.map(log => [
+                log.workerName,
+                log.workArea,
+                log.startTime,
+                log.endTime,
+                log.duration
+            ]);
+
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.join(','))
+            ].join('\n');
+
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `作業ログ_${new Date().toLocaleDateString('ja-JP').replace(/\//g, '-')}.csv`;
+            link.click();
+        }
+
+        // Enterキーで追加
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('workerNameInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addWorker();
+            });
+            
+            document.getElementById('workAreaInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addWorkArea();
+            });
+
+            init();
+        });
+    </script>
 </body>
 </html>
