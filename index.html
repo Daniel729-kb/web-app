@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Web Apps</title>
+  <title>業務用アプリ一覧</title>
   <style>
     body {
       margin: 0;
       padding: 0;
-      font-family: "Helvetica Neue", sans-serif;
-      background-color: #f9fafb;
-      color: #111827;
+      font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+      background-color: #f3f4f6;
+      color: #1f2937;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -20,13 +20,15 @@
     }
 
     h1 {
-      font-size: 2rem;
-      margin-bottom: 1.5rem;
+      font-size: 2.2rem;
+      margin-bottom: 2rem;
+      font-weight: 600;
     }
 
     ul {
       list-style: none;
       padding: 0;
+      margin: 0;
     }
 
     li {
@@ -35,17 +37,21 @@
 
     a {
       display: inline-block;
-      padding: 1rem 2rem;
+      padding: 1rem 2.5rem;
       border-radius: 0.75rem;
-      background-color: #2563eb;
-      color: white;
+      background-color: #374151;
+      color: #f9fafb;
       text-decoration: none;
-      font-size: 1rem;
-      transition: background-color 0.3s ease;
+      font-size: 1.05rem;
+      font-weight: 500;
+      border: 1px solid #4b5563;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
     }
 
     a:hover {
-      background-color: #1e40af;
+      background-color: #1f2937;
+      border-color: #1f2937;
     }
 
     @media (max-width: 600px) {
@@ -57,11 +63,12 @@
   </style>
 </head>
 <body>
-  <h1>My Web Apps</h1>
+  <h1>業務用アプリ一覧</h1>
   <ul>
     <li><a href="automateclp/">コンテナローディングプランナー</a></li>
     <li><a href="palletizar/">パレタイズ最適化計算機</a></li>
     <li><a href="opwhiteboard/">オペレーションホワイトボード</a></li>
+    <li><a href="logimap/">物流マップ自動生成「ベータ版」</a></li>
   </ul>
 </body>
 </html>

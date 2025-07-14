@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>物流マップ自動作成</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 98%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            min-height: 75vh;
+        }
+
+        .input-panel {
+            width: 380px;
+            min-width: 380px;
+            background: #f8fafc;
+            padding: 30px;
+            border-right: 1px solid #e2e8f0;
+            overflow-y: auto;
+            max-height: 85vh;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 13px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 25px 0 12px 0;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #4f46e5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .add-btn, .remove-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .add-btn {
+            background: #10b981;
+            color: white;
+        }
+
+        .add-btn:hover {
+            background: #059669;
+        }
+
+        .remove-btn {
+            background: #ef4444;
+            color: white;
+            margin-left: 8px;
+        }
+
+        .remove-btn:hover {
+            background: #dc2626;
+        }
+
+        .location-item, .transport-item {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .location-item h4, .transport-item h4 {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .map-panel {
+            flex: 1;
+            padding: 20px;
+            background: #ffffff;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .map-controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .export-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .custom-textbox {
+            position: absolute;
+            background: #fff;
+            border: 2px solid #4f46e5;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+            min-width: 100px;
+            min-height: 40px;
+            resize: both;
+            overflow: auto;
+            cursor: move;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .custom-textbox:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+
+        .custom-textbox.editing {
+            cursor: text;
+        }
+
+        .delete-textbox {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .custom-textbox:hover .delete-textbox {
+            display: block;
+        }
+
+        .draggable {
+            cursor: move !important;
+        }
+
+        .dragging {
+            opacity: 0.8;
+            transform: scale(1.05);
+        }
+
+        .edit-mode .location-box,
+        .edit-mode .flow-arrow {
+            cursor: move;
+            border: 2px dashed #7c3aed;
+        }
+
+        .edit-mode .location-box:hover,
+        .edit-mode .flow-arrow:hover {
+            background-color: rgba(124, 58, 237, 0.1);
+        }
+
+        .logistics-map {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            min-width: 800px;
+            width: 100%;
+            min-height: 500px;
+            position: relative;
+            margin: 0 auto;
+            background: #ffffff;
+            overflow: visible;
+            gap: 20px;
+            overflow-x: auto;
+            padding: 30px 15px;
+        }
+
+        .location-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            min-width: 200px;
+            min-height: 400px;
+        }
+
+        .transport-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            min-width: 130px;
+            min-height: 400px;
+            margin-top: 0;
+        }
+
+        .location-box {
+            background: white;
+            border: 3px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            width: 180px;
+            height: 200px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+            transition: all 0.3s ease;
+            position: relative;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .location-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.18);
+        }
+
+        .location-box.domestic {
+            border-color: #10b981;
+            background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+        }
+
+        .location-box.overseas {
+            border-color: #f59e0b;
+            background: linear-gradient(135deg, #fffbeb, #fefce8);
+        }
+
+        .location-box.bonded {
+            border: 3px solid #dc2626;
+            background: linear-gradient(135deg, #fef2f2, #fef2f2);
+            position: relative;
+        }
+
+        .location-box.bonded::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            right: -8px;
+            bottom: -8px;
+            border: 2px dashed #dc2626;
+            border-radius: 16px;
+            z-index: -1;
+        }
+
+        .location-box.bonded::after {
+            content: '保税倉庫';
+            position: absolute;
+            top: -18px;
+            right: -10px;
+            background: #dc2626;
+            color: white;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .location-box.existing {
+            border: 3px solid #2563eb;
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            position: relative;
+        }
+
+        .location-box.existing::after {
+            content: '✓ 既存';
+            position: absolute;
+            top: -12px;
+            left: -10px;
+            background: #2563eb;
+            color: white;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .location-box.new {
+            border: 3px solid #dc2626;
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            position: relative;
+        }
+
+        .location-box.new::after {
+            content: '🆕 新設';
+            position: absolute;
+            top: -12px;
+            left: -10px;
+            background: #dc2626;
+            color: white;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .location-box.bonded.existing::after,
+        .location-box.bonded.new::after {
+            top: -12px;
+            left: -10px;
+        }
+
+        .temp-control-info {
+            margin-top: 12px;
+            padding: 10px;
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 2px solid #0ea5e9;
+            border-radius: 8px;
+            font-size: 10px;
+        }
+
+        .temp-control-title {
+            font-weight: 600;
+            color: #0369a1;
+            margin-bottom: 6px;
+            text-align: center;
+            font-size: 11px;
+        }
+
+        .temp-humidity-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .temp-item, .humidity-item {
+            flex: 1;
+            text-align: center;
+        }
+
+        .temp-label, .humidity-label {
+            font-size: 8px;
+            color: #64748b;
+            margin-bottom: 2px;
+        }
+
+        .temp-value, .humidity-value {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 10px;
+        }
+
+        .location-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .location-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+            line-height: 1.2;
+        }
+
+        .location-type {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-weight: 600;
+        }
+
+        .domestic-tag {
+            background: #10b981;
+            color: white;
+        }
+
+        .overseas-tag {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .flow-arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin: 0;
+            flex-shrink: 0;
+        }
+
+        .arrow {
+            font-size: 24px;
+            color: #4f46e5;
+            margin: 10px 0;
+            order: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .arrow.existing {
+            color: #2563eb;
+        }
+
+        .arrow.new {
+            color: #dc2626;
+        }
+
+        .arrow::before {
+            content: "➡";
+        }
+
+        .flow-line {
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            border-radius: 2px;
+            order: 2;
+        }
+
+        .flow-line.existing {
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+        }
+
+        .flow-line.new {
+            background: linear-gradient(90deg, #dc2626, #ef4444);
+        }
+
+        .transport-info {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 2px solid #0ea5e9;
+            border-radius: 12px;
+            padding: 8px;
+            text-align: center;
+            margin: 0;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.2);
+            position: relative;
+            width: 120px;
+            height: 200px;
+            order: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: visible;
+        }
+
+        .transport-arrow-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 3px 0;
+        }
+
+        .transport-arrow {
+            font-size: 16px;
+            color: #4f46e5;
+        }
+
+        .transport-arrow.existing {
+            color: #2563eb;
+        }
+
+        .transport-arrow.new {
+            color: #dc2626;
+        }
+
+        .transport-info.existing {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            border: 2px solid #2563eb;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+        }
+
+        .transport-info.existing::before {
+            content: '既存';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #2563eb;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: bold;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        .transport-info.new {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: 2px solid #dc2626;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.2);
+        }
+
+        .transport-info.new::before {
+            content: '新設';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #dc2626;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: bold;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        .transport-details {
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px solid rgba(14, 165, 233, 0.3);
+            flex: 1;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .transport-detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 2px 0;
+            font-size: 9px;
+            line-height: 1.2;
+        }
+
+        .transport-detail-label {
+            color: #6b7280;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .transport-detail-value {
+            color: #1f2937;
+            font-weight: 700;
+            text-align: right;
+            word-break: break-word;
+            margin-left: 4px;
+        }
+
+        .transport-icon {
+            font-size: 16px;
+            margin-bottom: 3px;
+        }
+
+        .truck { background: linear-gradient(135deg, #fef3c7, #fde68a); border-color: #f59e0b; }
+        .ship { background: linear-gradient(135deg, #dbeafe, #bfdbfe); border-color: #3b82f6; }
+        .air { background: linear-gradient(135deg, #f3e8ff, #e9d5ff); border-color: #8b5cf6; }
+        .rail { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-color: #22c55e; }
+
+        .flow-label {
+            font-size: 10px;
+            color: #6b7280;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .flow-value {
+            font-size: 13px;
+            color: #1f2937;
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+        }
+
+        .warehouse-options {
+            margin-top: 10px;
+            padding: 12px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .temp-control-options {
+            margin-top: 10px;
+            padding: 12px;
+            background: #f0f9ff;
+            border-radius: 8px;
+            border-left: 4px solid #0ea5e9;
+        }
+
+        .temp-control-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .temp-control-row .form-group {
+            flex: 1;
+        }
+
+        /* 空のスペーサー要素 */
+        .transport-spacer {
+            width: 120px;
+            height: 200px;
+            margin: 0;
+            visibility: hidden;
+        }
+
+        @media (min-width: 1201px) {
+            .main-content {
+                flex-direction: row !important;
+            }
+            
+            .logistics-map {
+                flex-direction: row !important;
+                min-width: 700px;
+                justify-content: flex-start;
+            }
+            
+            .input-panel {
+                width: 380px !important;
+                min-width: 380px !important;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                margin: 10px;
+                width: calc(100% - 20px);
+            }
+            
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .input-panel {
+                width: 100%;
+                max-height: none;
+                min-width: auto;
+            }
+            
+            .logistics-map {
+                flex-direction: column;
+                min-height: auto;
+                gap: 30px;
+                min-width: auto;
+                padding: 30px 15px;
+            }
+            
+            .location-group, .transport-group {
+                width: 100%;
+                min-height: auto;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 20px;
+            }
+            
+            .location-box {
+                width: 160px;
+                min-height: 120px;
+                height: auto;
+            }
+            
+            .transport-info {
+                width: 120px;
+                min-height: 140px;
+                height: auto;
+            }
+            
+            .transport-arrow-container {
+                flex-direction: column;
+                gap: 4px;
+            }
+            
+            .transport-arrow {
+                transform: rotate(90deg);
+            }
+            
+            .flow-arrow {
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>物流マップ自動作成</h1>
+            <p>調達先から納入先までの物流フローを可視化</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="input-panel">
+                <div class="section-title">
+                    調達先情報
+                    <button class="add-btn" onclick="addSupplier()">+ 追加</button>
+                </div>
+                <div id="suppliers-container">
+                    <div class="location-item" data-index="0">
+                        <h4>調達先 1
+                            <button class="remove-btn" onclick="removeSupplier(0)" style="display: none;">削除</button>
+                        </h4>
+                        <div class="form-group">
+                            <label>調達先名</label>
+                            <input type="text" id="supplier-name-0" placeholder="例：ABC商事" value="上海電子部品">
+                        </div>
+                        <div class="form-group">
+                            <label>国内/海外</label>
+                            <select id="supplier-location-0">
+                                <option value="domestic">国内</option>
+                                <option value="overseas" selected>海外</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>国</label>
+                                <input type="text" id="supplier-country-0" placeholder="例：日本" value="中国">
+                            </div>
+                            <div class="form-group">
+                                <label>市</label>
+                                <input type="text" id="supplier-city-0" placeholder="例：東京" value="上海">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">
+                    倉庫情報
+                    <button class="add-btn" onclick="addWarehouse()">+ 追加</button>
+                </div>
+                <div id="warehouses-container">
+                    <div class="location-item" data-index="0">
+                        <h4>倉庫 1
+                            <button class="remove-btn" onclick="removeWarehouse(0)" style="display: none;">削除</button>
+                        </h4>
+                        <div class="form-group">
+                            <label>倉庫名</label>
+                            <input type="text" id="warehouse-name-0" placeholder="例：東京第一倉庫" value="成田保税倉庫">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>国内/海外</label>
+                                <select id="warehouse-location-0" onchange="toggleWarehouseOptions(0)">
+                                    <option value="domestic" selected>国内</option>
+                                    <option value="overseas">海外</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>既存/新設</label>
+                                <select id="warehouse-status-0">
+                                    <option value="existing" selected>既存</option>
+                                    <option value="new">新設</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>国</label>
+                                <input type="text" id="warehouse-country-0" placeholder="例：日本" value="日本">
+                            </div>
+                            <div class="form-group">
+                                <label>市</label>
+                                <input type="text" id="warehouse-city-0" placeholder="例：東京" value="成田">
+                            </div>
+                        </div>
+                        <div id="warehouse-options-0" class="warehouse-options" style="display: block;">
+                            <div class="form-group">
+                                <label>倉庫タイプ</label>
+                                <select id="warehouse-type-0">
+                                    <option value="general">一般倉庫</option>
+                                    <option value="bonded" selected>保税倉庫</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>作業内容</label>
+                            <textarea id="warehouse-work-0" placeholder="例：ピッキング、パッキング、品質検査" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; resize: vertical;">通関手続き、検査、保管</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>温湿度管理</label>
+                            <select id="temp-control-0" onchange="toggleTempControl(0)">
+                                <option value="no">なし</option>
+                                <option value="yes">あり</option>
+                            </select>
+                        </div>
+                        <div id="temp-control-options-0" class="temp-control-options" style="display: none;">
+                            <div class="temp-control-row">
+                                <div class="form-group">
+                                    <label>設定温度（℃）</label>
+                                    <input type="text" id="temperature-0" placeholder="例：10-15" value="15-25">
+                                </div>
+                                <div class="form-group">
+                                    <label>設定湿度（%）</label>
+                                    <input type="text" id="humidity-0" placeholder="例：60-70" value="40-60">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">
+                    納入先情報
+                    <button class="add-btn" onclick="addDestination()">+ 追加</button>
+                </div>
+                <div id="destinations-container">
+                    <div class="location-item" data-index="0">
+                        <h4>納入先 1
+                            <button class="remove-btn" onclick="removeDestination(0)" style="display: none;">削除</button>
+                        </h4>
+                        <div class="form-group">
+                            <label>納入先名</label>
+                            <input type="text" id="destination-name-0" placeholder="例：XYZ製作所" value="東京製造株式会社">
+                        </div>
+                        <div class="form-group">
+                            <label>国内/海外</label>
+                            <select id="destination-location-0">
+                                <option value="domestic" selected>国内</option>
+                                <option value="overseas">海外</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>国</label>
+                                <input type="text" id="destination-country-0" placeholder="例：日本" value="日本">
+                            </div>
+                            <div class="form-group">
+                                <label>市</label>
+                                <input type="text" id="destination-city-0" placeholder="例：大阪" value="東京">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">輸送情報</div>
+                <div id="transports-container">
+                    <!-- 輸送情報は自動生成される -->
+                </div>
+
+                <button class="generate-btn" onclick="generateMap()">マップ生成</button>
+            </div>
+
+            <div class="map-panel">
+                <div class="map-controls">
+                    <button class="export-btn" onclick="exportAsImage()">
+                        📷 画像として保存
+                    </button>
+                    <button class="export-btn" onclick="addTextBox()" style="margin-left: 10px; background: linear-gradient(135deg, #7c3aed, #a855f7);">
+                        📝 テキスト追加
+                    </button>
+                    <button class="export-btn" onclick="toggleEditMode()" style="margin-left: 10px; background: linear-gradient(135deg, #059669, #10b981);" id="edit-mode-btn">
+                        🔧 編集モード
+                    </button>
+                </div>
+                <div class="logistics-map" id="logistics-map">
+                    <!-- マップがここに生成されます -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let supplierCount = 1;
+        let warehouseCount = 1;
+        let destinationCount = 1;
+
+        function addSupplier() {
+            const container = document.getElementById('suppliers-container');
+            const newSupplier = document.createElement('div');
+            newSupplier.className = 'location-item';
+            newSupplier.setAttribute('data-index', supplierCount);
+            
+            newSupplier.innerHTML = `
+                <h4>調達先 ${supplierCount + 1}
+                    <button class="remove-btn" onclick="removeSupplier(${supplierCount})">削除</button>
+                </h4>
+                <div class="form-group">
+                    <label>調達先名</label>
+                    <input type="text" id="supplier-name-${supplierCount}" placeholder="例：ABC商事">
+                </div>
+                <div class="form-group">
+                    <label>国内/海外</label>
+                    <select id="supplier-location-${supplierCount}">
+                        <option value="domestic">国内</option>
+                        <option value="overseas">海外</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>国</label>
+                        <input type="text" id="supplier-country-${supplierCount}" placeholder="例：日本">
+                    </div>
+                    <div class="form-group">
+                        <label>市</label>
+                        <input type="text" id="supplier-city-${supplierCount}" placeholder="例：東京">
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(newSupplier);
+            supplierCount++;
+            updateRemoveButtons();
+            generateTransportForms();
+        }
+
+        function removeSupplier(index) {
+            const item = document.querySelector(`#suppliers-container .location-item[data-index="${index}"]`);
+            if (item) {
+                item.remove();
+                updateRemoveButtons();
+                generateTransportForms();
+            }
+        }
+
+        function addWarehouse() {
+            const container = document.getElementById('warehouses-container');
+            const newWarehouse = document.createElement('div');
+            newWarehouse.className = 'location-item';
+            newWarehouse.setAttribute('data-index', warehouseCount);
+            
+            newWarehouse.innerHTML = `
+                <h4>倉庫 ${warehouseCount + 1}
+                    <button class="remove-btn" onclick="removeWarehouse(${warehouseCount})">削除</button>
+                </h4>
+                <div class="form-group">
+                    <label>倉庫名</label>
+                    <input type="text" id="warehouse-name-${warehouseCount}" placeholder="例：東京第一倉庫">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>国内/海外</label>
+                        <select id="warehouse-location-${warehouseCount}" onchange="toggleWarehouseOptions(${warehouseCount})">
+                            <option value="domestic">国内</option>
+                            <option value="overseas">海外</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>既存/新設</label>
+                        <select id="warehouse-status-${warehouseCount}">
+                            <option value="existing">既存</option>
+                            <option value="new">新設</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>国</label>
+                        <input type="text" id="warehouse-country-${warehouseCount}" placeholder="例：日本">
+                    </div>
+                    <div class="form-group">
+                        <label>市</label>
+                        <input type="text" id="warehouse-city-${warehouseCount}" placeholder="例：東京">
+                    </div>
+                </div>
+                <div id="warehouse-options-${warehouseCount}" class="warehouse-options" style="display: block;">
+                    <div class="form-group">
+                        <label>倉庫タイプ</label>
+                        <select id="warehouse-type-${warehouseCount}">
+                            <option value="general">一般倉庫</option>
+                            <option value="bonded">保税倉庫</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>作業内容</label>
+                    <textarea id="warehouse-work-${warehouseCount}" placeholder="例：ピッキング、パッキング、品質検査" rows="2" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; resize: vertical;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>温湿度管理</label>
+                    <select id="temp-control-${warehouseCount}" onchange="toggleTempControl(${warehouseCount})">
+                        <option value="no">なし</option>
+                        <option value="yes">あり</option>
+                    </select>
+                </div>
+                <div id="temp-control-options-${warehouseCount}" class="temp-control-options" style="display: none;">
+                    <div class="temp-control-row">
+                        <div class="form-group">
+                            <label>設定温度（℃）</label>
+                            <input type="text" id="temperature-${warehouseCount}" placeholder="例：10-15" value="10-15">
+                        </div>
+                        <div class="form-group">
+                            <label>設定湿度（%）</label>
+                            <input type="text" id="humidity-${warehouseCount}" placeholder="例：60-70" value="60-70">
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(newWarehouse);
+            warehouseCount++;
+            updateRemoveButtons();
+            generateTransportForms();
+        }
+
+        function removeWarehouse(index) {
+            const item = document.querySelector(`#warehouses-container .location-item[data-index="${index}"]`);
+            if (item) {
+                item.remove();
+                updateRemoveButtons();
+                generateTransportForms();
+            }
+        }
+
+        function addDestination() {
+            const container = document.getElementById('destinations-container');
+            const newDestination = document.createElement('div');
+            newDestination.className = 'location-item';
+            newDestination.setAttribute('data-index', destinationCount);
+            
+            newDestination.innerHTML = `
+                <h4>納入先 ${destinationCount + 1}
+                    <button class="remove-btn" onclick="removeDestination(${destinationCount})">削除</button>
+                </h4>
+                <div class="form-group">
+                    <label>納入先名</label>
+                    <input type="text" id="destination-name-${destinationCount}" placeholder="例：XYZ製作所">
+                </div>
+                <div class="form-group">
+                    <label>国内/海外</label>
+                    <select id="destination-location-${destinationCount}">
+                        <option value="domestic">国内</option>
+                        <option value="overseas">海外</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>国</label>
+                        <input type="text" id="destination-country-${destinationCount}" placeholder="例：日本">
+                    </div>
+                    <div class="form-group">
+                        <label>市</label>
+                        <input type="text" id="destination-city-${destinationCount}" placeholder="例：大阪">
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(newDestination);
+            destinationCount++;
+            updateRemoveButtons();
+            generateTransportForms();
+        }
+
+        function removeDestination(index) {
+            const item = document.querySelector(`#destinations-container .location-item[data-index="${index}"]`);
+            if (item) {
+                item.remove();
+                updateRemoveButtons();
+                generateTransportForms();
+            }
+        }
+
+        function updateRemoveButtons() {
+            // 調達先の削除ボタン
+            const suppliers = document.querySelectorAll('#suppliers-container .location-item');
+            suppliers.forEach((item, index) => {
+                const removeBtn = item.querySelector('.remove-btn');
+                if (suppliers.length > 1) {
+                    removeBtn.style.display = 'inline-block';
+                } else {
+                    removeBtn.style.display = 'none';
+                }
+            });
+
+            // 倉庫の削除ボタン
+            const warehouses = document.querySelectorAll('#warehouses-container .location-item');
+            warehouses.forEach((item, index) => {
+                const removeBtn = item.querySelector('.remove-btn');
+                if (warehouses.length > 1) {
+                    removeBtn.style.display = 'inline-block';
+                } else {
+                    removeBtn.style.display = 'none';
+                }
+            });
+
+            // 納入先の削除ボタン
+            const destinations = document.querySelectorAll('#destinations-container .location-item');
+            destinations.forEach((item, index) => {
+                const removeBtn = item.querySelector('.remove-btn');
+                if (destinations.length > 1) {
+                    removeBtn.style.display = 'inline-block';
+                } else {
+                    removeBtn.style.display = 'none';
+                }
+            });
+        }
+
+        function generateTransportForms() {
+            const container = document.getElementById('transports-container');
+            container.innerHTML = '';
+
+            const suppliers = document.querySelectorAll('#suppliers-container .location-item');
+            const warehouses = document.querySelectorAll('#warehouses-container .location-item');
+            const destinations = document.querySelectorAll('#destinations-container .location-item');
+
+            let transportIndex = 0;
+
+            // 調達先→倉庫の輸送
+            suppliers.forEach((supplier, sIndex) => {
+                warehouses.forEach((warehouse, wIndex) => {
+                    const supplierIndex = supplier.getAttribute('data-index');
+                    const warehouseIndex = warehouse.getAttribute('data-index');
+                    const supplierName = document.getElementById(`supplier-name-${supplierIndex}`)?.value || `調達先${parseInt(supplierIndex)+1}`;
+                    const warehouseName = document.getElementById(`warehouse-name-${warehouseIndex}`)?.value || `倉庫${parseInt(warehouseIndex)+1}`;
+
+                    const transportItem = document.createElement('div');
+                    transportItem.className = 'transport-item';
+                    transportItem.innerHTML = `
+                        <h4>${supplierName} → ${warehouseName}</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>輸送モード</label>
+                                <select id="transport-${transportIndex}-mode">
+                                    <option value="truck">トラック</option>
+                                    <option value="ship">海運</option>
+                                    <option value="air" selected>航空</option>
+                                    <option value="rail">鉄道</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>既存/新設</label>
+                                <select id="transport-${transportIndex}-status">
+                                    <option value="existing" selected>既存</option>
+                                    <option value="new">新設</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>出発港</label>
+                                <input type="text" id="transport-${transportIndex}-departure" placeholder="例：東京港" value="上海浦東空港">
+                            </div>
+                            <div class="form-group">
+                                <label>到着港</label>
+                                <input type="text" id="transport-${transportIndex}-arrival" placeholder="例：大阪港" value="成田空港">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>輸送頻度</label>
+                                <input type="text" id="transport-${transportIndex}-frequency" placeholder="例：週2回" value="週3回">
+                            </div>
+                            <div class="form-group">
+                                <label>荷姿</label>
+                                <input type="text" id="transport-${transportIndex}-package" placeholder="例：パレット" value="ULD">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>物量</label>
+                            <input type="text" id="transport-${transportIndex}-volume" placeholder="例：100ケース" value="50コンテナ">
+                        </div>
+                        <input type="hidden" id="transport-${transportIndex}-from" value="${supplierIndex}">
+                        <input type="hidden" id="transport-${transportIndex}-to" value="${warehouseIndex}">
+                        <input type="hidden" id="transport-${transportIndex}-type" value="supplier-warehouse">
+                    `;
+                    container.appendChild(transportItem);
+                    transportIndex++;
+                });
+            });
+
+            // 倉庫→納入先の輸送
+            warehouses.forEach((warehouse, wIndex) => {
+                destinations.forEach((destination, dIndex) => {
+                    const warehouseIndex = warehouse.getAttribute('data-index');
+                    const destinationIndex = destination.getAttribute('data-index');
+                    const warehouseName = document.getElementById(`warehouse-name-${warehouseIndex}`)?.value || `倉庫${parseInt(warehouseIndex)+1}`;
+                    const destinationName = document.getElementById(`destination-name-${destinationIndex}`)?.value || `納入先${parseInt(destinationIndex)+1}`;
+
+                    const transportItem = document.createElement('div');
+                    transportItem.className = 'transport-item';
+                    transportItem.innerHTML = `
+                        <h4>${warehouseName} → ${destinationName}</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>輸送モード</label>
+                                <select id="transport-${transportIndex}-mode">
+                                    <option value="truck" selected>トラック</option>
+                                    <option value="ship">海運</option>
+                                    <option value="air">航空</option>
+                                    <option value="rail">鉄道</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>既存/新設</label>
+                                <select id="transport-${transportIndex}-status">
+                                    <option value="existing" selected>既存</option>
+                                    <option value="new">新設</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>出発港</label>
+                                <input type="text" id="transport-${transportIndex}-departure" placeholder="例：大阪港" value="成田倉庫">
+                            </div>
+                            <div class="form-group">
+                                <label>到着港</label>
+                                <input type="text" id="transport-${transportIndex}-arrival" placeholder="例：福岡港" value="東京工場">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>輸送頻度</label>
+                                <input type="text" id="transport-${transportIndex}-frequency" placeholder="例：毎日" value="毎日">
+                            </div>
+                            <div class="form-group">
+                                <label>荷姿</label>
+                                <input type="text" id="transport-${transportIndex}-package" placeholder="例：ダンボール" value="ダンボール">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>物量</label>
+                            <input type="text" id="transport-${transportIndex}-volume" placeholder="例：500個" value="200個">
+                        </div>
+                        <input type="hidden" id="transport-${transportIndex}-from" value="${warehouseIndex}">
+                        <input type="hidden" id="transport-${transportIndex}-to" value="${destinationIndex}">
+                        <input type="hidden" id="transport-${transportIndex}-type" value="warehouse-destination">
+                    `;
+                    container.appendChild(transportItem);
+                    transportIndex++;
+                });
+            });
+        }
+
+        let editMode = false;
+        let textBoxCounter = 0;
+
+        function toggleEditMode() {
+            editMode = !editMode;
+            const mapElement = document.getElementById('logistics-map');
+            const editBtn = document.getElementById('edit-mode-btn');
+            
+            if (editMode) {
+                mapElement.classList.add('edit-mode');
+                editBtn.innerHTML = '✅ 編集完了';
+                editBtn.style.background = 'linear-gradient(135deg, #ef4444, #f87171)';
+                enableDragAndDrop();
+            } else {
+                mapElement.classList.remove('edit-mode');
+                editBtn.innerHTML = '🔧 編集モード';
+                editBtn.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+                disableDragAndDrop();
+            }
+        }
+
+        function addTextBox() {
+            textBoxCounter++;
+            const mapElement = document.getElementById('logistics-map');
+            const textBox = document.createElement('div');
+            textBox.className = 'custom-textbox';
+            textBox.contentEditable = true;
+            textBox.innerHTML = 'テキストを入力...';
+            textBox.style.left = '50px';
+            textBox.style.top = '50px';
+            textBox.setAttribute('data-textbox-id', textBoxCounter);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-textbox';
+            deleteBtn.innerHTML = '×';
+            deleteBtn.onclick = function() {
+                mapElement.removeChild(textBox);
+            };
+            
+            textBox.appendChild(deleteBtn);
+            
+            textBox.addEventListener('click', function(e) {
+                if (!editMode) {
+                    this.classList.add('editing');
+                    this.focus();
+                }
+            });
+            
+            textBox.addEventListener('blur', function() {
+                this.classList.remove('editing');
+            });
+            
+            textBox.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.blur();
+                }
+            });
+            
+            mapElement.appendChild(textBox);
+            
+            if (editMode) {
+                makeElementDraggable(textBox);
+            }
+        }
+
+        function enableDragAndDrop() {
+            const mapElement = document.getElementById('logistics-map');
+            const draggableElements = mapElement.querySelectorAll('.location-box, .flow-arrow, .custom-textbox');
+            
+            draggableElements.forEach(element => {
+                makeElementDraggable(element);
+            });
+        }
+
+        function disableDragAndDrop() {
+            const mapElement = document.getElementById('logistics-map');
+            const draggableElements = mapElement.querySelectorAll('.location-box, .flow-arrow, .custom-textbox');
+            
+            draggableElements.forEach(element => {
+                element.classList.remove('draggable');
+                element.removeAttribute('draggable');
+                element.onmousedown = null;
+            });
+        }
+
+        function makeElementDraggable(element) {
+            element.classList.add('draggable');
+            let isDragging = false;
+            let startX, startY, elementX, elementY;
+            
+            element.addEventListener('mousedown', function(e) {
+                if (!editMode && !element.classList.contains('custom-textbox')) return;
+                
+                isDragging = true;
+                element.classList.add('dragging');
+                
+                const rect = element.getBoundingClientRect();
+                const mapRect = document.getElementById('logistics-map').getBoundingClientRect();
+                
+                startX = e.clientX;
+                startY = e.clientY;
+                elementX = rect.left - mapRect.left;
+                elementY = rect.top - mapRect.top;
+                
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                element.style.position = 'absolute';
+                element.style.left = (elementX + deltaX) + 'px';
+                element.style.top = (elementY + deltaY) + 'px';
+                element.style.zIndex = '999';
+            });
+            
+            document.addEventListener('mouseup', function() {
+                if (isDragging) {
+                    isDragging = false;
+                    element.classList.remove('dragging');
+                }
+            });
+        }
+
+        function toggleWarehouseOptions(index) {
+            // 保税倉庫選択が常に表示されるようになったため、この関数は不要
+        }
+
+        function toggleTempControl(index) {
+            const tempControl = document.getElementById(`temp-control-${index}`).value;
+            const tempControlOptions = document.getElementById(`temp-control-options-${index}`);
+            
+            if (tempControl === 'yes') {
+                tempControlOptions.style.display = 'block';
+            } else {
+                tempControlOptions.style.display = 'none';
+            }
+        }
+
+        function generateMap() {
+            const mapContainer = document.getElementById('logistics-map');
+            
+            // 各拠点のデータを収集
+            const suppliers = Array.from(document.querySelectorAll('#suppliers-container .location-item')).map(item => {
+                const index = item.getAttribute('data-index');
+                return {
+                    index,
+                    name: document.getElementById(`supplier-name-${index}`)?.value || `調達先${parseInt(index)+1}`,
+                    location: document.getElementById(`supplier-location-${index}`)?.value || 'domestic',
+                    country: document.getElementById(`supplier-country-${index}`)?.value || '',
+                    city: document.getElementById(`supplier-city-${index}`)?.value || ''
+                };
+            });
+
+            const warehouses = Array.from(document.querySelectorAll('#warehouses-container .location-item')).map(item => {
+                const index = item.getAttribute('data-index');
+                const tempControl = document.getElementById(`temp-control-${index}`)?.value || 'no';
+                return {
+                    index,
+                    name: document.getElementById(`warehouse-name-${index}`)?.value || `倉庫${parseInt(index)+1}`,
+                    location: document.getElementById(`warehouse-location-${index}`)?.value || 'domestic',
+                    status: document.getElementById(`warehouse-status-${index}`)?.value || 'existing',
+                    type: document.getElementById(`warehouse-type-${index}`)?.value || 'general',
+                    country: document.getElementById(`warehouse-country-${index}`)?.value || '',
+                    city: document.getElementById(`warehouse-city-${index}`)?.value || '',
+                    work: document.getElementById(`warehouse-work-${index}`)?.value || '',
+                    tempControl,
+                    temperature: document.getElementById(`temperature-${index}`)?.value || '10-15',
+                    humidity: document.getElementById(`humidity-${index}`)?.value || '60-70'
+                };
+            });
+
+            const destinations = Array.from(document.querySelectorAll('#destinations-container .location-item')).map(item => {
+                const index = item.getAttribute('data-index');
+                return {
+                    index,
+                    name: document.getElementById(`destination-name-${index}`)?.value || `納入先${parseInt(index)+1}`,
+                    location: document.getElementById(`destination-location-${index}`)?.value || 'domestic',
+                    country: document.getElementById(`destination-country-${index}`)?.value || '',
+                    city: document.getElementById(`destination-city-${index}`)?.value || ''
+                };
+            });
+
+            // 輸送情報を収集
+            const transports = Array.from(document.querySelectorAll('#transports-container .transport-item')).map((item, index) => {
+                return {
+                    mode: document.getElementById(`transport-${index}-mode`)?.value || 'truck',
+                    status: document.getElementById(`transport-${index}-status`)?.value || 'existing',
+                    departure: document.getElementById(`transport-${index}-departure`)?.value || '',
+                    arrival: document.getElementById(`transport-${index}-arrival`)?.value || '',
+                    frequency: document.getElementById(`transport-${index}-frequency`)?.value || '-',
+                    package: document.getElementById(`transport-${index}-package`)?.value || '-',
+                    volume: document.getElementById(`transport-${index}-volume`)?.value || '-',
+                    from: document.getElementById(`transport-${index}-from`)?.value,
+                    to: document.getElementById(`transport-${index}-to`)?.value,
+                    type: document.getElementById(`transport-${index}-type`)?.value
+                };
+            });
+
+            // 輸送情報を分類
+            const supplierToWarehouseTransports = transports.filter(t => t.type === 'supplier-warehouse');
+            const warehouseToDestinationTransports = transports.filter(t => t.type === 'warehouse-destination');
+
+            // 輸送モードのアイコンとテキスト
+            const transportIcons = {
+                truck: '🚛',
+                ship: '🚢',
+                air: '✈️',
+                rail: '🚆'
+            };
+
+            const transportNames = {
+                truck: 'トラック',
+                ship: '海運',
+                air: '航空',
+                rail: '鉄道'
+            };
+
+            let mapHTML = '';
+
+            // 最大数を計算して位置合わせに使用
+            const maxSuppliers = suppliers.length;
+            const maxWarehouses = warehouses.length;
+            const maxDestinations = destinations.length;
+
+            // 調達先グループ
+            mapHTML += '<div class="location-group">';
+            suppliers.forEach((supplier) => {
+                const locationText = supplier.country || supplier.city ? 
+                    `${supplier.country}${supplier.country && supplier.city ? ' ' : ''}${supplier.city}` : 
+                    (supplier.location === 'domestic' ? '国内' : '海外');
+                
+                mapHTML += `
+                    <div class="location-box ${supplier.location}" style="position: relative;" data-type="supplier" data-index="${supplier.index}">
+                        <div class="location-title">🏭 調達先</div>
+                        <div class="location-name">${supplier.name}</div>
+                        <div class="location-type ${supplier.location}-tag">
+                            ${locationText}
+                        </div>
+                    </div>
+                `;
+            });
+            mapHTML += '</div>';
+
+            // 調達先→倉庫の輸送モードグループ（改良版）
+            mapHTML += '<div class="transport-group">';
+            
+            // 各調達先に対して1つずつ輸送モードを表示
+            suppliers.forEach((supplier, sIndex) => {
+                // この調達先から任意の倉庫への輸送を探す
+                const transport = supplierToWarehouseTransports.find(t => t.from === supplier.index);
+                
+                if (transport) {
+                    mapHTML += `
+                        <div class="flow-arrow" style="position: relative;" data-type="transport" data-index="supplier-${sIndex}">
+                            <div class="transport-info ${transport.mode} ${transport.status}">
+                                <div class="transport-icon">${transportIcons[transport.mode]}</div>
+                                <div class="flow-label">輸送モード</div>
+                                <div class="flow-value">${transportNames[transport.mode]}</div>
+                                
+                                <div class="transport-arrow-container">
+                                    <div class="transport-arrow ${transport.status}">➡</div>
+                                </div>
+                                
+                                <div class="transport-details">
+                                    ${transport.departure ? `
+                                    <div class="transport-detail-item">
+                                        <span class="transport-detail-label">出発:</span>
+                                        <span class="transport-detail-value">${transport.departure}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${transport.arrival ? `
+                                    <div class="transport-detail-item">
+                                        <span class="transport-detail-label">到着:</span>
+                                        <span class="transport-detail-value">${transport.arrival}</span>
+                                    </div>
+                                    ` : ''}
+                                    <div class="transport-detail-item">
+                                        <span class="transport-detail-label">頻度:</span>
+                                        <span class="transport-detail-value">${transport.frequency}</span>
+                                    </div>
+                                    <div class="transport-detail-item">
+                                        <span class="transport-detail-label">荷姿:</span>
+                                        <span class="transport-detail-value">${transport.package}</span>
+                                    </div>
+                                    <div class="transport-detail-item">
+                                        <span class="transport-detail-label">物量:</span>
+                                        <span class="transport-detail-value">${transport.volume}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // 空のスペーサーを追加して位置合わせ
+                    mapHTML += '<div class="transport-spacer"></div>';
+                }
+            });
+            mapHTML += '</div>';
+
+            // 倉庫グループ
+            mapHTML += '<div class="location-group">';
+            warehouses.forEach((warehouse) => {
+                let warehouseClass = warehouse.location + ' ' + warehouse.status;
+                if (warehouse.type === 'bonded') {
+                    warehouseClass += ' bonded';
+                }
+
+                const locationText = warehouse.country || warehouse.city ? 
+                    `${warehouse.country}${warehouse.country && warehouse.city ? ' ' : ''}${warehouse.city}` : 
+                    (warehouse.location === 'domestic' ? '国内' : '海外');
+
+                const tempControlInfo = warehouse.tempControl === 'yes' ? `
+                    <div class="temp-control-info">
+                        <div class="temp-control-title">🌡️ 温湿度管理</div>
+                        <div class="temp-humidity-row">
+                            <div class="temp-item">
+                                <div class="temp-label">設定温度</div>
+                                <div class="temp-value">${warehouse.temperature}℃</div>
+                            </div>
+                            <div class="humidity-item">
+                                <div class="humidity-label">設定湿度</div>
+                                <div class="humidity-value">${warehouse.humidity}%</div>
+                            </div>
+                        </div>
+                    </div>
+                ` : '';
+
+                const workInfo = warehouse.work ? `
+                    <div class="temp-control-info" style="margin-top: 8px; border-color: #059669;">
+                        <div class="temp-control-title" style="color: #059669;">🔧 作業内容</div>
+                        <div style="font-size: 9px; color: #1f2937; line-height: 1.3; text-align: center;">
+                            ${warehouse.work}
+                        </div>
+                    </div>
+                ` : '';
+
+                mapHTML += `
+                    <div class="location-box ${warehouseClass}" style="position: relative;" data-type="warehouse" data-index="${warehouse.index}">
+                        <div class="location-title">🏬 倉庫</div>
+                        <div class="location-name">${warehouse.name}</div>
+                        <div class="location-type ${warehouse.location}-tag">
+                            ${locationText}${warehouse.type === 'bonded' ? '(保税)' : ''}
+                        </div>
+                        ${workInfo}
+                        ${tempControlInfo}
+                    </div>
+                `;
+            });
+            mapHTML += '</div>';
+
+            // 倉庫→納入先の輸送モードグループ（改良版）
+            mapHTML += '<div class="transport-group">';
+            
+            // 各倉庫に対して1つずつ輸送モードを表示
+            warehouses.forEach((warehouse, wIndex) => {
+                // この倉庫から任意の納入先への輸送を探す
+                const transport = warehouseToDestinationTransports.find(t => t.from === warehouse.index);
+                
+                if (transport) {
+                    mapHTML += `
+                        <div class="flow-arrow" style="position: relative;" data-type="transport" data-index="warehouse-${wIndex}">
+                            <div class="transport-info ${transport.mode} ${transport.status}">
+                                <div class="transport-icon">${transportIcons[transport.mode]}</div>
+                                <div class="flow-label">輸送モード</div>
+                                <div class="flow-value">${transportNames[transport.mode]}</div>
+                                
+                                <div class="transport-arrow-container">
+                                    <div class="transport-arrow ${transport.status}">➡</div>
+                                </div>
+                                
+                                <div class="transport-details">
+                                    ${transport.departure ? `
+                                    <div class="transport-detail-item">
+                                        <span class="transport-detail-label">出発:</span>
+                                        <span class="transport-detail-value">${transport.departure}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${transport.arrival ? `
+                                    <div class="transport-detail-item">
+                                        <span class="transport-detail-label">到着:</span>
+                                        <span class="transport-detail-value">${transport.arrival}</span>
+                                    </div>
+                                    ` : ''}
+                                    <div class="transport-detail-item">
+                                        <span class="transport-detail-label">頻度:</span>
+                                        <span class="transport-detail-value">${transport.frequency}</span>
+                                    </div>
+                                    <div class="transport-detail-item">
+                                        <span class="transport-detail-label">荷姿:</span>
+                                        <span class="transport-detail-value">${transport.package}</span>
+                                    </div>
+                                    <div class="transport-detail-item">
+                                        <span class="transport-detail-label">物量:</span>
+                                        <span class="transport-detail-value">${transport.volume}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // 空のスペーサーを追加して位置合わせ
+                    mapHTML += '<div class="transport-spacer"></div>';
+                }
+            });
+            mapHTML += '</div>';
+
+            // 納入先グループ
+            mapHTML += '<div class="location-group">';
+            destinations.forEach((destination) => {
+                const locationText = destination.country || destination.city ? 
+                    `${destination.country}${destination.country && destination.city ? ' ' : ''}${destination.city}` : 
+                    (destination.location === 'domestic' ? '国内' : '海外');
+                
+                mapHTML += `
+                    <div class="location-box ${destination.location}" style="position: relative;" data-type="destination" data-index="${destination.index}">
+                        <div class="location-title">🏪 納入先</div>
+                        <div class="location-name">${destination.name}</div>
+                        <div class="location-type ${destination.location}-tag">
+                            ${locationText}
+                        </div>
+                    </div>
+                `;
+            });
+            mapHTML += '</div>';
+
+            mapContainer.innerHTML = mapHTML;
+        }
+
+        function exportAsImage() {
+            const mapElement = document.getElementById('logistics-map');
+            const mapPanel = document.querySelector('.map-panel');
+            const exportBtn = document.querySelector('.export-btn');
+            
+            // ボタンを無効化
+            exportBtn.disabled = true;
+            exportBtn.innerHTML = '📷 生成中...';
+            
+            // 元のスタイルを保存
+            const originalMapStyle = {
+                overflow: mapElement.style.overflow,
+                height: mapElement.style.height,
+                maxHeight: mapElement.style.maxHeight,
+                width: mapElement.style.width,
+                maxWidth: mapElement.style.maxWidth
+            };
+            
+            const originalPanelStyle = {
+                overflow: mapPanel.style.overflow,
+                height: mapPanel.style.height,
+                maxHeight: mapPanel.style.maxHeight
+            };
+            
+            // キャプチャ用のスタイルを適用
+            mapElement.style.overflow = 'visible';
+            mapElement.style.height = 'auto';
+            mapElement.style.maxHeight = 'none';
+            mapElement.style.width = 'max-content';
+            mapElement.style.maxWidth = 'none';
+            
+            mapPanel.style.overflow = 'visible';
+            mapPanel.style.height = 'auto';
+            mapPanel.style.maxHeight = 'none';
+            
+            // DOM更新を待つ
+            setTimeout(() => {
+                // 要素の実際のサイズを取得
+                const rect = mapElement.getBoundingClientRect();
+                const scrollWidth = mapElement.scrollWidth;
+                const scrollHeight = mapElement.scrollHeight;
+                
+                html2canvas(mapElement, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    width: Math.max(rect.width, scrollWidth, 800),
+                    height: Math.max(rect.height, scrollHeight, 400),
+                    scrollX: 0,
+                    scrollY: 0,
+                    x: 0,
+                    y: 0,
+                    windowWidth: Math.max(scrollWidth + 100, window.innerWidth),
+                    windowHeight: Math.max(scrollHeight + 100, window.innerHeight),
+                    onclone: function(clonedDoc) {
+                        // クローンされたドキュメント内でもスタイルを調整
+                        const clonedMapElement = clonedDoc.getElementById('logistics-map');
+                        const clonedMapPanel = clonedDoc.querySelector('.map-panel');
+                        
+                        if (clonedMapElement) {
+                            clonedMapElement.style.overflow = 'visible';
+                            clonedMapElement.style.height = 'auto';
+                            clonedMapElement.style.maxHeight = 'none';
+                            clonedMapElement.style.width = 'max-content';
+                            clonedMapElement.style.maxWidth = 'none';
+                            clonedMapElement.style.position = 'static';
+                        }
+                        
+                        if (clonedMapPanel) {
+                            clonedMapPanel.style.overflow = 'visible';
+                            clonedMapPanel.style.height = 'auto';
+                            clonedMapPanel.style.maxHeight = 'none';
+                        }
+                    }
+                }).then(function(canvas) {
+                    // 元のスタイルを復元
+                    Object.keys(originalMapStyle).forEach(key => {
+                        if (originalMapStyle[key]) {
+                            mapElement.style[key] = originalMapStyle[key];
+                        } else {
+                            mapElement.style[key] = '';
+                        }
+                    });
+                    
+                    Object.keys(originalPanelStyle).forEach(key => {
+                        if (originalPanelStyle[key]) {
+                            mapPanel.style[key] = originalPanelStyle[key];
+                        } else {
+                            mapPanel.style[key] = '';
+                        }
+                    });
+                    
+                    // 画像をダウンロード
+                    const link = document.createElement('a');
+                    link.download = `物流マップ_${new Date().toISOString().slice(0, 10)}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    // ボタンを元に戻す
+                    exportBtn.disabled = false;
+                    exportBtn.innerHTML = '📷 画像として保存';
+                }).catch(function(error) {
+                    console.error('画像生成に失敗しました:', error);
+                    alert('画像の生成に失敗しました。再度お試しください。');
+                    
+                    // エラー時も元のスタイルを復元
+                    Object.keys(originalMapStyle).forEach(key => {
+                        if (originalMapStyle[key]) {
+                            mapElement.style[key] = originalMapStyle[key];
+                        } else {
+                            mapElement.style[key] = '';
+                        }
+                    });
+                    
+                    Object.keys(originalPanelStyle).forEach(key => {
+                        if (originalPanelStyle[key]) {
+                            mapPanel.style[key] = originalPanelStyle[key];
+                        } else {
+                            mapPanel.style[key] = '';
+                        }
+                    });
+                    
+                    // ボタンを元に戻す
+                    exportBtn.disabled = false;
+                    exportBtn.innerHTML = '📷 画像として保存';
+                });
+            }, 100);
+        }
+
+        // ページ読み込み時に初期化
+        window.onload = function() {
+            generateTransportForms();
+            generateMap();
+        };
+    </script>
+</body>
+</html>
