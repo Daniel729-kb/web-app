@@ -1984,8 +1984,8 @@
             // 関連する削除ボタンの更新
             updateRemoveButtons();
             
-            // 輸送フォームを再生成（関連する輸送情報も自動的に削除される）
-            generateTransportForms();
+            // 輸送フォームは再生成せず、そのまま維持
+            // generateTransportForms(); // この行をコメントアウト
             
             // マップを再生成
             generateMap();
@@ -2177,9 +2177,40 @@
                 return { id: `d${index}`, index, name: document.getElementById(`destination-name-${index}`).value, location: document.getElementById(`destination-location-${index}`).value, country: document.getElementById(`destination-country-${index}`).value, city: document.getElementById(`destination-city-${index}`).value };
             });
 
+            // 現在存在するIDのセットを作成
+            const existingSupplierIds = new Set(suppliers.map(s => s.id));
+            const existingWarehouseIds = new Set(warehouses.map(w => w.id));
+            const existingDestinationIds = new Set(destinations.map(d => d.id));
+
             const transports = Array.from(document.querySelectorAll('#transports-container .transport-item')).map((item, index) => {
-                return { mode: document.getElementById(`transport-${index}-mode`).value, status: document.getElementById(`transport-${index}-status`).value, departure: document.getElementById(`transport-${index}-departure`).value, arrival: document.getElementById(`transport-${index}-arrival`).value, frequency: document.getElementById(`transport-${index}-frequency`).value, package: document.getElementById(`transport-${index}-package`).value, volume: document.getElementById(`transport-${index}-volume`).value, from: document.getElementById(`transport-${index}-from`).value, to: document.getElementById(`transport-${index}-to`).value };
-            });
+                const fromElement = document.getElementById(`transport-${index}-from`);
+                const toElement = document.getElementById(`transport-${index}-to`);
+                
+                if (!fromElement || !toElement) return null; // 要素が存在しない場合はスキップ
+                
+                const from = fromElement.value;
+                const to = toElement.value;
+                
+                // 削除されたロケーションを参照している輸送は除外
+                const fromExists = (from.startsWith('s') && existingSupplierIds.has(from)) ||
+                                 (from.startsWith('w') && existingWarehouseIds.has(from));
+                const toExists = (to.startsWith('w') && existingWarehouseIds.has(to)) ||
+                               (to.startsWith('d') && existingDestinationIds.has(to));
+                
+                if (!fromExists || !toExists) return null; // 参照先が存在しない場合はスキップ
+                
+                return { 
+                    mode: document.getElementById(`transport-${index}-mode`).value, 
+                    status: document.getElementById(`transport-${index}-status`).value, 
+                    departure: document.getElementById(`transport-${index}-departure`).value, 
+                    arrival: document.getElementById(`transport-${index}-arrival`).value, 
+                    frequency: document.getElementById(`transport-${index}-frequency`).value, 
+                    package: document.getElementById(`transport-${index}-package`).value, 
+                    volume: document.getElementById(`transport-${index}-volume`).value, 
+                    from: from, 
+                    to: to 
+                };
+            }).filter(transport => transport !== null); // nullの要素を除外
             
             const existingTextBoxes = mapContainer.querySelectorAll('.custom-textbox');
 
