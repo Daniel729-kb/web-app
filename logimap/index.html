@@ -2145,39 +2145,52 @@
         }
 
         function exportAsImage() {
-            const mapElement = document.getElementById('logistics-map');
-            const exportBtn = document.querySelector('button[onclick="exportAsImage()"]');
+    const mapElement = document.getElementById('logistics-map');
+    const exportBtn = document.querySelector('button[onclick="exportAsImage()"]');
 
-            const originalButtonText = exportBtn.innerHTML;
-            exportBtn.disabled = true;
-            exportBtn.innerHTML = getTranslation('generating');
+    const originalButtonText = exportBtn.innerHTML;
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = getTranslation('generating');
 
-            html2canvas(mapElement, {
-                backgroundColor: '#ffffff',
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                onclone: (clonedDoc) => {
-                    // Remove borders from edit mode for cleaner export
-                    const clonedMap = clonedDoc.getElementById('logistics-map');
-                    clonedMap.classList.remove('edit-mode');
-                    clonedMap.querySelectorAll('.location-box, .flow-arrow, .custom-textbox').forEach(el => {
-                       el.style.border = '';
-                    });
-                }
-            }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `logistics-map_${new Date().toISOString().slice(0, 10)}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            }).catch(error => {
-                console.error('Image generation failed:', error);
-                alert('Image generation failed.');
-            }).finally(() => {
-                exportBtn.disabled = false;
-                exportBtn.innerHTML = originalButtonText;
-            });
+    // スクロール領域を含む完全な幅と高さを取得
+    const fullWidth = mapElement.scrollWidth;
+    const fullHeight = mapElement.scrollHeight;
+
+    html2canvas(mapElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        // 取得した完全なサイズをオプションに設定
+        width: fullWidth,
+        height: fullHeight,
+        onclone: (clonedDoc) => {
+            // エクスポート用にクローンされたドキュメントのスタイルを調整
+            const clonedMap = clonedDoc.getElementById('logistics-map');
+            if (clonedMap) {
+                // 編集モードの枠線などを解除してクリーンな見た目にする
+                clonedMap.classList.remove('edit-mode');
+                clonedMap.querySelectorAll('.location-box, .flow-arrow, .custom-textbox').forEach(el => {
+                    el.style.border = '';
+                });
+                // コンテナのサイズを内容に合わせて広げる
+                clonedMap.style.width = fullWidth + 'px';
+                clonedMap.style.height = fullHeight + 'px';
+            }
         }
+    }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `logistics-map_${new Date().toISOString().slice(0, 10)}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }).catch(error => {
+        console.error('Image generation failed:', error);
+        alert('Image generation failed.');
+    }).finally(() => {
+        exportBtn.disabled = false;
+        exportBtn.innerHTML = originalButtonText;
+    });
+}
 
         window.onload = function() {
             updateTranslations();
