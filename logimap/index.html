@@ -315,13 +315,41 @@
             display: block;
         }
 
+        .delete-location-box {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            cursor: pointer;
+            display: none;
+            z-index: 1001;
+            font-weight: bold;
+        }
+
+        .edit-mode .location-box:hover .delete-location-box {
+            display: block;
+        }
+
+        .delete-location-box:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+
         .draggable {
             cursor: move !important;
+            transition: none !important;
         }
 
         .dragging {
             opacity: 0.8;
             transform: scale(1.05);
+            z-index: 2000 !important;
         }
 
         .edit-mode .location-box,
@@ -1173,7 +1201,8 @@
                 downloadTemplate: "📋 サンプルテンプレート",
                 importSuccess: "データのインポートが完了しました",
                 importError: "CSVファイルの読み込みに失敗しました",
-                invalidFormat: "CSVファイルの形式が正しくありません"
+                invalidFormat: "CSVファイルの形式が正しくありません",
+                cannotDeleteLast: "最後の項目は削除できません"
             },
             en: {
                 title: "Logistics Map Generator",
@@ -1240,7 +1269,8 @@
                 downloadTemplate: "📋 Sample Template",
                 importSuccess: "Data import completed successfully",
                 importError: "Failed to read CSV file",
-                invalidFormat: "CSV file format is invalid"
+                invalidFormat: "CSV file format is invalid",
+                cannotDeleteLast: "Cannot delete the last item"
             },
             zh: {
                 title: "物流地图自动生成",
@@ -1307,7 +1337,8 @@
                 downloadTemplate: "📋 示例模板",
                 importSuccess: "数据导入成功完成",
                 importError: "CSV文件读取失败",
-                invalidFormat: "CSV文件格式无效"
+                invalidFormat: "CSV文件格式无效",
+                cannotDeleteLast: "无法删除最后一项"
             }
         };
 
@@ -1355,6 +1386,9 @@
         let destinationCount = 1;
         let editMode = false;
         let textBoxCounter = 0;
+
+        // ドラッグ機能に関連するグローバル変数
+        let dragElements = new Map(); // 要素とそのドラッグハンドラーを記録
 
         function addSupplier() {
             const container = document.getElementById('suppliers-container');
@@ -1922,6 +1956,48 @@
             generateMap();
         }
 
+        function deleteLocationBox(type, index, event) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const containers = {
+                'supplier': '#suppliers-container',
+                'warehouse': '#warehouses-container', 
+                'destination': '#destinations-container'
+            };
+            
+            const container = document.querySelector(containers[type]);
+            const items = container.querySelectorAll('.location-item');
+            
+            // 最低1つは残す
+            if (items.length <= 1) {
+                alert(getTranslation('cannotDeleteLast') || 'Cannot delete the last item');
+                return;
+            }
+            
+            // 該当するフォーム要素を削除
+            const item = container.querySelector(`.location-item[data-index="${index}"]`);
+            if (item) {
+                item.remove();
+            }
+            
+            // 関連する削除ボタンの更新
+            updateRemoveButtons();
+            
+            // 輸送フォームを再生成（関連する輸送情報も自動的に削除される）
+            generateTransportForms();
+            
+            // マップを再生成
+            generateMap();
+            
+            // 編集モードが有効な場合、ドラッグ機能を再有効化
+            if (editMode) {
+                setTimeout(() => {
+                    enableDragAndDrop();
+                }, 100);
+            }
+        }
+
         function toggleEditMode() {
             editMode = !editMode;
             const mapElement = document.getElementById('logistics-map');
@@ -1956,6 +2032,10 @@
             deleteBtn.innerHTML = '×';
             deleteBtn.onclick = (e) => {
                 e.stopPropagation();
+                // ドラッグハンドラーの削除
+                if (dragElements.has(textBox)) {
+                    removeDragHandlers(textBox);
+                }
                 mapElement.removeChild(textBox);
             };
             
@@ -1973,44 +2053,102 @@
         }
 
         function disableDragAndDrop() {
+            // 修正：cloneNodeを使わずに、イベントリスナーのみを削除
+            dragElements.forEach((handlers, element) => {
+                removeDragHandlers(element);
+            });
+            dragElements.clear();
+            
+            // draggableクラスを削除
             document.querySelectorAll('.draggable').forEach(element => {
                 element.classList.remove('draggable');
-                const newElement = element.cloneNode(true);
-                element.parentNode.replaceChild(newElement, element);
             });
         }
 
+        function removeDragHandlers(element) {
+            const handlers = dragElements.get(element);
+            if (handlers) {
+                element.removeEventListener('mousedown', handlers.mousedown);
+                dragElements.delete(element);
+            }
+        }
+
         function makeElementDraggable(element) {
-            element.classList.add('draggable');
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-
-            element.onmousedown = dragMouseDown;
-
-            function dragMouseDown(e) {
-                e.preventDefault();
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                document.onmouseup = closeDragElement;
-                document.onmousemove = elementDrag;
+            // 既存のハンドラーがあれば削除
+            if (dragElements.has(element)) {
+                removeDragHandlers(element);
             }
 
-            function elementDrag(e) {
+            element.classList.add('draggable');
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            let isDragging = false;
+
+            const mouseDownHandler = function(e) {
+                // テキストボックスの編集中はドラッグを無効化
+                if (element.classList.contains('custom-textbox') && e.target === element) {
+                    return;
+                }
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                isDragging = true;
+                
+                // 要素を絶対位置に変更し、現在の位置を保持
+                const rect = element.getBoundingClientRect();
+                const mapRect = element.closest('.logistics-map').getBoundingClientRect();
+                
+                element.style.position = 'absolute';
+                element.style.left = (rect.left - mapRect.left) + 'px';
+                element.style.top = (rect.top - mapRect.top) + 'px';
+                element.style.zIndex = '2000';
+                element.classList.add('dragging');
+                
+                document.addEventListener('mousemove', mouseMoveHandler);
+                document.addEventListener('mouseup', mouseUpHandler);
+            };
+
+            const mouseMoveHandler = function(e) {
+                if (!isDragging) return;
+                
                 e.preventDefault();
                 pos1 = pos3 - e.clientX;
                 pos2 = pos4 - e.clientY;
                 pos3 = e.clientX;
                 pos4 = e.clientY;
-                element.style.position = 'absolute';
-                element.style.top = (element.offsetTop - pos2) + "px";
-                element.style.left = (element.offsetLeft - pos1) + "px";
-                element.style.zIndex = 1001;
-            }
+                
+                const newTop = element.offsetTop - pos2;
+                const newLeft = element.offsetLeft - pos1;
+                
+                // 境界チェック（マップコンテナ内に制限）
+                const mapElement = element.closest('.logistics-map');
+                const mapRect = mapElement.getBoundingClientRect();
+                const elementRect = element.getBoundingClientRect();
+                
+                const maxLeft = mapElement.scrollWidth - elementRect.width;
+                const maxTop = mapElement.scrollHeight - elementRect.height;
+                
+                element.style.top = Math.max(0, Math.min(newTop, maxTop)) + "px";
+                element.style.left = Math.max(0, Math.min(newLeft, maxLeft)) + "px";
+            };
 
-            function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
-                element.style.zIndex = 1000;
-            }
+            const mouseUpHandler = function() {
+                isDragging = false;
+                element.classList.remove('dragging');
+                element.style.zIndex = '1000';
+                
+                document.removeEventListener('mousemove', mouseMoveHandler);
+                document.removeEventListener('mouseup', mouseUpHandler);
+            };
+
+            element.addEventListener('mousedown', mouseDownHandler);
+            
+            // ハンドラーを記録
+            dragElements.set(element, {
+                mousedown: mouseDownHandler
+            });
         }
 
         function toggleTempControl(index) {
@@ -2067,6 +2205,7 @@
 
                 return `
                     <div id="${item.id}" class="location-box ${itemClass}" data-type="${type}" data-index="${item.index}">
+                        <button class="delete-location-box" onclick="deleteLocationBox('${type}', '${item.index}', event)">×</button>
                         <div class="location-title">${translation[type + 'Title']}</div>
                         <div class="location-name">${item.name}</div>
                         <div class="location-type ${item.location}-tag">${locationText}</div>
@@ -2145,52 +2284,52 @@
         }
 
         function exportAsImage() {
-    const mapElement = document.getElementById('logistics-map');
-    const exportBtn = document.querySelector('button[onclick="exportAsImage()"]');
+            const mapElement = document.getElementById('logistics-map');
+            const exportBtn = document.querySelector('button[onclick="exportAsImage()"]');
 
-    const originalButtonText = exportBtn.innerHTML;
-    exportBtn.disabled = true;
-    exportBtn.innerHTML = getTranslation('generating');
+            const originalButtonText = exportBtn.innerHTML;
+            exportBtn.disabled = true;
+            exportBtn.innerHTML = getTranslation('generating');
 
-    // スクロール領域を含む完全な幅と高さを取得
-    const fullWidth = mapElement.scrollWidth;
-    const fullHeight = mapElement.scrollHeight;
+            // スクロール領域を含む完全な幅と高さを取得
+            const fullWidth = mapElement.scrollWidth;
+            const fullHeight = mapElement.scrollHeight;
 
-    html2canvas(mapElement, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        // 取得した完全なサイズをオプションに設定
-        width: fullWidth,
-        height: fullHeight,
-        onclone: (clonedDoc) => {
-            // エクスポート用にクローンされたドキュメントのスタイルを調整
-            const clonedMap = clonedDoc.getElementById('logistics-map');
-            if (clonedMap) {
-                // 編集モードの枠線などを解除してクリーンな見た目にする
-                clonedMap.classList.remove('edit-mode');
-                clonedMap.querySelectorAll('.location-box, .flow-arrow, .custom-textbox').forEach(el => {
-                    el.style.border = '';
-                });
-                // コンテナのサイズを内容に合わせて広げる
-                clonedMap.style.width = fullWidth + 'px';
-                clonedMap.style.height = fullHeight + 'px';
-            }
+            html2canvas(mapElement, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                // 取得した完全なサイズをオプションに設定
+                width: fullWidth,
+                height: fullHeight,
+                onclone: (clonedDoc) => {
+                    // エクスポート用にクローンされたドキュメントのスタイルを調整
+                    const clonedMap = clonedDoc.getElementById('logistics-map');
+                    if (clonedMap) {
+                        // 編集モードの枠線などを解除してクリーンな見た目にする
+                        clonedMap.classList.remove('edit-mode');
+                        clonedMap.querySelectorAll('.location-box, .flow-arrow, .custom-textbox').forEach(el => {
+                            el.style.border = '';
+                        });
+                        // コンテナのサイズを内容に合わせて広げる
+                        clonedMap.style.width = fullWidth + 'px';
+                        clonedMap.style.height = fullHeight + 'px';
+                    }
+                }
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `logistics-map_${new Date().toISOString().slice(0, 10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(error => {
+                console.error('Image generation failed:', error);
+                alert('Image generation failed.');
+            }).finally(() => {
+                exportBtn.disabled = false;
+                exportBtn.innerHTML = originalButtonText;
+            });
         }
-    }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = `logistics-map_${new Date().toISOString().slice(0, 10)}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-    }).catch(error => {
-        console.error('Image generation failed:', error);
-        alert('Image generation failed.');
-    }).finally(() => {
-        exportBtn.disabled = false;
-        exportBtn.innerHTML = originalButtonText;
-    });
-}
 
         window.onload = function() {
             updateTranslations();
