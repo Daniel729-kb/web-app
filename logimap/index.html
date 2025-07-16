@@ -2703,19 +2703,14 @@
             let isDragging = false;
 
             const mouseDownHandler = function(e) {
-                // テキストボックスの場合、編集モードかドラッグモードかを判定
-                if (element.classList.contains('custom-textbox')) {
-                    // ダブルクリックまたは既に編集中の場合は編集モードを維持
-                    if (e.detail === 2 || element.classList.contains('editing')) {
-                        element.classList.add('editing');
-                        element.style.cursor = 'text';
-                        return;
-                    }
-                    // シングルクリックの場合はドラッグモードに
-                    element.classList.remove('editing');
-                    element.style.cursor = 'move';
-                    element.blur(); // フォーカスを外してcontentEditableを無効化
-                }
+                // テキストボックスの場合、常にドラッグを優先
+                 if (element.classList.contains('custom-textbox')) {
+                // contentEditableを一時的に無効化してドラッグを優先
+                element.contentEditable = false;
+                element.classList.remove('editing');
+                element.style.cursor = 'move';
+                element.blur();
+    }
                 
                 e.preventDefault();
                 e.stopPropagation();
