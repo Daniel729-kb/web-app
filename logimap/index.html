@@ -439,11 +439,6 @@
 
         .custom-textbox.editing {
             cursor: text;
-            border-color: #e53e3e;
-        }
-
-        .dark-mode .custom-textbox.editing {
-            border-color: #ef4444;
         }
 
         .delete-textbox, .delete-location-box {
@@ -520,8 +515,8 @@
         }
 
         .edit-mode .logistics-map {
-            min-height: 2000px;
-            min-width: 2400px;
+            min-height: 1200px;
+            min-width: 1600px;
             border: 1px solid rgba(49, 130, 206, 0.2);
             position: relative;
         }
@@ -725,28 +720,6 @@
         .dark-mode .temp-control-info {
             background: #14532d;
             border-color: #166534;
-            color: #f0fdf4;
-        }
-
-        .temp-control-info .work-content-text {
-            font-size: 9px;
-            color: #2d3748;
-            line-height: 1.3;
-            text-align: center;
-            font-weight: 500;
-        }
-
-        .dark-mode .temp-control-info .work-content-text {
-            color: #f0fdf4 !important;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-        }
-
-        .work-content-border {
-            border-color: #38a169 !important;
-        }
-
-        .dark-mode .work-content-border {
-            border-color: #22c55e !important;
         }
 
         .temp-control-title {
@@ -760,7 +733,6 @@
 
         .dark-mode .temp-control-title {
             color: #22c55e;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         }
 
         .temp-humidity-row {
@@ -779,13 +751,11 @@
             color: #718096;
             margin-bottom: 2px;
             transition: color 0.3s ease;
-            font-weight: 500;
         }
 
         .dark-mode .temp-label, 
         .dark-mode .humidity-label {
-            color: #cbd5e1;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            color: #94a3b8;
         }
 
         .temp-value, .humidity-value {
@@ -797,8 +767,7 @@
 
         .dark-mode .temp-value, 
         .dark-mode .humidity-value {
-            color: #f0fdf4;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            color: #e2e8f0;
         }
 
         .location-emoji {
@@ -2571,23 +2540,19 @@
                 editBtn.style.background = '#e53e3e';
                 enableDragAndDrop();
                 
-                // Expand map area for better dragging experience
-                mapElement.style.minWidth = '2400px';
+                // Expand map area for better dragging experience - INCREASED VALUES
+                mapElement.style.minWidth = '3000px';
                 mapElement.style.minHeight = '2000px';
             } else {
                 editBtn.textContent = getTranslation('editMode');
                 editBtn.style.background = '#4a5568';
                 disableDragAndDrop();
                 
-                // Keep expanded size when exiting edit mode to preserve layout
-                const hasAbsoluteElements = mapElement.querySelectorAll('[style*="position: absolute"]').length > 0;
-                if (!hasAbsoluteElements) {
-                    mapElement.style.minWidth = '';
-                    mapElement.style.minHeight = '';
-                }
+                // Reset map size when exiting edit mode
+                mapElement.style.minWidth = '';
+                mapElement.style.minHeight = '';
             }
         }
-
         function addTextBox() {
             textBoxCounter++;
             const mapElement = document.getElementById('logistics-map');
@@ -2595,28 +2560,9 @@
             textBox.className = 'custom-textbox';
             textBox.contentEditable = true;
             textBox.innerHTML = `<span>${getTranslation('textPlaceholder')}</span>`;
-            
-            // FIXED: ランダムな初期位置に配置
-            const randomLeft = 100 + (Math.random() * 500);
-            const randomTop = 100 + (Math.random() * 500);
-            textBox.style.left = randomLeft + 'px';
-            textBox.style.top = randomTop + 'px';
-            textBox.style.minWidth = '150px';
-            textBox.style.minHeight = '40px';
+            textBox.style.left = '50px';
+            textBox.style.top = '50px';
             textBox.setAttribute('data-textbox-id', textBoxCounter);
-            
-            // ダブルクリックで編集モードに入るイベントを追加
-            textBox.addEventListener('dblclick', function() {
-                textBox.classList.add('editing');
-                textBox.style.cursor = 'text';
-                textBox.focus();
-            });
-            
-            // フォーカスが外れたら編集モードを終了
-            textBox.addEventListener('blur', function() {
-                textBox.classList.remove('editing');
-                textBox.style.cursor = 'move';
-            });
             
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-textbox';
@@ -2635,27 +2581,10 @@
             textBox.appendChild(deleteBtn);
             mapElement.appendChild(textBox);
             
-            // FIXED: Always make textbox draggable if edit mode is active or will be activated
-            // Check if edit mode is currently active
-            if (editMode || mapElement.classList.contains('edit-mode')) {
+            if (editMode) {
                 makeElementDraggable(textBox);
                 textBox.style.border = '1px dashed #3182ce';
-                textBox.style.cursor = 'move';
-            } else {
-                // Even if not in edit mode, prepare for when edit mode is activated
-                textBox.setAttribute('data-draggable-ready', 'true');
             }
-            
-            // Focus on the textbox for immediate editing
-            setTimeout(() => {
-                textBox.focus();
-                // Select all text for easy replacement
-                const range = document.createRange();
-                range.selectNodeContents(textBox);
-                const selection = window.getSelection();
-                selection.removeAllRanges();
-                selection.addRange(range);
-            }, 100);
         }
 
         function enableDragAndDrop() {
@@ -2703,14 +2632,10 @@
             let isDragging = false;
 
             const mouseDownHandler = function(e) {
-                // テキストボックスの場合、常にドラッグを優先
-                 if (element.classList.contains('custom-textbox')) {
-                // contentEditableを一時的に無効化してドラッグを優先
-                element.contentEditable = false;
-                element.classList.remove('editing');
-                element.style.cursor = 'move';
-                element.blur();
-    }
+                // Prevent dragging when editing text
+                if (element.classList.contains('custom-textbox') && e.target === element) {
+                    return;
+                }
                 
                 e.preventDefault();
                 e.stopPropagation();
@@ -2767,21 +2692,27 @@
                 const newTop = element.offsetTop - pos2;
                 const newLeft = element.offsetLeft - pos1;
                 
-                // 無制限ドラッグ - 境界制限を完全に削除
-                element.style.top = newTop + "px";
-                element.style.left = newLeft + "px";
-                
-                // マップを動的に拡張（必要に応じて）
+                // FIXED: Much more generous boundary checking for better dragging experience
                 const mapElement = element.closest('.logistics-map');
-                const currentMapWidth = parseInt(mapElement.style.minWidth) || 2400;
-                const currentMapHeight = parseInt(mapElement.style.minHeight) || 2000;
                 
-                // 右端や下端に近づいたら拡張
-                if (newLeft > currentMapWidth - 300) {
-                    mapElement.style.minWidth = (newLeft + 500) + 'px';
+                // Allow dragging in a much larger area (extend beyond current map size)
+                const maxLeft = Math.max(1200, mapElement.scrollWidth + 400);
+                const maxTop = Math.max(800, mapElement.scrollHeight + 400);
+                const minLeft = -100; // Allow dragging slightly outside left edge
+                const minTop = -50;   // Allow dragging slightly outside top edge
+                
+                element.style.top = Math.max(minTop, Math.min(newTop, maxTop)) + "px";
+                element.style.left = Math.max(minLeft, Math.min(newLeft, maxLeft)) + "px";
+                
+                // Dynamically expand map container if element is dragged near edges
+                const currentMapWidth = parseInt(mapElement.style.minWidth) || 1600;
+                const currentMapHeight = parseInt(mapElement.style.minHeight) || 1200;
+                
+                if (newLeft > currentMapWidth - 200) {
+                    mapElement.style.minWidth = (currentMapWidth + 300) + 'px';
                 }
-                if (newTop > currentMapHeight - 300) {
-                    mapElement.style.minHeight = (newTop + 500) + 'px';
+                if (newTop > currentMapHeight - 200) {
+                    mapElement.style.minHeight = (currentMapHeight + 300) + 'px';
                 }
             };
 
@@ -2971,7 +2902,7 @@
                 
                 let detailsHTML = '';
                 if(type === 'warehouse') {
-                    const workInfo = item.work ? `<div class="temp-control-info work-content-border"><div class="temp-control-title">${translation.workContentLabel}</div><div class="work-content-text">${item.work.replace(/\n/g, '<br>')}</div></div>` : '';
+                    const workInfo = item.work ? `<div class="temp-control-info" style="margin-top: 8px; border-color: #38a169;"><div class="temp-control-title" style="color: #2f855a;">${translation.workContentLabel}</div><div style="font-size: 9px; color: #2d3748; line-height: 1.3; text-align: center;">${item.work.replace(/\n/g, '<br>')}</div></div>` : '';
                     const tempControlInfo = item.tempControl === 'yes' ? `<div class="temp-control-info"><div class="temp-control-title">${translation.tempHumidityControl}</div><div class="temp-humidity-row"><div class="temp-item"><div class="temp-label">${translation.setTemp}</div><div class="temp-value">${item.temperature}℃</div></div><div class="humidity-item"><div class="humidity-label">${translation.setHumidity}</div><div class="humidity-value">${item.humidity}%</div></div></div></div>` : '';
                     detailsHTML = workInfo + tempControlInfo;
                 }
