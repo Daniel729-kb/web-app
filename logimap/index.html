@@ -664,7 +664,7 @@
             box-shadow: 0 4px 15px rgba(14, 165, 233, 0.2);
             position: relative;
             width: 120px;
-            height: 200px;
+            height: 220px;
             order: 1;
             display: flex;
             flex-direction: column;
@@ -692,22 +692,44 @@
             color: #dc2626;
         }
 
-        .transport-info.existing-own, .transport-info.existing-other {
+        /* 修正：輸送情報の既存自社との色分けとラベル */
+        .transport-info.existing-own {
             background: linear-gradient(135deg, #eff6ff, #dbeafe);
             border: 2px solid #2563eb;
             box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
         }
 
-        .transport-info.existing-own::before, .transport-info.existing-other::before {
-            content: '既存';
+        .transport-info.existing-own::before {
+            content: '既存: 自社';
             position: absolute;
             top: -8px;
             right: -8px;
             background: #2563eb;
             color: white;
-            padding: 2px 8px;
+            padding: 2px 6px;
             border-radius: 4px;
-            font-size: 9px;
+            font-size: 8px;
+            font-weight: bold;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        .transport-info.existing-other {
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+            border: 2px solid #059669;
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.2);
+        }
+
+        .transport-info.existing-other::before {
+            content: '既存: 他社'';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #059669;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 8px;
             font-weight: bold;
             white-space: nowrap;
             z-index: 10;
@@ -720,15 +742,15 @@
         }
 
         .transport-info.new::before {
-            content: '新設';
+            content: '新規';
             position: absolute;
             top: -8px;
             right: -8px;
             background: #dc2626;
             color: white;
-            padding: 2px 8px;
+            padding: 2px 6px;
             border-radius: 4px;
-            font-size: 9px;
+            font-size: 8px;
             font-weight: bold;
             white-space: nowrap;
             z-index: 10;
@@ -765,6 +787,31 @@
             text-align: right;
             word-break: break-word;
             margin-left: 4px;
+        }
+
+        .transport-status-info {
+            background: rgba(100, 116, 139, 0.1);
+            border-radius: 4px;
+            padding: 3px 6px;
+            margin: 2px 0;
+            font-size: 8px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .transport-status-info.existing-own {
+            background: rgba(37, 99, 235, 0.1);
+            color: #2563eb;
+        }
+
+        .transport-status-info.existing-other {
+            background: rgba(5, 150, 105, 0.1);
+            color: #059669;
+        }
+
+        .transport-status-info.new {
+            background: rgba(220, 38, 38, 0.1);
+            color: #dc2626;
         }
 
         .transport-icon {
@@ -1171,6 +1218,7 @@
                 temperature: "設定温度（℃）",
                 humidity: "設定湿度（%）",
                 transportMode: "輸送モード",
+                transportStatus: "運営主体",
                 truck: "トラック",
                 ship: "海運",
                 air: "航空",
@@ -1239,6 +1287,7 @@
                 temperature: "Set Temperature (℃)",
                 humidity: "Set Humidity (%)",
                 transportMode: "Transport Mode",
+                transportStatus: "Operation",
                 truck: "Truck",
                 ship: "Ship",
                 air: "Air",
@@ -1307,6 +1356,7 @@
                 temperature: "设定温度（℃）",
                 humidity: "设定湿度（%）",
                 transportMode: "运输方式",
+                transportStatus: "运营主体",
                 truck: "卡车",
                 ship: "海运",
                 air: "航空",
@@ -1320,7 +1370,7 @@
                 exportImage: "📷 保存为图片",
                 addText: "📝 添加文本",
                 editMode: "🔧 编辑模式",
-                editComplete: "✅ 编辑完成",
+                editComplete: "✅编辑完成",
                 generating: "📷 生成中...",
                 supplierTitle: "🏭 采购商",
                 warehouseTitle: "🏬 仓库",
@@ -2245,14 +2295,25 @@
                 `;
             };
 
-            // Function to create a transport arrow
+            // Function to create a transport arrow - 修正版
             const createTransportArrow = (transport, index) => {
+                // 運営主体の表示を追加
+                let statusDisplayText = '';
+                if (transport.status === 'existing-own') {
+                    statusDisplayText = translation.existingOwn;
+                } else if (transport.status === 'existing-other') {
+                    statusDisplayText = translation.existingOther;
+                } else if (transport.status === 'new') {
+                    statusDisplayText = translation.new;
+                }
+
                 return `
                     <div id="transport-${index}" class="flow-arrow" data-type="transport">
                         <div class="transport-info ${transport.mode} ${transport.status}">
                             <div class="transport-icon">${transportIcons[transport.mode]}</div>
                             <div class="flow-label">${translation.transportModeLabel}</div>
                             <div class="flow-value">${transportNames[transport.mode]}</div>
+                            <div class="transport-status-info ${transport.status}">${statusDisplayText}</div>
                             <div class="transport-arrow-container">
                                 <div class="transport-arrow ${transport.status.includes('existing') ? 'existing' : 'new'}">➡</div>
                             </div>
