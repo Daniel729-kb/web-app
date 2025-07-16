@@ -2633,9 +2633,7 @@
 
             const mouseDownHandler = function(e) {
                 // Prevent dragging when editing text
-                if (element.classList.contains('custom-textbox') && e.target === element) {
-                    return;
-                }
+
                 
                 e.preventDefault();
                 e.stopPropagation();
