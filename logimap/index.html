@@ -439,6 +439,11 @@
 
         .custom-textbox.editing {
             cursor: text;
+            border-color: #e53e3e;
+        }
+
+        .dark-mode .custom-textbox.editing {
+            border-color: #ef4444;
         }
 
         .delete-textbox, .delete-location-box {
@@ -515,8 +520,8 @@
         }
 
         .edit-mode .logistics-map {
-            min-height: 1200px;
-            min-width: 1600px;
+            min-height: 2000px;
+            min-width: 2400px;
             border: 1px solid rgba(49, 130, 206, 0.2);
             position: relative;
         }
@@ -2567,16 +2572,19 @@
                 enableDragAndDrop();
                 
                 // Expand map area for better dragging experience
-                mapElement.style.minWidth = '1600px';
-                mapElement.style.minHeight = '1200px';
+                mapElement.style.minWidth = '2400px';
+                mapElement.style.minHeight = '2000px';
             } else {
                 editBtn.textContent = getTranslation('editMode');
                 editBtn.style.background = '#4a5568';
                 disableDragAndDrop();
                 
-                // Reset map size when exiting edit mode
-                mapElement.style.minWidth = '';
-                mapElement.style.minHeight = '';
+                // Keep expanded size when exiting edit mode to preserve layout
+                const hasAbsoluteElements = mapElement.querySelectorAll('[style*="position: absolute"]').length > 0;
+                if (!hasAbsoluteElements) {
+                    mapElement.style.minWidth = '';
+                    mapElement.style.minHeight = '';
+                }
             }
         }
 
@@ -2587,9 +2595,28 @@
             textBox.className = 'custom-textbox';
             textBox.contentEditable = true;
             textBox.innerHTML = `<span>${getTranslation('textPlaceholder')}</span>`;
-            textBox.style.left = '50px';
-            textBox.style.top = '50px';
+            
+            // FIXED: ランダムな初期位置に配置
+            const randomLeft = 100 + (Math.random() * 500);
+            const randomTop = 100 + (Math.random() * 500);
+            textBox.style.left = randomLeft + 'px';
+            textBox.style.top = randomTop + 'px';
+            textBox.style.minWidth = '150px';
+            textBox.style.minHeight = '40px';
             textBox.setAttribute('data-textbox-id', textBoxCounter);
+            
+            // ダブルクリックで編集モードに入るイベントを追加
+            textBox.addEventListener('dblclick', function() {
+                textBox.classList.add('editing');
+                textBox.style.cursor = 'text';
+                textBox.focus();
+            });
+            
+            // フォーカスが外れたら編集モードを終了
+            textBox.addEventListener('blur', function() {
+                textBox.classList.remove('editing');
+                textBox.style.cursor = 'move';
+            });
             
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-textbox';
@@ -2608,10 +2635,27 @@
             textBox.appendChild(deleteBtn);
             mapElement.appendChild(textBox);
             
-            if (editMode) {
+            // FIXED: Always make textbox draggable if edit mode is active or will be activated
+            // Check if edit mode is currently active
+            if (editMode || mapElement.classList.contains('edit-mode')) {
                 makeElementDraggable(textBox);
                 textBox.style.border = '1px dashed #3182ce';
+                textBox.style.cursor = 'move';
+            } else {
+                // Even if not in edit mode, prepare for when edit mode is activated
+                textBox.setAttribute('data-draggable-ready', 'true');
             }
+            
+            // Focus on the textbox for immediate editing
+            setTimeout(() => {
+                textBox.focus();
+                // Select all text for easy replacement
+                const range = document.createRange();
+                range.selectNodeContents(textBox);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }, 100);
         }
 
         function enableDragAndDrop() {
@@ -2659,9 +2703,18 @@
             let isDragging = false;
 
             const mouseDownHandler = function(e) {
-                // Prevent dragging when editing text
-                if (element.classList.contains('custom-textbox') && e.target === element) {
-                    return;
+                // テキストボックスの場合、編集モードかドラッグモードかを判定
+                if (element.classList.contains('custom-textbox')) {
+                    // ダブルクリックまたは既に編集中の場合は編集モードを維持
+                    if (e.detail === 2 || element.classList.contains('editing')) {
+                        element.classList.add('editing');
+                        element.style.cursor = 'text';
+                        return;
+                    }
+                    // シングルクリックの場合はドラッグモードに
+                    element.classList.remove('editing');
+                    element.style.cursor = 'move';
+                    element.blur(); // フォーカスを外してcontentEditableを無効化
                 }
                 
                 e.preventDefault();
@@ -2719,27 +2772,21 @@
                 const newTop = element.offsetTop - pos2;
                 const newLeft = element.offsetLeft - pos1;
                 
-                // FIXED: Much more generous boundary checking for better dragging experience
+                // 無制限ドラッグ - 境界制限を完全に削除
+                element.style.top = newTop + "px";
+                element.style.left = newLeft + "px";
+                
+                // マップを動的に拡張（必要に応じて）
                 const mapElement = element.closest('.logistics-map');
+                const currentMapWidth = parseInt(mapElement.style.minWidth) || 2400;
+                const currentMapHeight = parseInt(mapElement.style.minHeight) || 2000;
                 
-                // Allow dragging in a much larger area (extend beyond current map size)
-                const maxLeft = Math.max(1200, mapElement.scrollWidth + 400);
-                const maxTop = Math.max(800, mapElement.scrollHeight + 400);
-                const minLeft = -100; // Allow dragging slightly outside left edge
-                const minTop = -50;   // Allow dragging slightly outside top edge
-                
-                element.style.top = Math.max(minTop, Math.min(newTop, maxTop)) + "px";
-                element.style.left = Math.max(minLeft, Math.min(newLeft, maxLeft)) + "px";
-                
-                // Dynamically expand map container if element is dragged near edges
-                const currentMapWidth = parseInt(mapElement.style.minWidth) || 1600;
-                const currentMapHeight = parseInt(mapElement.style.minHeight) || 1200;
-                
-                if (newLeft > currentMapWidth - 200) {
-                    mapElement.style.minWidth = (currentMapWidth + 300) + 'px';
+                // 右端や下端に近づいたら拡張
+                if (newLeft > currentMapWidth - 300) {
+                    mapElement.style.minWidth = (newLeft + 500) + 'px';
                 }
-                if (newTop > currentMapHeight - 200) {
-                    mapElement.style.minHeight = (currentMapHeight + 300) + 'px';
+                if (newTop > currentMapHeight - 300) {
+                    mapElement.style.minHeight = (newTop + 500) + 'px';
                 }
             };
 
