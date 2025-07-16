@@ -14,19 +14,32 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            background: #f8fafc;
+            background: #e5e7eb;
             min-height: 100vh;
             color: #1a202c;
             line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Dark mode styles */
+        body.dark-mode {
+            background: #0f172a;
+            color: #e2e8f0;
         }
 
         .container {
             max-width: 1400px;
             width: 100%;
             margin: 0 auto;
-            background: #ffffff;
+            background: #f3f4f6;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             min-height: 100vh;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .dark-mode .container {
+            background: #1e293b;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
 
         .header {
@@ -35,6 +48,12 @@
             padding: 24px 32px;
             position: relative;
             border-bottom: 1px solid #e2e8f0;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .dark-mode .header {
+            background: #334155;
+            border-bottom-color: #475569;
         }
 
         .header h1 {
@@ -49,10 +68,16 @@
             font-weight: 400;
         }
 
-        .language-switcher {
+        .header-controls {
             position: absolute;
             top: 24px;
             right: 32px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .language-switcher {
             display: flex;
             gap: 1px;
             background: rgba(255, 255, 255, 0.1);
@@ -82,6 +107,32 @@
             color: #2d3748;
         }
 
+        .dark-mode .language-btn.active {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .dark-mode-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 6px;
+            padding: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 32px;
+        }
+
+        .dark-mode-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
         .main-content {
             display: flex;
             min-height: calc(100vh - 100px);
@@ -90,10 +141,16 @@
         .input-panel {
             width: 340px;
             min-width: 340px;
-            background: #f8fafc;
+            background: #e5e7eb;
             border-right: 1px solid #e2e8f0;
             overflow-y: auto;
             max-height: calc(100vh - 100px);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .dark-mode .input-panel {
+            background: #0f172a;
+            border-right-color: #475569;
         }
 
         .input-content {
@@ -110,6 +167,11 @@
             font-weight: 500;
             color: #4a5568;
             font-size: 15px;
+            transition: color 0.3s ease;
+        }
+
+        .dark-mode .form-group label {
+            color: #cbd5e1;
         }
 
         .form-group input, .form-group select, .form-group textarea {
@@ -118,14 +180,29 @@
             border: 1px solid #e2e8f0;
             border-radius: 4px;
             font-size: 16px;
-            transition: border-color 0.2s ease;
+            transition: all 0.3s ease;
             font-family: inherit;
             background: white;
+            color: #1a202c;
+        }
+
+        .dark-mode .form-group input, 
+        .dark-mode .form-group select, 
+        .dark-mode .form-group textarea {
+            background: #334155;
+            border-color: #475569;
+            color: #e2e8f0;
         }
 
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
             outline: none;
             border-color: #3182ce;
+        }
+
+        .dark-mode .form-group input:focus, 
+        .dark-mode .form-group select:focus, 
+        .dark-mode .form-group textarea:focus {
+            border-color: #60a5fa;
         }
 
         .form-row {
@@ -147,6 +224,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .dark-mode .section-title {
+            color: #f1f5f9;
+            border-bottom-color: #475569;
         }
 
         .section-title:first-child {
@@ -172,6 +255,14 @@
             background: #2c5aa0;
         }
 
+        .dark-mode .add-btn {
+            background: #3b82f6;
+        }
+
+        .dark-mode .add-btn:hover {
+            background: #2563eb;
+        }
+
         .remove-btn {
             background: #e53e3e;
             color: white;
@@ -182,12 +273,27 @@
             background: #c53030;
         }
 
+        .dark-mode .remove-btn {
+            background: #ef4444;
+        }
+
+        .dark-mode .remove-btn:hover {
+            background: #dc2626;
+        }
+
         .location-item, .transport-item {
             background: white;
             border: 1px solid #e2e8f0;
             border-radius: 6px;
             padding: 16px;
             margin-bottom: 16px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .dark-mode .location-item, 
+        .dark-mode .transport-item {
+            background: #334155;
+            border-color: #475569;
         }
 
         .location-item h4, .transport-item h4 {
@@ -198,14 +304,25 @@
             justify-content: space-between;
             align-items: center;
             font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .dark-mode .location-item h4, 
+        .dark-mode .transport-item h4 {
+            color: #cbd5e1;
         }
 
         .map-panel {
             flex: 1;
-            background: #ffffff;
+            background: #f3f4f6;
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            transition: background-color 0.3s ease;
+        }
+
+        .dark-mode .map-panel {
+            background: #1e293b;
         }
 
         .map-controls {
@@ -215,7 +332,13 @@
             gap: 8px;
             padding: 16px 24px;
             border-bottom: 1px solid #e2e8f0;
-            background: #f8fafc;
+            background: #e5e7eb;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .dark-mode .map-controls {
+            background: #0f172a;
+            border-bottom-color: #475569;
         }
 
         .control-group {
@@ -244,7 +367,7 @@
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            transition: all 0.3s ease;
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -254,12 +377,30 @@
             background: #2d3748;
         }
 
+        .dark-mode .file-input-label, 
+        .dark-mode .export-btn {
+            background: #475569;
+        }
+
+        .dark-mode .file-input-label:hover, 
+        .dark-mode .export-btn:hover {
+            background: #334155;
+        }
+
         .export-btn.primary {
             background: #3182ce;
         }
 
         .export-btn.primary:hover {
             background: #2c5aa0;
+        }
+
+        .dark-mode .export-btn.primary {
+            background: #3b82f6;
+        }
+
+        .dark-mode .export-btn.primary:hover {
+            background: #2563eb;
         }
 
         .custom-textbox {
@@ -276,11 +417,24 @@
             cursor: move;
             z-index: 1000;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            color: #1a202c;
+        }
+
+        .dark-mode .custom-textbox {
+            background: #334155;
+            border-color: #60a5fa;
+            color: #e2e8f0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .custom-textbox:focus {
             outline: none;
             border-color: #2c5aa0;
+        }
+
+        .dark-mode .custom-textbox:focus {
+            border-color: #2563eb;
         }
 
         .custom-textbox.editing {
@@ -303,6 +457,11 @@
             font-weight: 500;
         }
 
+        .dark-mode .delete-textbox, 
+        .dark-mode .delete-location-box {
+            background: #ef4444;
+        }
+
         .custom-textbox:hover .delete-textbox,
         .edit-mode .location-box:hover .delete-location-box {
             display: block;
@@ -310,6 +469,11 @@
 
         .delete-textbox:hover, .delete-location-box:hover {
             background: #c53030;
+        }
+
+        .dark-mode .delete-textbox:hover, 
+        .dark-mode .delete-location-box:hover {
+            background: #dc2626;
         }
 
         .edit-mode .location-box,
@@ -325,14 +489,40 @@
             justify-content: flex-start;
             min-width: 100%;
             width: 100%;
-            min-height: 500px;
+            min-height: 800px;
             position: relative;
             margin: 0 auto;
-            background: #ffffff;
+            background: #f3f4f6;
             overflow: visible;
             gap: 16px;
             overflow-x: auto;
+            overflow-y: auto;
             padding: 32px 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .edit-mode .logistics-map::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px dashed rgba(49, 130, 206, 0.3);
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .edit-mode .logistics-map {
+            min-height: 1200px;
+            min-width: 1600px;
+            border: 1px solid rgba(49, 130, 206, 0.2);
+            position: relative;
+        }
+
+        .dark-mode .logistics-map {
+            background: #1e293b;
         }
 
         .location-group {
@@ -364,17 +554,40 @@
             width: 180px;
             height: 240px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             position: relative;
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            color: #1a202c;
+        }
+
+        .edit-mode .location-box {
+            cursor: move;
+            transition: none; /* Disable transitions during edit mode for smoother dragging */
+        }
+
+        .location-box.dragging {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            transform: rotate(2deg);
+            transition: none;
+        }
+
+        .dark-mode .location-box {
+            background: #334155;
+            border-color: #475569;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            color: #e2e8f0;
         }
 
         .location-box:hover {
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .dark-mode .location-box:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
         }
 
         .location-box.domestic {
@@ -388,6 +601,11 @@
         .location-box.bonded {
             border: 1px solid #e53e3e;
             background: #fef5e7;
+        }
+
+        .dark-mode .location-box.bonded {
+            background: #422006;
+            border-color: #ef4444;
         }
 
         .location-box.bonded::after {
@@ -404,9 +622,18 @@
             font-weight: 500;
         }
 
+        .dark-mode .location-box.bonded::after {
+            background: #ef4444;
+        }
+
         .location-box.existing-own {
             background: #ebf8ff;
             border-color: #3182ce;
+        }
+
+        .dark-mode .location-box.existing-own {
+            background: #1e3a8a;
+            border-color: #3b82f6;
         }
 
         .location-box.existing-own::before {
@@ -422,9 +649,18 @@
             font-weight: 500;
         }
 
+        .dark-mode .location-box.existing-own::before {
+            background: #3b82f6;
+        }
+
         .location-box.existing-other {
             background: #f0fff4;
             border-color: #38a169;
+        }
+
+        .dark-mode .location-box.existing-other {
+            background: #14532d;
+            border-color: #22c55e;
         }
 
         .location-box.existing-other::before {
@@ -440,9 +676,18 @@
             font-weight: 500;
         }
 
+        .dark-mode .location-box.existing-other::before {
+            background: #22c55e;
+        }
+
         .location-box.new {
             background: #fef5e7;
             border-color: #d69e2e;
+        }
+
+        .dark-mode .location-box.new {
+            background: #451a03;
+            border-color: #f59e0b;
         }
 
         .location-box.new::before {
@@ -458,6 +703,10 @@
             font-weight: 500;
         }
 
+        .dark-mode .location-box.new::before {
+            background: #f59e0b;
+        }
+
         .temp-control-info {
             margin-top: 8px;
             padding: 8px;
@@ -465,6 +714,12 @@
             border: 1px solid #c6f6d5;
             border-radius: 4px;
             font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .dark-mode .temp-control-info {
+            background: #14532d;
+            border-color: #166534;
         }
 
         .temp-control-title {
@@ -473,6 +728,11 @@
             margin-bottom: 4px;
             text-align: center;
             font-size: 12px;
+            transition: color 0.3s ease;
+        }
+
+        .dark-mode .temp-control-title {
+            color: #22c55e;
         }
 
         .temp-humidity-row {
@@ -490,12 +750,31 @@
             font-size: 10px;
             color: #718096;
             margin-bottom: 2px;
+            transition: color 0.3s ease;
+        }
+
+        .dark-mode .temp-label, 
+        .dark-mode .humidity-label {
+            color: #94a3b8;
         }
 
         .temp-value, .humidity-value {
             font-weight: 500;
             color: #2d3748;
             font-size: 11px;
+            transition: color 0.3s ease;
+        }
+
+        .dark-mode .temp-value, 
+        .dark-mode .humidity-value {
+            color: #e2e8f0;
+        }
+
+        .location-emoji {
+            font-size: 32px;
+            margin-bottom: 8px;
+            text-align: center;
+            display: block;
         }
 
         .location-title {
@@ -503,6 +782,12 @@
             font-weight: 500;
             color: #718096;
             margin-bottom: 6px;
+            text-align: center;
+            transition: color 0.3s ease;
+        }
+
+        .dark-mode .location-title {
+            color: #94a3b8;
         }
 
         .location-name {
@@ -511,6 +796,11 @@
             color: #2d3748;
             margin-bottom: 6px;
             line-height: 1.3;
+            transition: color 0.3s ease;
+        }
+
+        .dark-mode .location-name {
+            color: #f1f5f9;
         }
 
         .location-type {
@@ -523,11 +813,23 @@
         .domestic-tag {
             background: #c6f6d5;
             color: #2f855a;
+            transition: all 0.3s ease;
+        }
+
+        .dark-mode .domestic-tag {
+            background: #166534;
+            color: #22c55e;
         }
 
         .overseas-tag {
             background: #faf089;
             color: #b7791f;
+            transition: all 0.3s ease;
+        }
+
+        .dark-mode .overseas-tag {
+            background: #92400e;
+            color: #fbbf24;
         }
 
         .flow-arrow {
@@ -554,6 +856,15 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            transition: all 0.3s ease;
+            color: #1a202c;
+        }
+
+        .dark-mode .transport-info {
+            background: #334155;
+            border-color: #475569;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            color: #e2e8f0;
         }
 
         .transport-info.existing-own {
@@ -561,14 +872,29 @@
             border-color: #3182ce;
         }
 
+        .dark-mode .transport-info.existing-own {
+            background: #1e3a8a;
+            border-color: #3b82f6;
+        }
+
         .transport-info.existing-other {
             background: #f0fff4;
             border-color: #38a169;
         }
 
+        .dark-mode .transport-info.existing-other {
+            background: #14532d;
+            border-color: #22c55e;
+        }
+
         .transport-info.new {
             background: #fef5e7;
             border-color: #d69e2e;
+        }
+
+        .dark-mode .transport-info.new {
+            background: #451a03;
+            border-color: #f59e0b;
         }
 
         .transport-arrow-container {
@@ -581,6 +907,11 @@
         .transport-arrow {
             font-size: 18px;
             color: #4a5568;
+            transition: color 0.3s ease;
+        }
+
+        .dark-mode .transport-arrow {
+            color: #94a3b8;
         }
 
         .transport-details {
@@ -591,6 +922,11 @@
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
+            transition: border-color 0.3s ease;
+        }
+
+        .dark-mode .transport-details {
+            border-top-color: #475569;
         }
 
         .transport-detail-item {
@@ -606,6 +942,11 @@
             font-weight: 500;
             flex-shrink: 0;
             font-size: 9px;
+            transition: color 0.3s ease;
+        }
+
+        .dark-mode .transport-detail-label {
+            color: #94a3b8;
         }
 
         .transport-detail-value {
@@ -615,6 +956,11 @@
             word-break: break-word;
             margin-left: 2px;
             font-size: 10px;
+            transition: color 0.3s ease;
+        }
+
+        .dark-mode .transport-detail-value {
+            color: #e2e8f0;
         }
 
         .transport-status-info {
@@ -625,6 +971,11 @@
             font-size: 10px;
             font-weight: 500;
             text-align: center;
+            transition: background-color 0.3s ease;
+        }
+
+        .dark-mode .transport-status-info {
+            background: #475569;
         }
 
         .transport-icon {
@@ -637,6 +988,11 @@
             color: #718096;
             font-weight: 500;
             margin-bottom: 2px;
+            transition: color 0.3s ease;
+        }
+
+        .dark-mode .flow-label {
+            color: #94a3b8;
         }
 
         .flow-value {
@@ -644,6 +1000,11 @@
             color: #2d3748;
             font-weight: 600;
             margin-bottom: 4px;
+            transition: color 0.3s ease;
+        }
+
+        .dark-mode .flow-value {
+            color: #f1f5f9;
         }
 
         .generate-btn {
@@ -656,7 +1017,7 @@
             font-size: 16px;
             font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            transition: all 0.3s ease;
             margin-top: 24px;
         }
 
@@ -664,12 +1025,27 @@
             background: #2c5aa0;
         }
 
+        .dark-mode .generate-btn {
+            background: #3b82f6;
+        }
+
+        .dark-mode .generate-btn:hover {
+            background: #2563eb;
+        }
+
         .warehouse-options, .temp-control-options {
             margin-top: 12px;
             padding: 12px;
-            background: #f8fafc;
+            background: #d1d5db;
             border-radius: 4px;
             border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .dark-mode .warehouse-options, 
+        .dark-mode .temp-control-options {
+            background: #1e293b;
+            border-color: #475569;
         }
 
         .temp-control-row {
@@ -679,6 +1055,17 @@
 
         .temp-control-row .form-group {
             flex: 1;
+        }
+
+        .error-message {
+            color: #e53e3e;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .dark-mode .error-message {
+            color: #ef4444;
         }
 
         @media (max-width: 1200px) {
@@ -723,16 +1110,27 @@
                 width: 120px;
                 height: 160px;
             }
+
+            .header-controls {
+                position: static;
+                margin-top: 16px;
+                justify-content: flex-start;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <div class="language-switcher">
-                <button class="language-btn active" onclick="switchLanguage('ja', this)">日本語</button>
-                <button class="language-btn" onclick="switchLanguage('en', this)">English</button>
-                <button class="language-btn" onclick="switchLanguage('zh', this)">中文</button>
+            <div class="header-controls">
+                <div class="language-switcher">
+                    <button class="language-btn active" onclick="switchLanguage('ja', this)">日本語</button>
+                    <button class="language-btn" onclick="switchLanguage('en', this)">English</button>
+                    <button class="language-btn" onclick="switchLanguage('zh', this)">中文</button>
+                </div>
+                <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+                    <span class="dark-mode-icon">🌙</span>
+                </button>
             </div>
             <h1 data-i18n="title">物流マップ自動作成</h1>
             <p data-i18n="subtitle">調達先から納入先までの物流フローを可視化</p>
@@ -753,6 +1151,7 @@
                             <div class="form-group">
                                 <label data-i18n="supplierName">調達先名</label>
                                 <input type="text" id="supplier-name-0" placeholder="例：ABC商事" value="上海電子部品">
+                                <div class="error-message" id="supplier-name-0-error">名前を入力してください</div>
                             </div>
                             <div class="form-group">
                                 <label data-i18n="domesticOverseas">国内/海外</label>
@@ -786,6 +1185,7 @@
                             <div class="form-group">
                                 <label data-i18n="warehouseName">倉庫名</label>
                                 <input type="text" id="warehouse-name-0" placeholder="例：東京第一倉庫" value="成田保税倉庫">
+                                <div class="error-message" id="warehouse-name-0-error">名前を入力してください</div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
@@ -861,6 +1261,7 @@
                             <div class="form-group">
                                 <label data-i18n="destinationName">納入先名</label>
                                 <input type="text" id="destination-name-0" placeholder="例：XYZ製作所" value="東京製造株式会社">
+                                <div class="error-message" id="destination-name-0-error">名前を入力してください</div>
                             </div>
                             <div class="form-group">
                                 <label data-i18n="domesticOverseas">国内/海外</label>
@@ -924,6 +1325,40 @@
     </div>
 
     <script>
+        // Global state management - FIXED: Better index management
+        let globalState = {
+            suppliers: new Map(),
+            warehouses: new Map(), 
+            destinations: new Map(),
+            nextSupplierId: 1,
+            nextWarehouseId: 1,
+            nextDestinationId: 1
+        };
+
+        let editMode = false;
+        let textBoxCounter = 0;
+        let dragElements = new Map();
+
+        // Dark mode functionality - FIXED: Remove localStorage dependency
+        let isDarkMode = false;
+
+        function initializeDarkMode() {
+            // FIXED: Default to normal mode (no dark mode)
+            isDarkMode = false;
+            updateDarkModeIcon(false);
+        }
+
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode');
+            updateDarkModeIcon(isDarkMode);
+        }
+
+        function updateDarkModeIcon(darkMode) {
+            const icon = document.querySelector('.dark-mode-icon');
+            icon.textContent = darkMode ? '☀️' : '🌙';
+        }
+
         // 多言語対応データ
         const translations = {
             ja: {
@@ -977,9 +1412,9 @@
                 editMode: "🔧 編集モード",
                 editComplete: "✅ 編集完了",
                 generating: "📷 生成中...",
-                supplierTitle: "🏭 調達先",
-                warehouseTitle: "🏢 倉庫",
-                destinationTitle: "🏬 納入先",
+                supplierTitle: "調達先",
+                warehouseTitle: "倉庫",
+                destinationTitle: "納入先",
                 transportModeLabel: "輸送モード",
                 bondedWarehouse: "保税倉庫",
                 tempHumidityControl: "🌡️ 温湿度管理",
@@ -993,7 +1428,9 @@
                 importSuccess: "データのインポートが完了しました",
                 importError: "CSVファイルの読み込みに失敗しました",
                 invalidFormat: "CSVファイルの形式が正しくありません",
-                cannotDeleteLast: "最後の項目は削除できません"
+                cannotDeleteLast: "最後の項目は削除できません",
+                nameRequired: "名前を入力してください",
+                validationError: "入力エラーがあります"
             },
             en: {
                 title: "Logistics Map Generator",
@@ -1046,9 +1483,9 @@
                 editMode: "🔧 Edit Mode",
                 editComplete: "✅ Edit Complete",
                 generating: "📷 Generating...",
-                supplierTitle: "🏭 Supplier",
-                warehouseTitle: "🏢 Warehouse",
-                destinationTitle: "🏬 Destination",
+                supplierTitle: "Supplier",
+                warehouseTitle: "Warehouse",
+                destinationTitle: "Destination",
                 transportModeLabel: "Transport Mode",
                 bondedWarehouse: "Bonded Warehouse",
                 tempHumidityControl: "🌡️ Temp & Humidity Control",
@@ -1062,7 +1499,9 @@
                 importSuccess: "Data import completed successfully",
                 importError: "Failed to read CSV file",
                 invalidFormat: "CSV file format is invalid",
-                cannotDeleteLast: "Cannot delete the last item"
+                cannotDeleteLast: "Cannot delete the last item",
+                nameRequired: "Please enter a name",
+                validationError: "There are input errors"
             },
             zh: {
                 title: "物流地图自动生成",
@@ -1115,9 +1554,9 @@
                 editMode: "🔧 编辑模式",
                 editComplete: "✅编辑完成",
                 generating: "📷 生成中...",
-                supplierTitle: "🏭 采购商",
-                warehouseTitle: "🏢 仓库",
-                destinationTitle: "🏬 交付地",
+                supplierTitle: "采购商",
+                warehouseTitle: "仓库",
+                destinationTitle: "交付地",
                 transportModeLabel: "运输方式",
                 bondedWarehouse: "保税仓库",
                 tempHumidityControl: "🌡️ 温湿度管理",
@@ -1131,7 +1570,9 @@
                 importSuccess: "数据导入成功完成",
                 importError: "CSV文件读取失败",
                 invalidFormat: "CSV文件格式无效",
-                cannotDeleteLast: "无法删除最后一项"
+                cannotDeleteLast: "无法删除最后一项",
+                nameRequired: "请输入名称",
+                validationError: "存在输入错误"
             }
         };
 
@@ -1174,34 +1615,72 @@
             return translations[currentLanguage][key] || key;
         }
 
-        let supplierCount = 1;
-        let warehouseCount = 1;
-        let destinationCount = 1;
-        let editMode = false;
-        let textBoxCounter = 0;
+        // FIXED: Input validation
+        function validateInput(type, index) {
+            const nameInput = document.getElementById(`${type}-name-${index}`);
+            const errorElement = document.getElementById(`${type}-name-${index}-error`);
+            
+            if (!nameInput || !errorElement) return true;
+            
+            const isValid = nameInput.value.trim() !== '';
+            
+            if (isValid) {
+                errorElement.style.display = 'none';
+                nameInput.style.borderColor = '';
+            } else {
+                errorElement.style.display = 'block';
+                errorElement.textContent = getTranslation('nameRequired');
+                nameInput.style.borderColor = '#e53e3e';
+            }
+            
+            return isValid;
+        }
 
-        // ドラッグ機能に関連するグローバル変数
-        let dragElements = new Map(); // 要素とそのドラッグハンドラーを記録
+        function validateAllInputs() {
+            let isValid = true;
+            
+            // Validate suppliers
+            globalState.suppliers.forEach((_, id) => {
+                if (!validateInput('supplier', id)) isValid = false;
+            });
+            
+            // Validate warehouses
+            globalState.warehouses.forEach((_, id) => {
+                if (!validateInput('warehouse', id)) isValid = false;
+            });
+            
+            // Validate destinations
+            globalState.destinations.forEach((_, id) => {
+                if (!validateInput('destination', id)) isValid = false;
+            });
+            
+            return isValid;
+        }
 
+        // FIXED: Improved item management with proper ID tracking
         function addSupplier() {
             const container = document.getElementById('suppliers-container');
+            const newId = globalState.nextSupplierId++;
             const newSupplier = document.createElement('div');
             newSupplier.className = 'location-item';
-            newSupplier.setAttribute('data-index', supplierCount);
+            newSupplier.setAttribute('data-index', newId);
+            
+            globalState.suppliers.set(newId, {});
             
             const translation = translations[currentLanguage];
             
             newSupplier.innerHTML = `
-                <h4><span data-i18n="supplier">${translation.supplier}</span> ${supplierCount + 1}
-                    <button class="remove-btn" onclick="removeSupplier(${supplierCount})" data-i18n="remove">${translation.remove}</button>
+                <h4><span data-i18n="supplier">${translation.supplier}</span> ${globalState.suppliers.size}
+                    <button class="remove-btn" onclick="removeSupplier(${newId})" data-i18n="remove">${translation.remove}</button>
                 </h4>
                 <div class="form-group">
                     <label data-i18n="supplierName">${translation.supplierName}</label>
-                    <input type="text" id="supplier-name-${supplierCount}" placeholder="${translation.supplierName}">
+                    <input type="text" id="supplier-name-${newId}" placeholder="${translation.supplierName}" oninput="validateInput('supplier', ${newId})">
+                    <div class="error-message" id="supplier-name-${newId}-error">${translation.nameRequired}</div>
                 </div>
                 <div class="form-group">
                     <label data-i18n="domesticOverseas">${translation.domesticOverseas}</label>
-                    <select id="supplier-location-${supplierCount}">
+                    <select id="supplier-location-${newId}">
                         <option value="domestic" data-i18n="domestic">${translation.domestic}</option>
                         <option value="overseas" data-i18n="overseas">${translation.overseas}</option>
                     </select>
@@ -1209,57 +1688,67 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label data-i18n="country">${translation.country}</label>
-                        <input type="text" id="supplier-country-${supplierCount}" placeholder="${translation.country}">
+                        <input type="text" id="supplier-country-${newId}" placeholder="${translation.country}">
                     </div>
                     <div class="form-group">
                         <label data-i18n="city">${translation.city}</label>
-                        <input type="text" id="supplier-city-${supplierCount}" placeholder="${translation.city}">
+                        <input type="text" id="supplier-city-${newId}" placeholder="${translation.city}">
                     </div>
                 </div>
             `;
             
             container.appendChild(newSupplier);
-            supplierCount++;
             updateRemoveButtons();
             generateTransportForms();
         }
 
-        function removeSupplier(index) {
-            const item = document.querySelector(`#suppliers-container .location-item[data-index="${index}"]`);
+        function removeSupplier(id) {
+            if (globalState.suppliers.size <= 1) {
+                alert(getTranslation('cannotDeleteLast'));
+                return;
+            }
+            
+            const item = document.querySelector(`#suppliers-container .location-item[data-index="${id}"]`);
             if (item) {
                 item.remove();
+                globalState.suppliers.delete(id);
                 updateRemoveButtons();
                 generateTransportForms();
+                generateMap();
             }
         }
 
         function addWarehouse() {
             const container = document.getElementById('warehouses-container');
+            const newId = globalState.nextWarehouseId++;
             const newWarehouse = document.createElement('div');
             newWarehouse.className = 'location-item';
-            newWarehouse.setAttribute('data-index', warehouseCount);
+            newWarehouse.setAttribute('data-index', newId);
+            
+            globalState.warehouses.set(newId, {});
             
             const translation = translations[currentLanguage];
             
             newWarehouse.innerHTML = `
-                <h4><span data-i18n="warehouse">${translation.warehouse}</span> ${warehouseCount + 1}
-                    <button class="remove-btn" onclick="removeWarehouse(${warehouseCount})" data-i18n="remove">${translation.remove}</button>
+                <h4><span data-i18n="warehouse">${translation.warehouse}</span> ${globalState.warehouses.size}
+                    <button class="remove-btn" onclick="removeWarehouse(${newId})" data-i18n="remove">${translation.remove}</button>
                 </h4>
                 <div class="form-group">
                     <label data-i18n="warehouseName">${translation.warehouseName}</label>
-                    <input type="text" id="warehouse-name-${warehouseCount}" placeholder="${translation.warehouseName}">
+                    <input type="text" id="warehouse-name-${newId}" placeholder="${translation.warehouseName}" oninput="validateInput('warehouse', ${newId})">
+                    <div class="error-message" id="warehouse-name-${newId}-error">${translation.nameRequired}</div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label data-i18n="domesticOverseas">${translation.domesticOverseas}</label>
-                        <select id="warehouse-location-${warehouseCount}">
+                        <select id="warehouse-location-${newId}">
                             <option value="domestic" data-i18n="domestic">${translation.domestic}</option>
                             <option value="overseas" data-i18n="overseas">${translation.overseas}</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label data-i18n="existingNew">${translation.existingNew}</label>
-                        <select id="warehouse-status-${warehouseCount}">
+                        <select id="warehouse-status-${newId}">
                             <option value="existing-own" data-i18n="existingOwn">${translation.existingOwn}</option>
                             <option value="existing-other" data-i18n="existingOther">${translation.existingOther}</option>
                             <option value="new" data-i18n="new">${translation.new}</option>
@@ -1269,17 +1758,17 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label data-i18n="country">${translation.country}</label>
-                        <input type="text" id="warehouse-country-${warehouseCount}" placeholder="${translation.country}">
+                        <input type="text" id="warehouse-country-${newId}" placeholder="${translation.country}">
                     </div>
                     <div class="form-group">
                         <label data-i18n="city">${translation.city}</label>
-                        <input type="text" id="warehouse-city-${warehouseCount}" placeholder="${translation.city}">
+                        <input type="text" id="warehouse-city-${newId}" placeholder="${translation.city}">
                     </div>
                 </div>
-                <div id="warehouse-options-${warehouseCount}" class="warehouse-options" style="display: block;">
+                <div id="warehouse-options-${newId}" class="warehouse-options" style="display: block;">
                     <div class="form-group">
                         <label data-i18n="warehouseType">${translation.warehouseType}</label>
-                        <select id="warehouse-type-${warehouseCount}">
+                        <select id="warehouse-type-${newId}">
                             <option value="general" data-i18n="general">${translation.general}</option>
                             <option value="bonded" data-i18n="bonded">${translation.bonded}</option>
                         </select>
@@ -1287,63 +1776,73 @@
                 </div>
                 <div class="form-group">
                     <label data-i18n="workContent">${translation.workContent}</label>
-                    <textarea id="warehouse-work-${warehouseCount}" placeholder="${translation.workContent}" rows="2"></textarea>
+                    <textarea id="warehouse-work-${newId}" placeholder="${translation.workContent}" rows="2"></textarea>
                 </div>
                 <div class="form-group">
                     <label data-i18n="tempControl">${translation.tempControl}</label>
-                    <select id="temp-control-${warehouseCount}" onchange="toggleTempControl(${warehouseCount})">
+                    <select id="temp-control-${newId}" onchange="toggleTempControl(${newId})">
                         <option value="no" data-i18n="none">${translation.none}</option>
                         <option value="yes" data-i18n="yes">${translation.yes}</option>
                     </select>
                 </div>
-                <div id="temp-control-options-${warehouseCount}" class="temp-control-options" style="display: none;">
+                <div id="temp-control-options-${newId}" class="temp-control-options" style="display: none;">
                     <div class="temp-control-row">
                         <div class="form-group">
                             <label data-i18n="temperature">${translation.temperature}</label>
-                            <input type="text" id="temperature-${warehouseCount}" placeholder="${translation.temperature}" value="10-15">
+                            <input type="text" id="temperature-${newId}" placeholder="${translation.temperature}" value="10-15">
                         </div>
                         <div class="form-group">
                             <label data-i18n="humidity">${translation.humidity}</label>
-                            <input type="text" id="humidity-${warehouseCount}" placeholder="${translation.humidity}" value="60-70">
+                            <input type="text" id="humidity-${newId}" placeholder="${translation.humidity}" value="60-70">
                         </div>
                     </div>
                 </div>
             `;
             
             container.appendChild(newWarehouse);
-            warehouseCount++;
             updateRemoveButtons();
             generateTransportForms();
         }
 
-        function removeWarehouse(index) {
-            const item = document.querySelector(`#warehouses-container .location-item[data-index="${index}"]`);
+        function removeWarehouse(id) {
+            if (globalState.warehouses.size <= 1) {
+                alert(getTranslation('cannotDeleteLast'));
+                return;
+            }
+            
+            const item = document.querySelector(`#warehouses-container .location-item[data-index="${id}"]`);
             if (item) {
                 item.remove();
+                globalState.warehouses.delete(id);
                 updateRemoveButtons();
                 generateTransportForms();
+                generateMap();
             }
         }
 
         function addDestination() {
             const container = document.getElementById('destinations-container');
+            const newId = globalState.nextDestinationId++;
             const newDestination = document.createElement('div');
             newDestination.className = 'location-item';
-            newDestination.setAttribute('data-index', destinationCount);
+            newDestination.setAttribute('data-index', newId);
+            
+            globalState.destinations.set(newId, {});
             
             const translation = translations[currentLanguage];
             
             newDestination.innerHTML = `
-                <h4><span data-i18n="destination">${translation.destination}</span> ${destinationCount + 1}
-                    <button class="remove-btn" onclick="removeDestination(${destinationCount})" data-i18n="remove">${translation.remove}</button>
+                <h4><span data-i18n="destination">${translation.destination}</span> ${globalState.destinations.size}
+                    <button class="remove-btn" onclick="removeDestination(${newId})" data-i18n="remove">${translation.remove}</button>
                 </h4>
                 <div class="form-group">
                     <label data-i18n="destinationName">${translation.destinationName}</label>
-                    <input type="text" id="destination-name-${destinationCount}" placeholder="${translation.destinationName}">
+                    <input type="text" id="destination-name-${newId}" placeholder="${translation.destinationName}" oninput="validateInput('destination', ${newId})">
+                    <div class="error-message" id="destination-name-${newId}-error">${translation.nameRequired}</div>
                 </div>
                 <div class="form-group">
                     <label data-i18n="domesticOverseas">${translation.domesticOverseas}</label>
-                    <select id="destination-location-${destinationCount}">
+                    <select id="destination-location-${newId}">
                         <option value="domestic" data-i18n="domestic">${translation.domestic}</option>
                         <option value="overseas" data-i18n="overseas">${translation.overseas}</option>
                     </select>
@@ -1351,38 +1850,47 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label data-i18n="country">${translation.country}</label>
-                        <input type="text" id="destination-country-${destinationCount}" placeholder="${translation.country}">
+                        <input type="text" id="destination-country-${newId}" placeholder="${translation.country}">
                     </div>
                     <div class="form-group">
                         <label data-i18n="city">${translation.city}</label>
-                        <input type="text" id="destination-city-${destinationCount}" placeholder="${translation.city}">
+                        <input type="text" id="destination-city-${newId}" placeholder="${translation.city}">
                     </div>
                 </div>
             `;
             
             container.appendChild(newDestination);
-            destinationCount++;
             updateRemoveButtons();
             generateTransportForms();
         }
 
-        function removeDestination(index) {
-            const item = document.querySelector(`#destinations-container .location-item[data-index="${index}"]`);
+        function removeDestination(id) {
+            if (globalState.destinations.size <= 1) {
+                alert(getTranslation('cannotDeleteLast'));
+                return;
+            }
+            
+            const item = document.querySelector(`#destinations-container .location-item[data-index="${id}"]`);
             if (item) {
                 item.remove();
+                globalState.destinations.delete(id);
                 updateRemoveButtons();
                 generateTransportForms();
+                generateMap();
             }
         }
 
         function updateRemoveButtons() {
             const selectors = ['#suppliers-container', '#warehouses-container', '#destinations-container'];
-            selectors.forEach(selector => {
+            const stateKeys = ['suppliers', 'warehouses', 'destinations'];
+            
+            selectors.forEach((selector, index) => {
+                const stateKey = stateKeys[index];
                 const items = document.querySelectorAll(`${selector} .location-item`);
                 items.forEach((item) => {
                     const removeBtn = item.querySelector('.remove-btn');
                     if(removeBtn) {
-                       removeBtn.style.display = items.length > 1 ? 'inline-block' : 'none';
+                       removeBtn.style.display = globalState[stateKey].size > 1 ? 'inline-block' : 'none';
                     }
                 });
             });
@@ -1392,19 +1900,27 @@
             const container = document.getElementById('transports-container');
             container.innerHTML = '';
 
-            const suppliers = document.querySelectorAll('#suppliers-container .location-item');
-            const warehouses = document.querySelectorAll('#warehouses-container .location-item');
-            const destinations = document.querySelectorAll('#destinations-container .location-item');
+            const suppliers = Array.from(document.querySelectorAll('#suppliers-container .location-item'));
+            const warehouses = Array.from(document.querySelectorAll('#warehouses-container .location-item'));
+            const destinations = Array.from(document.querySelectorAll('#destinations-container .location-item'));
 
             const translation = translations[currentLanguage];
             let transportIndex = 0;
 
+            // FIXED: Better transport form generation with proper error handling
             suppliers.forEach((supplier) => {
                 warehouses.forEach((warehouse) => {
                     const supplierIndex = supplier.getAttribute('data-index');
                     const warehouseIndex = warehouse.getAttribute('data-index');
-                    const supplierName = document.getElementById(`supplier-name-${supplierIndex}`)?.value || `${translation.supplier} ${parseInt(supplierIndex)+1}`;
-                    const warehouseName = document.getElementById(`warehouse-name-${warehouseIndex}`)?.value || `${translation.warehouse} ${parseInt(warehouseIndex)+1}`;
+                    
+                    // Safety check for element existence
+                    const supplierNameEl = document.getElementById(`supplier-name-${supplierIndex}`);
+                    const warehouseNameEl = document.getElementById(`warehouse-name-${warehouseIndex}`);
+                    
+                    if (!supplierNameEl || !warehouseNameEl) return;
+                    
+                    const supplierName = supplierNameEl.value || `${translation.supplier} ${parseInt(supplierIndex)+1}`;
+                    const warehouseName = warehouseNameEl.value || `${translation.warehouse} ${parseInt(warehouseIndex)+1}`;
 
                     const transportItem = document.createElement('div');
                     transportItem.className = 'transport-item';
@@ -1466,8 +1982,15 @@
                 destinations.forEach((destination) => {
                     const warehouseIndex = warehouse.getAttribute('data-index');
                     const destinationIndex = destination.getAttribute('data-index');
-                    const warehouseName = document.getElementById(`warehouse-name-${warehouseIndex}`)?.value || `${translation.warehouse} ${parseInt(warehouseIndex)+1}`;
-                    const destinationName = document.getElementById(`destination-name-${destinationIndex}`)?.value || `${translation.destination} ${parseInt(destinationIndex)+1}`;
+                    
+                    // Safety check for element existence
+                    const warehouseNameEl = document.getElementById(`warehouse-name-${warehouseIndex}`);
+                    const destinationNameEl = document.getElementById(`destination-name-${destinationIndex}`);
+                    
+                    if (!warehouseNameEl || !destinationNameEl) return;
+                    
+                    const warehouseName = warehouseNameEl.value || `${translation.warehouse} ${parseInt(warehouseIndex)+1}`;
+                    const destinationName = destinationNameEl.value || `${translation.destination} ${parseInt(destinationIndex)+1}`;
 
                     const transportItem = document.createElement('div');
                     transportItem.className = 'transport-item';
@@ -1527,117 +2050,169 @@
         }
 
         function exportDataAsCSV() {
-            let csvData = [];
-            
-            // Header
-            csvData.push(['type', 'id', 'key', 'value']);
-            
-            // Suppliers
-            document.querySelectorAll('#suppliers-container .location-item').forEach(item => {
-                const index = item.getAttribute('data-index');
-                csvData.push(['supplier', index, 'name', document.getElementById(`supplier-name-${index}`).value]);
-                csvData.push(['supplier', index, 'location', document.getElementById(`supplier-location-${index}`).value]);
-                csvData.push(['supplier', index, 'country', document.getElementById(`supplier-country-${index}`).value]);
-                csvData.push(['supplier', index, 'city', document.getElementById(`supplier-city-${index}`).value]);
-            });
+            try {
+                let csvData = [];
+                
+                // Header
+                csvData.push(['type', 'id', 'key', 'value']);
+                
+                // Suppliers
+                document.querySelectorAll('#suppliers-container .location-item').forEach(item => {
+                    const index = item.getAttribute('data-index');
+                    const nameEl = document.getElementById(`supplier-name-${index}`);
+                    const locationEl = document.getElementById(`supplier-location-${index}`);
+                    const countryEl = document.getElementById(`supplier-country-${index}`);
+                    const cityEl = document.getElementById(`supplier-city-${index}`);
+                    
+                    if (nameEl) csvData.push(['supplier', index, 'name', nameEl.value || '']);
+                    if (locationEl) csvData.push(['supplier', index, 'location', locationEl.value || '']);
+                    if (countryEl) csvData.push(['supplier', index, 'country', countryEl.value || '']);
+                    if (cityEl) csvData.push(['supplier', index, 'city', cityEl.value || '']);
+                });
 
-            // Warehouses
-            document.querySelectorAll('#warehouses-container .location-item').forEach(item => {
-                const index = item.getAttribute('data-index');
-                csvData.push(['warehouse', index, 'name', document.getElementById(`warehouse-name-${index}`).value]);
-                csvData.push(['warehouse', index, 'location', document.getElementById(`warehouse-location-${index}`).value]);
-                csvData.push(['warehouse', index, 'status', document.getElementById(`warehouse-status-${index}`).value]);
-                csvData.push(['warehouse', index, 'country', document.getElementById(`warehouse-country-${index}`).value]);
-                csvData.push(['warehouse', index, 'city', document.getElementById(`warehouse-city-${index}`).value]);
-                csvData.push(['warehouse', index, 'type', document.getElementById(`warehouse-type-${index}`).value]);
-                csvData.push(['warehouse', index, 'work', document.getElementById(`warehouse-work-${index}`).value]);
-                csvData.push(['warehouse', index, 'tempControl', document.getElementById(`temp-control-${index}`).value]);
-                csvData.push(['warehouse', index, 'temperature', document.getElementById(`temperature-${index}`).value]);
-                csvData.push(['warehouse', index, 'humidity', document.getElementById(`humidity-${index}`).value]);
-            });
-            
-            // Destinations
-            document.querySelectorAll('#destinations-container .location-item').forEach(item => {
-                const index = item.getAttribute('data-index');
-                csvData.push(['destination', index, 'name', document.getElementById(`destination-name-${index}`).value]);
-                csvData.push(['destination', index, 'location', document.getElementById(`destination-location-${index}`).value]);
-                csvData.push(['destination', index, 'country', document.getElementById(`destination-country-${index}`).value]);
-                csvData.push(['destination', index, 'city', document.getElementById(`destination-city-${index}`).value]);
-            });
+                // Warehouses
+                document.querySelectorAll('#warehouses-container .location-item').forEach(item => {
+                    const index = item.getAttribute('data-index');
+                    const nameEl = document.getElementById(`warehouse-name-${index}`);
+                    const locationEl = document.getElementById(`warehouse-location-${index}`);
+                    const statusEl = document.getElementById(`warehouse-status-${index}`);
+                    const countryEl = document.getElementById(`warehouse-country-${index}`);
+                    const cityEl = document.getElementById(`warehouse-city-${index}`);
+                    const typeEl = document.getElementById(`warehouse-type-${index}`);
+                    const workEl = document.getElementById(`warehouse-work-${index}`);
+                    const tempControlEl = document.getElementById(`temp-control-${index}`);
+                    const temperatureEl = document.getElementById(`temperature-${index}`);
+                    const humidityEl = document.getElementById(`humidity-${index}`);
+                    
+                    if (nameEl) csvData.push(['warehouse', index, 'name', nameEl.value || '']);
+                    if (locationEl) csvData.push(['warehouse', index, 'location', locationEl.value || '']);
+                    if (statusEl) csvData.push(['warehouse', index, 'status', statusEl.value || '']);
+                    if (countryEl) csvData.push(['warehouse', index, 'country', countryEl.value || '']);
+                    if (cityEl) csvData.push(['warehouse', index, 'city', cityEl.value || '']);
+                    if (typeEl) csvData.push(['warehouse', index, 'type', typeEl.value || '']);
+                    if (workEl) csvData.push(['warehouse', index, 'work', workEl.value || '']);
+                    if (tempControlEl) csvData.push(['warehouse', index, 'tempControl', tempControlEl.value || '']);
+                    if (temperatureEl) csvData.push(['warehouse', index, 'temperature', temperatureEl.value || '']);
+                    if (humidityEl) csvData.push(['warehouse', index, 'humidity', humidityEl.value || '']);
+                });
+                
+                // Destinations
+                document.querySelectorAll('#destinations-container .location-item').forEach(item => {
+                    const index = item.getAttribute('data-index');
+                    const nameEl = document.getElementById(`destination-name-${index}`);
+                    const locationEl = document.getElementById(`destination-location-${index}`);
+                    const countryEl = document.getElementById(`destination-country-${index}`);
+                    const cityEl = document.getElementById(`destination-city-${index}`);
+                    
+                    if (nameEl) csvData.push(['destination', index, 'name', nameEl.value || '']);
+                    if (locationEl) csvData.push(['destination', index, 'location', locationEl.value || '']);
+                    if (countryEl) csvData.push(['destination', index, 'country', countryEl.value || '']);
+                    if (cityEl) csvData.push(['destination', index, 'city', cityEl.value || '']);
+                });
 
-            // Transports
-            document.querySelectorAll('#transports-container .transport-item').forEach((item, index) => {
-                csvData.push(['transport', index, 'mode', document.getElementById(`transport-${index}-mode`).value]);
-                csvData.push(['transport', index, 'status', document.getElementById(`transport-${index}-status`).value]);
-                csvData.push(['transport', index, 'departure', document.getElementById(`transport-${index}-departure`).value]);
-                csvData.push(['transport', index, 'arrival', document.getElementById(`transport-${index}-arrival`).value]);
-                csvData.push(['transport', index, 'frequency', document.getElementById(`transport-${index}-frequency`).value]);
-                csvData.push(['transport', index, 'package', document.getElementById(`transport-${index}-package`).value]);
-                csvData.push(['transport', index, 'volume', document.getElementById(`transport-${index}-volume`).value]);
-                csvData.push(['transport', index, 'from', document.getElementById(`transport-${index}-from`).value]);
-                csvData.push(['transport', index, 'to', document.getElementById(`transport-${index}-to`).value]);
-                csvData.push(['transport', index, 'type', document.getElementById(`transport-${index}-type`).value]);
-            });
+                // Transports
+                document.querySelectorAll('#transports-container .transport-item').forEach((item, index) => {
+                    const modeEl = document.getElementById(`transport-${index}-mode`);
+                    const statusEl = document.getElementById(`transport-${index}-status`);
+                    const departureEl = document.getElementById(`transport-${index}-departure`);
+                    const arrivalEl = document.getElementById(`transport-${index}-arrival`);
+                    const frequencyEl = document.getElementById(`transport-${index}-frequency`);
+                    const packageEl = document.getElementById(`transport-${index}-package`);
+                    const volumeEl = document.getElementById(`transport-${index}-volume`);
+                    const fromEl = document.getElementById(`transport-${index}-from`);
+                    const toEl = document.getElementById(`transport-${index}-to`);
+                    const typeEl = document.getElementById(`transport-${index}-type`);
+                    
+                    if (modeEl) csvData.push(['transport', index, 'mode', modeEl.value || '']);
+                    if (statusEl) csvData.push(['transport', index, 'status', statusEl.value || '']);
+                    if (departureEl) csvData.push(['transport', index, 'departure', departureEl.value || '']);
+                    if (arrivalEl) csvData.push(['transport', index, 'arrival', arrivalEl.value || '']);
+                    if (frequencyEl) csvData.push(['transport', index, 'frequency', frequencyEl.value || '']);
+                    if (packageEl) csvData.push(['transport', index, 'package', packageEl.value || '']);
+                    if (volumeEl) csvData.push(['transport', index, 'volume', volumeEl.value || '']);
+                    if (fromEl) csvData.push(['transport', index, 'from', fromEl.value || '']);
+                    if (toEl) csvData.push(['transport', index, 'to', toEl.value || '']);
+                    if (typeEl) csvData.push(['transport', index, 'type', typeEl.value || '']);
+                });
 
-            const csvContent = csvData.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')).join('\n');
-            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `logistics_map_data_${new Date().toISOString().slice(0, 10)}.csv`;
-            link.click();
+                const csvContent = csvData.map(row => 
+                    row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
+                ).join('\n');
+                
+                const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `logistics_map_data_${new Date().toISOString().slice(0, 10)}.csv`;
+                link.click();
+                
+                // Cleanup
+                setTimeout(() => URL.revokeObjectURL(link.href), 100);
+            } catch (error) {
+                console.error('CSV export error:', error);
+                alert(getTranslation('exportError') || 'CSV export failed');
+            }
         }
 
         function downloadSampleTemplate() {
-            const csvData = [
-                ['type', 'id', 'key', 'value'],
-                ['supplier', '0', 'name', '上海電子部品'],
-                ['supplier', '0', 'location', 'overseas'],
-                ['supplier', '0', 'country', '中国'],
-                ['supplier', '0', 'city', '上海'],
-                ['warehouse', '0', 'name', '成田保税倉庫'],
-                ['warehouse', '0', 'location', 'domestic'],
-                ['warehouse', '0', 'status', 'existing-own'],
-                ['warehouse', '0', 'country', '日本'],
-                ['warehouse', '0', 'city', '成田'],
-                ['warehouse', '0', 'type', 'bonded'],
-                ['warehouse', '0', 'work', '通関手続き、検査、保管'],
-                ['warehouse', '0', 'tempControl', 'no'],
-                ['warehouse', '0', 'temperature', '15-25'],
-                ['warehouse', '0', 'humidity', '40-60'],
-                ['destination', '0', 'name', '東京製造株式会社'],
-                ['destination', '0', 'location', 'domestic'],
-                ['destination', '0', 'country', '日本'],
-                ['destination', '0', 'city', '東京'],
-                ['transport', '0', 'mode', 'air'],
-                ['transport', '0', 'status', 'existing-own'],
-                ['transport', '0', 'departure', '上海浦東空港'],
-                ['transport', '0', 'arrival', '成田空港'],
-                ['transport', '0', 'frequency', '週3回'],
-                ['transport', '0', 'package', 'ULD'],
-                ['transport', '0', 'volume', '50コンテナ'],
-                ['transport', '0', 'from', 's0'],
-                ['transport', '0', 'to', 'w0'],
-                ['transport', '0', 'type', 'supplier-warehouse'],
-                ['transport', '1', 'mode', 'truck'],
-                ['transport', '1', 'status', 'existing-own'],
-                ['transport', '1', 'departure', '成田倉庫'],
-                ['transport', '1', 'arrival', '東京工場'],
-                ['transport', '1', 'frequency', '毎日'],
-                ['transport', '1', 'package', 'ダンボール'],
-                ['transport', '1', 'volume', '200個'],
-                ['transport', '1', 'from', 'w0'],
-                ['transport', '1', 'to', 'd0'],
-                ['transport', '1', 'type', 'warehouse-destination']
-            ];
-            
-            const csvContent = csvData.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
-            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'logistics_map_template.csv';
-            link.click();
+            try {
+                const csvData = [
+                    ['type', 'id', 'key', 'value'],
+                    ['supplier', '0', 'name', '上海電子部品'],
+                    ['supplier', '0', 'location', 'overseas'],
+                    ['supplier', '0', 'country', '中国'],
+                    ['supplier', '0', 'city', '上海'],
+                    ['warehouse', '0', 'name', '成田保税倉庫'],
+                    ['warehouse', '0', 'location', 'domestic'],
+                    ['warehouse', '0', 'status', 'existing-own'],
+                    ['warehouse', '0', 'country', '日本'],
+                    ['warehouse', '0', 'city', '成田'],
+                    ['warehouse', '0', 'type', 'bonded'],
+                    ['warehouse', '0', 'work', '通関手続き、検査、保管'],
+                    ['warehouse', '0', 'tempControl', 'no'],
+                    ['warehouse', '0', 'temperature', '15-25'],
+                    ['warehouse', '0', 'humidity', '40-60'],
+                    ['destination', '0', 'name', '東京製造株式会社'],
+                    ['destination', '0', 'location', 'domestic'],
+                    ['destination', '0', 'country', '日本'],
+                    ['destination', '0', 'city', '東京'],
+                    ['transport', '0', 'mode', 'air'],
+                    ['transport', '0', 'status', 'existing-own'],
+                    ['transport', '0', 'departure', '上海浦東空港'],
+                    ['transport', '0', 'arrival', '成田空港'],
+                    ['transport', '0', 'frequency', '週3回'],
+                    ['transport', '0', 'package', 'ULD'],
+                    ['transport', '0', 'volume', '50コンテナ'],
+                    ['transport', '0', 'from', 's0'],
+                    ['transport', '0', 'to', 'w0'],
+                    ['transport', '0', 'type', 'supplier-warehouse'],
+                    ['transport', '1', 'mode', 'truck'],
+                    ['transport', '1', 'status', 'existing-own'],
+                    ['transport', '1', 'departure', '成田倉庫'],
+                    ['transport', '1', 'arrival', '東京工場'],
+                    ['transport', '1', 'frequency', '毎日'],
+                    ['transport', '1', 'package', 'ダンボール'],
+                    ['transport', '1', 'volume', '200個'],
+                    ['transport', '1', 'from', 'w0'],
+                    ['transport', '1', 'to', 'd0'],
+                    ['transport', '1', 'type', 'warehouse-destination']
+                ];
+                
+                const csvContent = csvData.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+                const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'logistics_map_template.csv';
+                link.click();
+                
+                // Cleanup
+                setTimeout(() => URL.revokeObjectURL(link.href), 100);
+            } catch (error) {
+                console.error('Template download error:', error);
+                alert(getTranslation('downloadError') || 'Template download failed');
+            }
         }
 
+        // FIXED: Improved CSV parsing with better error handling
         function importDataFromCSV(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1647,23 +2222,39 @@
                 try {
                     const data = {};
                     const text = e.target.result;
-                    const lines = text.split('\n').slice(1); // Skip header
+                    
+                    // Improved CSV parsing with better regex and error handling
+                    const lines = text.split('\n').filter(line => line.trim() !== '').slice(1); // Skip header and empty lines
 
-                    lines.forEach(line => {
-                        const parts = line.match(/(?:,"|^)(?:"(?:[^"](?:"")?)*"|[^,"]*)/g);
-                        if (!parts || parts.length !== 4) return;
-                        
-                        const [type, id, key, value] = parts.map(field => {
-                            let cleanField = field.startsWith(',') ? field.substring(1) : field;
-                            if (cleanField.startsWith('"') && cleanField.endsWith('"')) {
-                                cleanField = cleanField.slice(1, -1).replace(/""/g, '"');
+                    lines.forEach((line, lineNumber) => {
+                        try {
+                            // More robust CSV parsing
+                            const regex = /("(?:[^"]+|"")*"|[^,]*)/g;
+                            const parts = [];
+                            let match;
+                            while ((match = regex.exec(line)) !== null) {
+                                parts.push(match[1]);
                             }
-                            return cleanField.trim();
-                        });
+                            
+                            if (parts.length !== 4) {
+                                console.warn(`Line ${lineNumber + 2}: Invalid format, expected 4 columns, got ${parts.length}`);
+                                return;
+                            }
+                            
+                            const [type, id, key, value] = parts.map(field => {
+                                let cleanField = field.trim();
+                                if (cleanField.startsWith('"') && cleanField.endsWith('"')) {
+                                    cleanField = cleanField.slice(1, -1).replace(/""/g, '"');
+                                }
+                                return cleanField;
+                            });
 
-                        if (!data[type]) data[type] = {};
-                        if (!data[type][id]) data[type][id] = {};
-                        data[type][id][key] = value;
+                            if (!data[type]) data[type] = {};
+                            if (!data[type][id]) data[type][id] = {};
+                            data[type][id][key] = value;
+                        } catch (lineError) {
+                            console.warn(`Error parsing line ${lineNumber + 2}:`, lineError);
+                        }
                     });
                     
                     applyImportedData(data);
@@ -1679,116 +2270,262 @@
             reader.readAsText(file, 'UTF-8');
         }
 
+        // FIXED: Improved data application with proper state management
         function applyImportedData(data) {
-            // Clear existing dynamic items
-            document.getElementById('suppliers-container').innerHTML = '';
-            document.getElementById('warehouses-container').innerHTML = '';
-            document.getElementById('destinations-container').innerHTML = '';
-            supplierCount = 0; warehouseCount = 0; destinationCount = 0;
+            try {
+                // Clear existing data and reset state
+                document.getElementById('suppliers-container').innerHTML = '';
+                document.getElementById('warehouses-container').innerHTML = '';
+                document.getElementById('destinations-container').innerHTML = '';
+                
+                globalState.suppliers.clear();
+                globalState.warehouses.clear();
+                globalState.destinations.clear();
+                globalState.nextSupplierId = 0;
+                globalState.nextWarehouseId = 0;
+                globalState.nextDestinationId = 0;
 
-            // Add suppliers
-            if(data.supplier) {
-                Object.keys(data.supplier).forEach(id => {
-                    addSupplier();
-                    const sData = data.supplier[id];
-                    document.getElementById(`supplier-name-${id}`).value = sData.name || '';
-                    document.getElementById(`supplier-location-${id}`).value = sData.location || 'domestic';
-                    document.getElementById(`supplier-country-${id}`).value = sData.country || '';
-                    document.getElementById(`supplier-city-${id}`).value = sData.city || '';
-                });
-            }
+                // Add suppliers
+                if (data.supplier) {
+                    const sortedSupplierIds = Object.keys(data.supplier).sort((a, b) => parseInt(a) - parseInt(b));
+                    sortedSupplierIds.forEach(id => {
+                        const numId = parseInt(id);
+                        globalState.nextSupplierId = Math.max(globalState.nextSupplierId, numId + 1);
+                        globalState.suppliers.set(numId, {});
+                        
+                        const container = document.getElementById('suppliers-container');
+                        const translation = translations[currentLanguage];
+                        const sData = data.supplier[id];
+                        
+                        const newSupplier = document.createElement('div');
+                        newSupplier.className = 'location-item';
+                        newSupplier.setAttribute('data-index', numId);
+                        
+                        newSupplier.innerHTML = `
+                            <h4><span data-i18n="supplier">${translation.supplier}</span> ${globalState.suppliers.size}
+                                <button class="remove-btn" onclick="removeSupplier(${numId})" data-i18n="remove">${translation.remove}</button>
+                            </h4>
+                            <div class="form-group">
+                                <label data-i18n="supplierName">${translation.supplierName}</label>
+                                <input type="text" id="supplier-name-${numId}" placeholder="${translation.supplierName}" oninput="validateInput('supplier', ${numId})" value="${sData.name || ''}">
+                                <div class="error-message" id="supplier-name-${numId}-error">${translation.nameRequired}</div>
+                            </div>
+                            <div class="form-group">
+                                <label data-i18n="domesticOverseas">${translation.domesticOverseas}</label>
+                                <select id="supplier-location-${numId}">
+                                    <option value="domestic" ${sData.location === 'domestic' ? 'selected' : ''} data-i18n="domestic">${translation.domestic}</option>
+                                    <option value="overseas" ${sData.location === 'overseas' ? 'selected' : ''} data-i18n="overseas">${translation.overseas}</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label data-i18n="country">${translation.country}</label>
+                                    <input type="text" id="supplier-country-${numId}" placeholder="${translation.country}" value="${sData.country || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label data-i18n="city">${translation.city}</label>
+                                    <input type="text" id="supplier-city-${numId}" placeholder="${translation.city}" value="${sData.city || ''}">
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(newSupplier);
+                    });
+                }
 
-            // Add warehouses
-            if(data.warehouse) {
-                Object.keys(data.warehouse).forEach(id => {
-                    addWarehouse();
-                    const wData = data.warehouse[id];
-                    document.getElementById(`warehouse-name-${id}`).value = wData.name || '';
-                    document.getElementById(`warehouse-location-${id}`).value = wData.location || 'domestic';
-                    document.getElementById(`warehouse-status-${id}`).value = wData.status || 'existing-own';
-                    document.getElementById(`warehouse-country-${id}`).value = wData.country || '';
-                    document.getElementById(`warehouse-city-${id}`).value = wData.city || '';
-                    document.getElementById(`warehouse-type-${id}`).value = wData.type || 'general';
-                    document.getElementById(`warehouse-work-${id}`).value = wData.work || '';
-                    document.getElementById(`temp-control-${id}`).value = wData.tempControl || 'no';
-                    document.getElementById(`temperature-${id}`).value = wData.temperature || '';
-                    document.getElementById(`humidity-${id}`).value = wData.humidity || '';
-                    toggleTempControl(id);
-                });
-            }
+                // Add warehouses
+                if (data.warehouse) {
+                    const sortedWarehouseIds = Object.keys(data.warehouse).sort((a, b) => parseInt(a) - parseInt(b));
+                    sortedWarehouseIds.forEach(id => {
+                        const numId = parseInt(id);
+                        globalState.nextWarehouseId = Math.max(globalState.nextWarehouseId, numId + 1);
+                        globalState.warehouses.set(numId, {});
+                        
+                        const container = document.getElementById('warehouses-container');
+                        const translation = translations[currentLanguage];
+                        const wData = data.warehouse[id];
+                        
+                        const newWarehouse = document.createElement('div');
+                        newWarehouse.className = 'location-item';
+                        newWarehouse.setAttribute('data-index', numId);
+                        
+                        newWarehouse.innerHTML = `
+                            <h4><span data-i18n="warehouse">${translation.warehouse}</span> ${globalState.warehouses.size}
+                                <button class="remove-btn" onclick="removeWarehouse(${numId})" data-i18n="remove">${translation.remove}</button>
+                            </h4>
+                            <div class="form-group">
+                                <label data-i18n="warehouseName">${translation.warehouseName}</label>
+                                <input type="text" id="warehouse-name-${numId}" placeholder="${translation.warehouseName}" oninput="validateInput('warehouse', ${numId})" value="${wData.name || ''}">
+                                <div class="error-message" id="warehouse-name-${numId}-error">${translation.nameRequired}</div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label data-i18n="domesticOverseas">${translation.domesticOverseas}</label>
+                                    <select id="warehouse-location-${numId}">
+                                        <option value="domestic" ${wData.location === 'domestic' ? 'selected' : ''} data-i18n="domestic">${translation.domestic}</option>
+                                        <option value="overseas" ${wData.location === 'overseas' ? 'selected' : ''} data-i18n="overseas">${translation.overseas}</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label data-i18n="existingNew">${translation.existingNew}</label>
+                                    <select id="warehouse-status-${numId}">
+                                        <option value="existing-own" ${wData.status === 'existing-own' ? 'selected' : ''} data-i18n="existingOwn">${translation.existingOwn}</option>
+                                        <option value="existing-other" ${wData.status === 'existing-other' ? 'selected' : ''} data-i18n="existingOther">${translation.existingOther}</option>
+                                        <option value="new" ${wData.status === 'new' ? 'selected' : ''} data-i18n="new">${translation.new}</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label data-i18n="country">${translation.country}</label>
+                                    <input type="text" id="warehouse-country-${numId}" placeholder="${translation.country}" value="${wData.country || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label data-i18n="city">${translation.city}</label>
+                                    <input type="text" id="warehouse-city-${numId}" placeholder="${translation.city}" value="${wData.city || ''}">
+                                </div>
+                            </div>
+                            <div id="warehouse-options-${numId}" class="warehouse-options" style="display: block;">
+                                <div class="form-group">
+                                    <label data-i18n="warehouseType">${translation.warehouseType}</label>
+                                    <select id="warehouse-type-${numId}">
+                                        <option value="general" ${wData.type === 'general' ? 'selected' : ''} data-i18n="general">${translation.general}</option>
+                                        <option value="bonded" ${wData.type === 'bonded' ? 'selected' : ''} data-i18n="bonded">${translation.bonded}</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label data-i18n="workContent">${translation.workContent}</label>
+                                <textarea id="warehouse-work-${numId}" placeholder="${translation.workContent}" rows="2">${wData.work || ''}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label data-i18n="tempControl">${translation.tempControl}</label>
+                                <select id="temp-control-${numId}" onchange="toggleTempControl(${numId})">
+                                    <option value="no" ${wData.tempControl === 'no' ? 'selected' : ''} data-i18n="none">${translation.none}</option>
+                                    <option value="yes" ${wData.tempControl === 'yes' ? 'selected' : ''} data-i18n="yes">${translation.yes}</option>
+                                </select>
+                            </div>
+                            <div id="temp-control-options-${numId}" class="temp-control-options" style="display: ${wData.tempControl === 'yes' ? 'block' : 'none'};">
+                                <div class="temp-control-row">
+                                    <div class="form-group">
+                                        <label data-i18n="temperature">${translation.temperature}</label>
+                                        <input type="text" id="temperature-${numId}" placeholder="${translation.temperature}" value="${wData.temperature || '10-15'}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label data-i18n="humidity">${translation.humidity}</label>
+                                        <input type="text" id="humidity-${numId}" placeholder="${translation.humidity}" value="${wData.humidity || '60-70'}">
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(newWarehouse);
+                    });
+                }
 
-            // Add destinations
-            if(data.destination) {
-                 Object.keys(data.destination).forEach(id => {
-                    addDestination();
-                    const dData = data.destination[id];
-                    document.getElementById(`destination-name-${id}`).value = dData.name || '';
-                    document.getElementById(`destination-location-${id}`).value = dData.location || 'domestic';
-                    document.getElementById(`destination-country-${id}`).value = dData.country || '';
-                    document.getElementById(`destination-city-${id}`).value = dData.city || '';
-                });
-            }
+                // Add destinations
+                if (data.destination) {
+                    const sortedDestinationIds = Object.keys(data.destination).sort((a, b) => parseInt(a) - parseInt(b));
+                    sortedDestinationIds.forEach(id => {
+                        const numId = parseInt(id);
+                        globalState.nextDestinationId = Math.max(globalState.nextDestinationId, numId + 1);
+                        globalState.destinations.set(numId, {});
+                        
+                        const container = document.getElementById('destinations-container');
+                        const translation = translations[currentLanguage];
+                        const dData = data.destination[id];
+                        
+                        const newDestination = document.createElement('div');
+                        newDestination.className = 'location-item';
+                        newDestination.setAttribute('data-index', numId);
+                        
+                        newDestination.innerHTML = `
+                            <h4><span data-i18n="destination">${translation.destination}</span> ${globalState.destinations.size}
+                                <button class="remove-btn" onclick="removeDestination(${numId})" data-i18n="remove">${translation.remove}</button>
+                            </h4>
+                            <div class="form-group">
+                                <label data-i18n="destinationName">${translation.destinationName}</label>
+                                <input type="text" id="destination-name-${numId}" placeholder="${translation.destinationName}" oninput="validateInput('destination', ${numId})" value="${dData.name || ''}">
+                                <div class="error-message" id="destination-name-${numId}-error">${translation.nameRequired}</div>
+                            </div>
+                            <div class="form-group">
+                                <label data-i18n="domesticOverseas">${translation.domesticOverseas}</label>
+                                <select id="destination-location-${numId}">
+                                    <option value="domestic" ${dData.location === 'domestic' ? 'selected' : ''} data-i18n="domestic">${translation.domestic}</option>
+                                    <option value="overseas" ${dData.location === 'overseas' ? 'selected' : ''} data-i18n="overseas">${translation.overseas}</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label data-i18n="country">${translation.country}</label>
+                                    <input type="text" id="destination-country-${numId}" placeholder="${translation.country}" value="${dData.country || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label data-i18n="city">${translation.city}</label>
+                                    <input type="text" id="destination-city-${numId}" placeholder="${translation.city}" value="${dData.city || ''}">
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(newDestination);
+                    });
+                }
 
-            // Regenerate transport forms and apply data
-            generateTransportForms();
-            if(data.transport) {
-                Object.keys(data.transport).forEach(id => {
-                    if (document.getElementById(`transport-${id}-mode`)) {
+                // Update remove buttons
+                updateRemoveButtons();
+
+                // Regenerate transport forms and apply data
+                generateTransportForms();
+                
+                if (data.transport) {
+                    Object.keys(data.transport).forEach(id => {
                         const tData = data.transport[id];
-                        document.getElementById(`transport-${id}-mode`).value = tData.mode || 'truck';
-                        document.getElementById(`transport-${id}-status`).value = tData.status || 'existing-own';
-                        document.getElementById(`transport-${id}-departure`).value = tData.departure || '';
-                        document.getElementById(`transport-${id}-arrival`).value = tData.arrival || '';
-                        document.getElementById(`transport-${id}-frequency`).value = tData.frequency || '';
-                        document.getElementById(`transport-${id}-package`).value = tData.package || '';
-                        document.getElementById(`transport-${id}-volume`).value = tData.volume || '';
-                    }
-                });
-            }
+                        const modeEl = document.getElementById(`transport-${id}-mode`);
+                        const statusEl = document.getElementById(`transport-${id}-status`);
+                        const departureEl = document.getElementById(`transport-${id}-departure`);
+                        const arrivalEl = document.getElementById(`transport-${id}-arrival`);
+                        const frequencyEl = document.getElementById(`transport-${id}-frequency`);
+                        const packageEl = document.getElementById(`transport-${id}-package`);
+                        const volumeEl = document.getElementById(`transport-${id}-volume`);
+                        
+                        if (modeEl) modeEl.value = tData.mode || 'truck';
+                        if (statusEl) statusEl.value = tData.status || 'existing-own';
+                        if (departureEl) departureEl.value = tData.departure || '';
+                        if (arrivalEl) arrivalEl.value = tData.arrival || '';
+                        if (frequencyEl) frequencyEl.value = tData.frequency || '';
+                        if (packageEl) packageEl.value = tData.package || '';
+                        if (volumeEl) volumeEl.value = tData.volume || '';
+                    });
+                }
 
-            generateMap();
+                generateMap();
+            } catch (error) {
+                console.error('Data application error:', error);
+                alert(getTranslation('importError'));
+            }
         }
 
         function deleteLocationBox(type, index, event) {
             event.preventDefault();
             event.stopPropagation();
             
-            const containers = {
-                'supplier': '#suppliers-container',
-                'warehouse': '#warehouses-container', 
-                'destination': '#destinations-container'
+            const stateKeys = {
+                'supplier': 'suppliers',
+                'warehouse': 'warehouses',
+                'destination': 'destinations'
             };
             
-            const container = document.querySelector(containers[type]);
-            const items = container.querySelectorAll('.location-item');
+            const removeFunctions = {
+                'supplier': removeSupplier,
+                'warehouse': removeWarehouse,
+                'destination': removeDestination
+            };
             
-            // 最低1つは残す
-            if (items.length <= 1) {
+            const stateKey = stateKeys[type];
+            if (!stateKey || globalState[stateKey].size <= 1) {
                 alert(getTranslation('cannotDeleteLast') || 'Cannot delete the last item');
                 return;
             }
             
-            // 該当するフォーム要素を削除
-            const item = container.querySelector(`.location-item[data-index="${index}"]`);
-            if (item) {
-                item.remove();
-            }
-            
-            // 関連する削除ボタンの更新
-            updateRemoveButtons();
-            
-            // 輸送フォームは再生成せず、そのまま維持
-            // generateTransportForms(); // この行をコメントアウト
-            
-            // マップを再生成
-            generateMap();
-            
-            // 編集モードが有効な場合、ドラッグ機能を再有効化
-            if (editMode) {
-                setTimeout(() => {
-                    enableDragAndDrop();
-                }, 100);
-            }
+            // Call the appropriate remove function
+            removeFunctions[type](parseInt(index));
         }
 
         function toggleEditMode() {
@@ -1802,10 +2539,18 @@
                 editBtn.textContent = getTranslation('editComplete');
                 editBtn.style.background = '#e53e3e';
                 enableDragAndDrop();
+                
+                // Expand map area for better dragging experience
+                mapElement.style.minWidth = '1600px';
+                mapElement.style.minHeight = '1200px';
             } else {
                 editBtn.textContent = getTranslation('editMode');
                 editBtn.style.background = '#4a5568';
                 disableDragAndDrop();
+                
+                // Reset map size when exiting edit mode
+                mapElement.style.minWidth = '';
+                mapElement.style.minHeight = '';
             }
         }
 
@@ -1825,11 +2570,13 @@
             deleteBtn.innerHTML = '×';
             deleteBtn.onclick = (e) => {
                 e.stopPropagation();
-                // ドラッグハンドラーの削除
+                // FIXED: Proper cleanup of drag handlers
                 if (dragElements.has(textBox)) {
                     removeDragHandlers(textBox);
                 }
-                mapElement.removeChild(textBox);
+                if (textBox.parentNode) {
+                    textBox.parentNode.removeChild(textBox);
+                }
             };
             
             textBox.appendChild(deleteBtn);
@@ -1846,15 +2593,24 @@
         }
 
         function disableDragAndDrop() {
-            // 修正：cloneNodeを使わずに、イベントリスナーのみを削除
+            // FIXED: Proper cleanup of event listeners
             dragElements.forEach((handlers, element) => {
                 removeDragHandlers(element);
             });
             dragElements.clear();
             
-            // draggableクラスを削除
+            // Remove draggable classes
             document.querySelectorAll('.draggable').forEach(element => {
                 element.classList.remove('draggable');
+            });
+            
+            // FIXED: Reset location boxes to their original positions if needed
+            // Keep absolute positioning for boxes that were moved
+            document.querySelectorAll('#logistics-map .location-box').forEach(locationBox => {
+                if (locationBox.style.position === 'absolute') {
+                    // Keep the absolute position but ensure proper z-index
+                    locationBox.style.zIndex = '';
+                }
             });
         }
 
@@ -1867,7 +2623,7 @@
         }
 
         function makeElementDraggable(element) {
-            // 既存のハンドラーがあれば削除
+            // FIXED: Better drag handler management
             if (dragElements.has(element)) {
                 removeDragHandlers(element);
             }
@@ -1877,7 +2633,7 @@
             let isDragging = false;
 
             const mouseDownHandler = function(e) {
-                // テキストボックスの編集中はドラッグを無効化
+                // Prevent dragging when editing text
                 if (element.classList.contains('custom-textbox') && e.target === element) {
                     return;
                 }
@@ -1889,16 +2645,38 @@
                 pos4 = e.clientY;
                 isDragging = true;
                 
-                // 要素を絶対位置に変更し、現在の位置を保持
+                // Get current position before changing layout
                 const rect = element.getBoundingClientRect();
-                const mapRect = element.closest('.logistics-map').getBoundingClientRect();
+                const mapElement = element.closest('.logistics-map');
+                const mapRect = mapElement.getBoundingClientRect();
+                
+                // FIXED: For location boxes, remove from flexbox layout and attach directly to map
+                let originalParent = null;
+                let originalNextSibling = null;
+                
+                if (element.classList.contains('location-box')) {
+                    originalParent = element.parentNode;
+                    originalNextSibling = element.nextSibling;
+                    
+                    // Store original parent info for restoration
+                    element.setAttribute('data-original-parent', originalParent.className);
+                    element.setAttribute('data-original-index', Array.from(originalParent.children).indexOf(element));
+                    
+                    // Move element directly to map container
+                    mapElement.appendChild(element);
+                }
+                
+                // Calculate precise position accounting for scroll
+                const scrollLeft = mapElement.scrollLeft;
+                const scrollTop = mapElement.scrollTop;
                 
                 element.style.position = 'absolute';
-                element.style.left = (rect.left - mapRect.left) + 'px';
-                element.style.top = (rect.top - mapRect.top) + 'px';
+                element.style.left = (rect.left - mapRect.left + scrollLeft) + 'px';
+                element.style.top = (rect.top - mapRect.top + scrollTop) + 'px';
                 element.style.zIndex = '2000';
                 element.classList.add('dragging');
                 
+                // Add event listeners to document for proper tracking
                 document.addEventListener('mousemove', mouseMoveHandler);
                 document.addEventListener('mouseup', mouseUpHandler);
             };
@@ -1915,16 +2693,28 @@
                 const newTop = element.offsetTop - pos2;
                 const newLeft = element.offsetLeft - pos1;
                 
-                // 境界チェック（マップコンテナ内に制限）
+                // FIXED: Much more generous boundary checking for better dragging experience
                 const mapElement = element.closest('.logistics-map');
-                const mapRect = mapElement.getBoundingClientRect();
-                const elementRect = element.getBoundingClientRect();
                 
-                const maxLeft = mapElement.scrollWidth - elementRect.width;
-                const maxTop = mapElement.scrollHeight - elementRect.height;
+                // Allow dragging in a much larger area (extend beyond current map size)
+                const maxLeft = Math.max(1200, mapElement.scrollWidth + 400);
+                const maxTop = Math.max(800, mapElement.scrollHeight + 400);
+                const minLeft = -100; // Allow dragging slightly outside left edge
+                const minTop = -50;   // Allow dragging slightly outside top edge
                 
-                element.style.top = Math.max(0, Math.min(newTop, maxTop)) + "px";
-                element.style.left = Math.max(0, Math.min(newLeft, maxLeft)) + "px";
+                element.style.top = Math.max(minTop, Math.min(newTop, maxTop)) + "px";
+                element.style.left = Math.max(minLeft, Math.min(newLeft, maxLeft)) + "px";
+                
+                // Dynamically expand map container if element is dragged near edges
+                const currentMapWidth = parseInt(mapElement.style.minWidth) || 1600;
+                const currentMapHeight = parseInt(mapElement.style.minHeight) || 1200;
+                
+                if (newLeft > currentMapWidth - 200) {
+                    mapElement.style.minWidth = (currentMapWidth + 300) + 'px';
+                }
+                if (newTop > currentMapHeight - 200) {
+                    mapElement.style.minHeight = (currentMapHeight + 300) + 'px';
+                }
             };
 
             const mouseUpHandler = function() {
@@ -1932,13 +2722,25 @@
                 element.classList.remove('dragging');
                 element.style.zIndex = '1000';
                 
+                // FIXED: For location boxes, keep them in absolute position instead of returning to flexbox
+                // This allows them to maintain their dragged position
+                if (element.classList.contains('location-box')) {
+                    // Remove the data attributes as they're no longer needed
+                    element.removeAttribute('data-original-parent');
+                    element.removeAttribute('data-original-index');
+                    
+                    // Keep the element in absolute position for free positioning
+                    element.style.position = 'absolute';
+                }
+                
+                // FIXED: Proper cleanup of event listeners
                 document.removeEventListener('mousemove', mouseMoveHandler);
                 document.removeEventListener('mouseup', mouseUpHandler);
             };
 
             element.addEventListener('mousedown', mouseDownHandler);
             
-            // ハンドラーを記録
+            // Store handlers for cleanup
             dragElements.set(element, {
                 mousedown: mouseDownHandler
             });
@@ -1953,24 +2755,78 @@
         }
 
         function generateMap() {
+            // FIXED: Validation before generating map
+            if (!validateAllInputs()) {
+                alert(getTranslation('validationError'));
+                return;
+            }
+
             const mapContainer = document.getElementById('logistics-map');
             
             const suppliers = Array.from(document.querySelectorAll('#suppliers-container .location-item')).map(item => {
                 const index = item.getAttribute('data-index');
-                return { id: `s${index}`, index, name: document.getElementById(`supplier-name-${index}`).value, location: document.getElementById(`supplier-location-${index}`).value, country: document.getElementById(`supplier-country-${index}`).value, city: document.getElementById(`supplier-city-${index}`).value };
-            });
+                const nameEl = document.getElementById(`supplier-name-${index}`);
+                const locationEl = document.getElementById(`supplier-location-${index}`);
+                const countryEl = document.getElementById(`supplier-country-${index}`);
+                const cityEl = document.getElementById(`supplier-city-${index}`);
+                
+                return { 
+                    id: `s${index}`, 
+                    index, 
+                    name: nameEl ? nameEl.value : '', 
+                    location: locationEl ? locationEl.value : 'domestic', 
+                    country: countryEl ? countryEl.value : '', 
+                    city: cityEl ? cityEl.value : '' 
+                };
+            }).filter(supplier => supplier.name); // Filter out empty suppliers
 
             const warehouses = Array.from(document.querySelectorAll('#warehouses-container .location-item')).map(item => {
                 const index = item.getAttribute('data-index');
-                return { id: `w${index}`, index, name: document.getElementById(`warehouse-name-${index}`).value, location: document.getElementById(`warehouse-location-${index}`).value, status: document.getElementById(`warehouse-status-${index}`).value, type: document.getElementById(`warehouse-type-${index}`).value, country: document.getElementById(`warehouse-country-${index}`).value, city: document.getElementById(`warehouse-city-${index}`).value, work: document.getElementById(`warehouse-work-${index}`).value, tempControl: document.getElementById(`temp-control-${index}`).value, temperature: document.getElementById(`temperature-${index}`).value, humidity: document.getElementById(`humidity-${index}`).value };
-            });
+                const nameEl = document.getElementById(`warehouse-name-${index}`);
+                const locationEl = document.getElementById(`warehouse-location-${index}`);
+                const statusEl = document.getElementById(`warehouse-status-${index}`);
+                const typeEl = document.getElementById(`warehouse-type-${index}`);
+                const countryEl = document.getElementById(`warehouse-country-${index}`);
+                const cityEl = document.getElementById(`warehouse-city-${index}`);
+                const workEl = document.getElementById(`warehouse-work-${index}`);
+                const tempControlEl = document.getElementById(`temp-control-${index}`);
+                const temperatureEl = document.getElementById(`temperature-${index}`);
+                const humidityEl = document.getElementById(`humidity-${index}`);
+                
+                return { 
+                    id: `w${index}`, 
+                    index, 
+                    name: nameEl ? nameEl.value : '', 
+                    location: locationEl ? locationEl.value : 'domestic', 
+                    status: statusEl ? statusEl.value : 'existing-own', 
+                    type: typeEl ? typeEl.value : 'general', 
+                    country: countryEl ? countryEl.value : '', 
+                    city: cityEl ? cityEl.value : '', 
+                    work: workEl ? workEl.value : '', 
+                    tempControl: tempControlEl ? tempControlEl.value : 'no', 
+                    temperature: temperatureEl ? temperatureEl.value : '', 
+                    humidity: humidityEl ? humidityEl.value : '' 
+                };
+            }).filter(warehouse => warehouse.name); // Filter out empty warehouses
 
             const destinations = Array.from(document.querySelectorAll('#destinations-container .location-item')).map(item => {
                 const index = item.getAttribute('data-index');
-                return { id: `d${index}`, index, name: document.getElementById(`destination-name-${index}`).value, location: document.getElementById(`destination-location-${index}`).value, country: document.getElementById(`destination-country-${index}`).value, city: document.getElementById(`destination-city-${index}`).value };
-            });
+                const nameEl = document.getElementById(`destination-name-${index}`);
+                const locationEl = document.getElementById(`destination-location-${index}`);
+                const countryEl = document.getElementById(`destination-country-${index}`);
+                const cityEl = document.getElementById(`destination-city-${index}`);
+                
+                return { 
+                    id: `d${index}`, 
+                    index, 
+                    name: nameEl ? nameEl.value : '', 
+                    location: locationEl ? locationEl.value : 'domestic', 
+                    country: countryEl ? countryEl.value : '', 
+                    city: cityEl ? cityEl.value : '' 
+                };
+            }).filter(destination => destination.name); // Filter out empty destinations
 
-            // 現在存在するIDのセットを作成
+            // Create sets of existing IDs for validation
             const existingSupplierIds = new Set(suppliers.map(s => s.id));
             const existingWarehouseIds = new Set(warehouses.map(w => w.id));
             const existingDestinationIds = new Set(destinations.map(d => d.id));
@@ -1979,35 +2835,53 @@
                 const fromElement = document.getElementById(`transport-${index}-from`);
                 const toElement = document.getElementById(`transport-${index}-to`);
                 
-                if (!fromElement || !toElement) return null; // 要素が存在しない場合はスキップ
+                if (!fromElement || !toElement) return null;
                 
                 const from = fromElement.value;
                 const to = toElement.value;
                 
-                // 削除されたロケーションを参照している輸送は除外
+                // FIXED: Better validation of transport references
                 const fromExists = (from.startsWith('s') && existingSupplierIds.has(from)) ||
                                  (from.startsWith('w') && existingWarehouseIds.has(from));
                 const toExists = (to.startsWith('w') && existingWarehouseIds.has(to)) ||
                                (to.startsWith('d') && existingDestinationIds.has(to));
                 
-                if (!fromExists || !toExists) return null; // 参照先が存在しない場合はスキップ
+                if (!fromExists || !toExists) return null;
+                
+                const modeEl = document.getElementById(`transport-${index}-mode`);
+                const statusEl = document.getElementById(`transport-${index}-status`);
+                const departureEl = document.getElementById(`transport-${index}-departure`);
+                const arrivalEl = document.getElementById(`transport-${index}-arrival`);
+                const frequencyEl = document.getElementById(`transport-${index}-frequency`);
+                const packageEl = document.getElementById(`transport-${index}-package`);
+                const volumeEl = document.getElementById(`transport-${index}-volume`);
                 
                 return { 
-                    mode: document.getElementById(`transport-${index}-mode`).value, 
-                    status: document.getElementById(`transport-${index}-status`).value, 
-                    departure: document.getElementById(`transport-${index}-departure`).value, 
-                    arrival: document.getElementById(`transport-${index}-arrival`).value, 
-                    frequency: document.getElementById(`transport-${index}-frequency`).value, 
-                    package: document.getElementById(`transport-${index}-package`).value, 
-                    volume: document.getElementById(`transport-${index}-volume`).value, 
+                    mode: modeEl ? modeEl.value : 'truck', 
+                    status: statusEl ? statusEl.value : 'existing-own', 
+                    departure: departureEl ? departureEl.value : '', 
+                    arrival: arrivalEl ? arrivalEl.value : '', 
+                    frequency: frequencyEl ? frequencyEl.value : '', 
+                    package: packageEl ? packageEl.value : '', 
+                    volume: volumeEl ? volumeEl.value : '', 
                     from: from, 
                     to: to 
                 };
-            }).filter(transport => transport !== null); // nullの要素を除外
+            }).filter(transport => transport !== null);
             
-            const existingTextBoxes = mapContainer.querySelectorAll('.custom-textbox');
+            // Preserve existing text boxes and dragged location boxes
+            const existingTextBoxes = Array.from(mapContainer.querySelectorAll('.custom-textbox'));
+            const draggedLocationBoxes = Array.from(mapContainer.querySelectorAll('.location-box[style*="position: absolute"]')).map(box => ({
+                id: box.id,
+                style: {
+                    position: box.style.position,
+                    left: box.style.left,
+                    top: box.style.top,
+                    zIndex: box.style.zIndex
+                }
+            }));
 
-            mapContainer.innerHTML = ''; // Clear map but preserve text boxes temporarily
+            mapContainer.innerHTML = '';
 
             const translation = translations[currentLanguage];
             const transportIcons = { truck: '🚛', ship: '🚢', air: '✈️', rail: '🚆' };
@@ -2020,6 +2894,13 @@
 
                 const locationText = item.country || item.city ? `${item.country}${item.country && item.city ? ' ' : ''}${item.city}` : (item.location === 'domestic' ? translation.domestic : translation.overseas);
                 
+                // Define emojis for each type
+                const emojis = {
+                    'supplier': '🏭',
+                    'warehouse': '🏢',
+                    'destination': '🏬'
+                };
+                
                 let detailsHTML = '';
                 if(type === 'warehouse') {
                     const workInfo = item.work ? `<div class="temp-control-info" style="margin-top: 8px; border-color: #38a169;"><div class="temp-control-title" style="color: #2f855a;">${translation.workContentLabel}</div><div style="font-size: 9px; color: #2d3748; line-height: 1.3; text-align: center;">${item.work.replace(/\n/g, '<br>')}</div></div>` : '';
@@ -2030,6 +2911,7 @@
                 return `
                     <div id="${item.id}" class="location-box ${itemClass}" data-type="${type}" data-index="${item.index}">
                         <button class="delete-location-box" onclick="deleteLocationBox('${type}', '${item.index}', event)">×</button>
+                        <div class="location-emoji">${emojis[type]}</div>
                         <div class="location-title">${translation[type + 'Title']}</div>
                         <div class="location-name">${item.name}</div>
                         <div class="location-type ${item.location}-tag">${locationText}</div>
@@ -2038,9 +2920,8 @@
                 `;
             };
 
-            // Function to create a transport arrow - 修正版
+            // Function to create a transport arrow
             const createTransportArrow = (transport, index) => {
-                // 運営主体の表示を追加
                 let statusDisplayText = '';
                 if (transport.status === 'existing-own') {
                     statusDisplayText = translation.existingOwn;
@@ -2072,6 +2953,7 @@
                 `;
             };
 
+            // Create groups
             const supplierGroup = document.createElement('div');
             supplierGroup.className = 'location-group';
             supplierGroup.innerHTML = suppliers.map(s => createLocationBox(s, 'supplier')).join('');
@@ -2097,67 +2979,105 @@
             // Re-append text boxes
             existingTextBoxes.forEach(box => mapContainer.appendChild(box));
 
+            // FIXED: Restore positions of previously dragged location boxes
+            draggedLocationBoxes.forEach(boxData => {
+                const restoredBox = document.getElementById(boxData.id);
+                if (restoredBox) {
+                    // Move to map container and restore absolute positioning
+                    mapContainer.appendChild(restoredBox);
+                    Object.assign(restoredBox.style, boxData.style);
+                }
+            });
+
             updateDynamicLabels();
         }
 
         function updateDynamicLabels() {
-            // This function can be used to update dynamic labels if needed
-            // For the minimal design, the labels are already handled in the translation system
+            // Update any dynamic labels if needed
         }
 
+        // FIXED: Improved image export with better error handling
         function exportAsImage() {
             const mapElement = document.getElementById('logistics-map');
             const exportBtn = document.querySelector('button[onclick="exportAsImage()"]');
+
+            if (!exportBtn) return;
 
             const originalButtonText = exportBtn.innerHTML;
             exportBtn.disabled = true;
             exportBtn.innerHTML = getTranslation('generating');
 
-            // スクロール領域を含む完全な幅と高さを取得
-            const fullWidth = mapElement.scrollWidth;
-            const fullHeight = mapElement.scrollHeight;
+            try {
+                // FIXED: Better size calculation
+                const fullWidth = Math.max(mapElement.scrollWidth, mapElement.offsetWidth);
+                const fullHeight = Math.max(mapElement.scrollHeight, mapElement.offsetHeight);
 
-            html2canvas(mapElement, {
-                backgroundColor: '#ffffff',
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                // 取得した完全なサイズをオプションに設定
-                width: fullWidth,
-                height: fullHeight,
-                onclone: (clonedDoc) => {
-                    // エクスポート用にクローンされたドキュメントのスタイルを調整
-                    const clonedMap = clonedDoc.getElementById('logistics-map');
-                    if (clonedMap) {
-                        // 編集モードの枠線などを解除してクリーンな見た目にする
-                        clonedMap.classList.remove('edit-mode');
-                        clonedMap.querySelectorAll('.location-box, .flow-arrow, .custom-textbox').forEach(el => {
-                            el.style.border = '';
-                        });
-                        // コンテナのサイズを内容に合わせて広げる
-                        clonedMap.style.width = fullWidth + 'px';
-                        clonedMap.style.height = fullHeight + 'px';
+                const options = {
+                    backgroundColor: document.body.classList.contains('dark-mode') ? '#1e293b' : '#f3f4f6',
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    width: fullWidth,
+                    height: fullHeight,
+                    onclone: (clonedDoc) => {
+                        // Clean up cloned document for export
+                        const clonedMap = clonedDoc.getElementById('logistics-map');
+                        if (clonedMap) {
+                            clonedMap.classList.remove('edit-mode');
+                            clonedMap.querySelectorAll('.location-box, .flow-arrow, .custom-textbox').forEach(el => {
+                                el.style.border = '';
+                            });
+                            clonedMap.style.width = fullWidth + 'px';
+                            clonedMap.style.height = fullHeight + 'px';
+                        }
                     }
-                }
-            }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `logistics-map_${new Date().toISOString().slice(0, 10)}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            }).catch(error => {
-                console.error('Image generation failed:', error);
-                alert('Image generation failed.');
-            }).finally(() => {
+                };
+
+                html2canvas(mapElement, options).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `logistics-map_${new Date().toISOString().slice(0, 10)}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    // Cleanup
+                    setTimeout(() => {
+                        if (link.href.startsWith('blob:')) {
+                            URL.revokeObjectURL(link.href);
+                        }
+                    }, 100);
+                }).catch(error => {
+                    console.error('Image generation failed:', error);
+                    alert('Image generation failed: ' + error.message);
+                }).finally(() => {
+                    exportBtn.disabled = false;
+                    exportBtn.innerHTML = originalButtonText;
+                });
+            } catch (error) {
+                console.error('Image export error:', error);
+                alert('Image export failed: ' + error.message);
                 exportBtn.disabled = false;
                 exportBtn.innerHTML = originalButtonText;
-            });
+            }
         }
 
+        // Initialize application
         window.onload = function() {
-            updateTranslations();
-            generateTransportForms();
-            generateMap();
-            updateRemoveButtons();
+            try {
+                initializeDarkMode();
+                updateTranslations();
+                
+                // Initialize with default data
+                globalState.suppliers.set(0, {});
+                globalState.warehouses.set(0, {});
+                globalState.destinations.set(0, {});
+                
+                generateTransportForms();
+                generateMap();
+                updateRemoveButtons();
+            } catch (error) {
+                console.error('Initialization error:', error);
+                alert('Application initialization failed. Please refresh the page.');
+            }
         };
     </script>
 </body>
