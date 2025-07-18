@@ -1,6 +1,6 @@
-/* whiteboard-specific.css - ホワイトボード固有のスタイル */
+/* whiteboard-specific.css - 作業員管理ホワイトボード専用スタイル */
 
-/* === ホワイトボード特有の設定 === */
+/* === タッチ操作設定 === */
 body {
     touch-action: pan-y;
     -webkit-touch-callout: none;
@@ -8,11 +8,14 @@ body {
     user-select: none;
 }
 
-/* === 改善ノート === */
+/* === 使用方法ノート === */
 .improvement-note {
     background-color: rgba(59, 130, 246, 0.05);
+    border: 1px solid var(--primary-200);
     border-left: 4px solid var(--primary-500);
-    margin-bottom: var(--space-6);
+    border-radius: var(--radius-base);
+    padding: var(--space-6);
+    margin-bottom: var(--space-8);
 }
 
 .improvement-note h3 {
@@ -20,48 +23,80 @@ body {
     margin-bottom: var(--space-3);
 }
 
+.improvement-note ul {
+    margin-left: var(--space-5);
+}
+
+.improvement-note li {
+    margin-bottom: var(--space-1);
+}
+
 /* === コントロールパネル === */
 .control-panel {
     display: grid;
     grid-template-columns: 1fr 1fr auto;
     gap: var(--space-5);
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-8);
 }
 
 .control-section h3 {
     margin-bottom: var(--space-3);
     color: var(--text-secondary);
-    font-size: var(--font-size-base);
 }
 
-/* === サマリーグリッド === */
-.summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: var(--space-4);
-    margin-bottom: var(--space-6);
+.input-group {
+    display: flex;
+    gap: var(--space-3);
 }
 
-.summary-card p {
-    font-size: var(--font-size-2xl);
-    font-weight: bold;
-    color: var(--primary-600);
-    margin: 0;
+/* === 特殊ボタンスタイル === */
+.btn-purple {
+    background-color: #8b5cf6;
+    color: white;
 }
 
-.summary-card.blue {
-    background: linear-gradient(135deg, var(--primary-50), var(--primary-100));
-    border-color: var(--primary-200);
+.btn-purple:hover {
+    background-color: #7c3aed;
 }
 
-.summary-card.green {
-    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-    border-color: #bbf7d0;
+.btn-import {
+    background-color: var(--warning-500);
+    color: white;
+    cursor: pointer;
+    padding: var(--space-2) var(--space-4);
+    border: none;
+    border-radius: var(--radius-base);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    transition: all var(--transition-fast);
 }
 
-.summary-card.purple {
-    background: linear-gradient(135deg, #faf5ff, #f3e8ff);
-    border-color: #e9d5ff;
+.btn-import:hover {
+    background-color: var(--warning-600);
+}
+
+/* === インポートセクション === */
+.import-section {
+    margin-top: var(--space-5);
+    grid-column: 1 / -1;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+}
+
+.import-section h3 {
+    margin-bottom: var(--space-3);
+    color: var(--text-secondary);
+}
+
+.import-buttons {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
 }
 
 /* === ホワイトボード === */
@@ -69,7 +104,7 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: var(--space-5);
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-8);
 }
 
 /* === 作業エリア === */
@@ -79,7 +114,6 @@ body {
     border-radius: var(--radius-lg);
     position: relative;
     border: 1px solid var(--border-color);
-    background-color: var(--bg-secondary);
 }
 
 .work-area.waiting {
@@ -87,28 +121,23 @@ body {
 }
 
 .work-area.blue {
-    background-color: var(--primary-50);
-    border-color: var(--primary-200);
+    background-color: #dbeafe;
 }
 
 .work-area.green {
-    background-color: #f0fdf4;
-    border-color: #bbf7d0;
+    background-color: #d1fae5;
 }
 
 .work-area.yellow {
-    background-color: #fefce8;
-    border-color: #fde047;
+    background-color: #fef3c7;
 }
 
 .work-area.purple {
-    background-color: #faf5ff;
-    border-color: #e9d5ff;
+    background-color: #e9d5ff;
 }
 
 .work-area.pink {
-    background-color: #fdf2f8;
-    border-color: #fbcfe8;
+    background-color: #fce7f3;
 }
 
 /* === エリアヘッダー === */
@@ -121,7 +150,7 @@ body {
 
 .area-title {
     font-size: var(--font-size-lg);
-    font-weight: 600;
+    font-weight: bold;
     color: var(--text-primary);
 }
 
@@ -134,9 +163,9 @@ body {
     padding: var(--space-1) var(--space-2);
     background: transparent;
     color: var(--text-tertiary);
+    cursor: pointer;
     border: none;
     border-radius: var(--radius-base);
-    cursor: pointer;
     transition: color var(--transition-fast);
 }
 
@@ -159,7 +188,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: box-shadow var(--transition-base);
+    transition: all var(--transition-base);
     border: 1px solid var(--border-color);
 }
 
@@ -168,7 +197,7 @@ body {
 }
 
 .worker-card.dragging {
-    opacity: 0.7;
+    opacity: 0.5;
     transform: rotate(2deg);
     box-shadow: var(--shadow-lg);
 }
@@ -188,42 +217,17 @@ body {
 }
 
 .delete-worker {
-    padding: var(--space-1);
+    padding: var(--space-1) var(--space-2);
     background: transparent;
     color: var(--error-500);
+    font-size: var(--font-size-base);
+    cursor: pointer;
     border: none;
     border-radius: var(--radius-base);
-    cursor: pointer;
-    font-size: var(--font-size-base);
-    transition: background-color var(--transition-fast);
 }
 
 .delete-worker:hover {
     background-color: rgba(239, 68, 68, 0.1);
-}
-
-/* === ドラッグオーバー効果 === */
-.dragover {
-    background-color: rgba(59, 130, 246, 0.1) !important;
-    border: 2px dashed var(--primary-500) !important;
-    border-radius: var(--radius-lg);
-}
-
-/* === 編集インプット === */
-.edit-input {
-    padding: var(--space-1) var(--space-2);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-base);
-    font-size: inherit;
-    font-family: inherit;
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-}
-
-.edit-input:focus {
-    outline: none;
-    border-color: var(--primary-500);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 /* === ログセクション === */
@@ -234,7 +238,6 @@ body {
 .logs-section h2 {
     margin-bottom: var(--space-5);
     color: var(--text-primary);
-    font-size: var(--font-size-xl);
 }
 
 .empty-logs {
@@ -244,14 +247,25 @@ body {
     font-style: italic;
 }
 
-/* === インポートセクション === */
-.import-section {
-    margin-bottom: var(--space-6);
+/* === ドラッグ効果 === */
+.dragover {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    border: 2px dashed var(--primary-500) !important;
 }
 
-.import-section h3 {
-    margin-bottom: var(--space-3);
-    color: var(--text-secondary);
+.edit-input {
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-base);
+    font-size: 1em;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.edit-input:focus {
+    outline: none;
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 /* === レスポンシブ対応 === */
@@ -267,22 +281,22 @@ body {
 
     .worker-card {
         touch-action: none;
-        padding: var(--space-4) var(--space-5);
-        margin-bottom: var(--space-3);
     }
 
-    .icon-btn {
-        padding: var(--space-2) var(--space-3);
+    .import-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .import-buttons button,
+    .import-buttons label {
+        width: 100%;
+        justify-content: center;
     }
 }
 
 /* === タッチデバイス向けの調整 === */
 @media (hover: none) and (pointer: coarse) {
-    .btn {
-        padding: var(--space-3) var(--space-5);
-        font-size: var(--font-size-base);
-    }
-
     .worker-card {
         padding: var(--space-4) var(--space-5);
         margin-bottom: var(--space-3);
@@ -292,7 +306,7 @@ body {
         padding: var(--space-2) var(--space-3);
     }
 
-    .form-input {
+    input[type="text"], .form-input {
         font-size: var(--font-size-base); /* iOSのズーム防止 */
     }
 }
