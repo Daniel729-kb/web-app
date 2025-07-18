@@ -1,0 +1,298 @@
+/* whiteboard-specific.css - ホワイトボード固有のスタイル */
+
+/* === ホワイトボード特有の設定 === */
+body {
+    touch-action: pan-y;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* === 改善ノート === */
+.improvement-note {
+    background-color: rgba(59, 130, 246, 0.05);
+    border-left: 4px solid var(--primary-500);
+    margin-bottom: var(--space-6);
+}
+
+.improvement-note h3 {
+    color: var(--primary-600);
+    margin-bottom: var(--space-3);
+}
+
+/* === コントロールパネル === */
+.control-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: var(--space-5);
+    margin-bottom: var(--space-6);
+}
+
+.control-section h3 {
+    margin-bottom: var(--space-3);
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+}
+
+/* === サマリーグリッド === */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+.summary-card p {
+    font-size: var(--font-size-2xl);
+    font-weight: bold;
+    color: var(--primary-600);
+    margin: 0;
+}
+
+.summary-card.blue {
+    background: linear-gradient(135deg, var(--primary-50), var(--primary-100));
+    border-color: var(--primary-200);
+}
+
+.summary-card.green {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border-color: #bbf7d0;
+}
+
+.summary-card.purple {
+    background: linear-gradient(135deg, #faf5ff, #f3e8ff);
+    border-color: #e9d5ff;
+}
+
+/* === ホワイトボード === */
+.whiteboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-5);
+    margin-bottom: var(--space-6);
+}
+
+/* === 作業エリア === */
+.work-area {
+    min-height: 200px;
+    padding: var(--space-5);
+    border-radius: var(--radius-lg);
+    position: relative;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+}
+
+.work-area.waiting {
+    background-color: var(--gray-100);
+}
+
+.work-area.blue {
+    background-color: var(--primary-50);
+    border-color: var(--primary-200);
+}
+
+.work-area.green {
+    background-color: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.work-area.yellow {
+    background-color: #fefce8;
+    border-color: #fde047;
+}
+
+.work-area.purple {
+    background-color: #faf5ff;
+    border-color: #e9d5ff;
+}
+
+.work-area.pink {
+    background-color: #fdf2f8;
+    border-color: #fbcfe8;
+}
+
+/* === エリアヘッダー === */
+.area-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+}
+
+.area-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.area-controls {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.icon-btn {
+    padding: var(--space-1) var(--space-2);
+    background: transparent;
+    color: var(--text-tertiary);
+    border: none;
+    border-radius: var(--radius-base);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.icon-btn:hover {
+    color: var(--text-primary);
+}
+
+.icon-btn.delete:hover {
+    color: var(--error-500);
+}
+
+/* === 作業員カード === */
+.worker-card {
+    background-color: var(--bg-secondary);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-base);
+    box-shadow: var(--shadow-sm);
+    cursor: move;
+    margin-bottom: var(--space-3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: box-shadow var(--transition-base);
+    border: 1px solid var(--border-color);
+}
+
+.worker-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.worker-card.dragging {
+    opacity: 0.7;
+    transform: rotate(2deg);
+    box-shadow: var(--shadow-lg);
+}
+
+.worker-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.timer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family-mono);
+}
+
+.delete-worker {
+    padding: var(--space-1);
+    background: transparent;
+    color: var(--error-500);
+    border: none;
+    border-radius: var(--radius-base);
+    cursor: pointer;
+    font-size: var(--font-size-base);
+    transition: background-color var(--transition-fast);
+}
+
+.delete-worker:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* === ドラッグオーバー効果 === */
+.dragover {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    border: 2px dashed var(--primary-500) !important;
+    border-radius: var(--radius-lg);
+}
+
+/* === 編集インプット === */
+.edit-input {
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-base);
+    font-size: inherit;
+    font-family: inherit;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.edit-input:focus {
+    outline: none;
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* === ログセクション === */
+.logs-section {
+    margin-top: var(--space-10);
+}
+
+.logs-section h2 {
+    margin-bottom: var(--space-5);
+    color: var(--text-primary);
+    font-size: var(--font-size-xl);
+}
+
+.empty-logs {
+    text-align: center;
+    color: var(--text-tertiary);
+    padding: var(--space-10);
+    font-style: italic;
+}
+
+/* === インポートセクション === */
+.import-section {
+    margin-bottom: var(--space-6);
+}
+
+.import-section h3 {
+    margin-bottom: var(--space-3);
+    color: var(--text-secondary);
+}
+
+/* === レスポンシブ対応 === */
+@media (max-width: 768px) {
+    .control-panel {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
+
+    .whiteboard {
+        grid-template-columns: 1fr;
+    }
+
+    .worker-card {
+        touch-action: none;
+        padding: var(--space-4) var(--space-5);
+        margin-bottom: var(--space-3);
+    }
+
+    .icon-btn {
+        padding: var(--space-2) var(--space-3);
+    }
+}
+
+/* === タッチデバイス向けの調整 === */
+@media (hover: none) and (pointer: coarse) {
+    .btn {
+        padding: var(--space-3) var(--space-5);
+        font-size: var(--font-size-base);
+    }
+
+    .worker-card {
+        padding: var(--space-4) var(--space-5);
+        margin-bottom: var(--space-3);
+    }
+
+    .icon-btn {
+        padding: var(--space-2) var(--space-3);
+    }
+
+    .form-input {
+        font-size: var(--font-size-base); /* iOSのズーム防止 */
+    }
+}
