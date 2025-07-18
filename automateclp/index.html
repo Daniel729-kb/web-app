@@ -515,7 +515,7 @@
 </div>
 <div class="form-group">
 <label for="clearanceValue">クリアランス (cm)</label>
-<input id="clearanceValue" max="50" min="0" placeholder="クリアランス" step="0.1" type="number" value="0"/>
+<input id="clearanceValue" max="15" min="1" placeholder="クリアランス" step="0.5" type="number" value="1"/>
 <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
                         パレット間の最小間隔を設定（0.1cm刻み調整可能）<br/>
 <strong>※計算時に適用されます（0=隙間なし配置で最大積載）</strong>
@@ -643,7 +643,7 @@
 
         // ユーティリティ関数
         const utils = {
-            getCurrentClearance: () => parseFloat(elements.clearanceValue.value) || 0,
+            getCurrentClearance: () => parseFloat(elements.clearanceValue.value) || 1,
             getRandomColor: () => {
                 const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22'];
                 return colors[Math.floor(Math.random() * colors.length)];
@@ -722,7 +722,7 @@
             pallets = [];
             allPalletsGenerated = [];
             elements.containerType.value = '40ft';
-            elements.clearanceValue.value = '0';
+            elements.clearanceValue.value = '1';
             
             const testData = [
                 { l: 110, w: 110, q: 12, c: '#f39c12' },  // 黄色
