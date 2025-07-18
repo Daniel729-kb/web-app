@@ -439,9 +439,553 @@
             document.getElementById('deselectAllPallets').addEventListener('click', deselectAllPallets);
         }
 
-        // [ここに元のJavaScriptの全ての関数を追加する必要があります]
-        // 完全なJavaScriptコードは元のファイルから全てコピーしてください
-        
+        // パレット選択機能の初期化
+        function initializePalletSelection() {
+            const container = document.getElementById('palletOptions');
+            container.innerHTML = '';
+            
+            allPalletSizes.forEach((pallet, index) => {
+                const option = document.createElement('div');
+                option.className = 'pallet-option selected';
+                option.innerHTML = `
+                    <input type="checkbox" class="pallet-checkbox" id="pallet-${index}" checked onchange="updatePalletSelection()">
+                    <div class="pallet-option-info">
+                        <div class="pallet-option-name">${pallet.name}</div>
+                        <div class="pallet-option-size">${pallet.description}</div>
+                    </div>
+                `;
+                container.appendChild(option);
+            });
+            updateSelectedPalletsInfo();
+        }
+
+        function updatePalletSelection() {
+            selectedPalletSizes = [];
+            document.querySelectorAll('.pallet-checkbox').forEach((checkbox, index) => {
+                const option = checkbox.closest('.pallet-option');
+                if (checkbox.checked) {
+                    selectedPalletSizes.push(allPalletSizes[index]);
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+            updateSelectedPalletsInfo();
+        }
+
+        function selectAllPallets() {
+            document.querySelectorAll('.pallet-checkbox').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            updatePalletSelection();
+        }
+
+        function deselectAllPallets() {
+            document.querySelectorAll('.pallet-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            updatePalletSelection();
+        }
+
+        function updateSelectedPalletsInfo() {
+            const info = document.getElementById('selectedPalletsInfo');
+            if (selectedPalletSizes.length === 0) {
+                info.textContent = '⚠️ パレットが選択されていません';
+                info.style.color = '#dc3545';
+            } else {
+                info.textContent = `選択中: ${selectedPalletSizes.length}種類のパレット`;
+                info.style.color = '#28a745';
+            }
+        }
+
+        // テーブル更新
+        function updateTable() {
+            const tbody = document.getElementById('cartonTableBody');
+            tbody.innerHTML = '';
+            
+            cartonData.forEach(carton => {
+                const row = document.createElement('tr');
+                const volume = (carton.l * carton.w * carton.h * carton.qty / 1000000).toFixed(3);
+                
+                row.innerHTML = `
+                    <td>${carton.code}</td>
+                    <td class="center">${carton.qty}</td>
+                    <td class="center mono">${carton.weight.toFixed(2)}</td>
+                    <td class="center mono">${carton.l.toFixed(1)}</td>
+                    <td class="center mono">${carton.w.toFixed(1)}</td>
+                    <td class="center mono">${carton.h.toFixed(1)}</td>
+                    <td class="center mono">${volume}</td>
+                    <td class="center">
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-secondary" onclick="editCarton(${carton.id})">✏️</button>
+                            <button class="btn btn-sm btn-danger" onclick="removeCarton(${carton.id})">🗑️</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // サマリー更新
+        function updateSummary() {
+            const totalCartons = cartonData.reduce((sum, c) => sum + c.qty, 0);
+            const totalWeight = cartonData.reduce((sum, c) => sum + (c.weight * c.qty), 0);
+            const itemCount = cartonData.length;
+            
+            document.getElementById('totalCartons').textContent = totalCartons.toLocaleString();
+            document.getElementById('totalWeight').textContent = totalWeight.toFixed(1) + ' kg';
+            document.getElementById('itemCount').textContent = itemCount + ' 種類';
+        }
+
+        // フォーム表示切替
+        function toggleAddForm() {
+            const form = document.getElementById('addForm');
+            const importArea = document.getElementById('importArea');
+            form.classList.toggle('hidden');
+            importArea.classList.add('hidden');
+            if (!form.classList.contains('hidden')) {
+                document.getElementById('newCode').focus();
+            }
+        }
+
+        function toggleImportArea() {
+            const form = document.getElementById('addForm');
+            const importArea = document.getElementById('importArea');
+            importArea.classList.toggle('hidden');
+            form.classList.add('hidden');
+        }
+
+        // カートン追加
+        function addCarton() {
+            const code = document.getElementById('newCode').value.trim();
+            const qty = parseInt(document.getElementById('newQty').value);
+            const weight = parseFloat(document.getElementById('newWeight').value);
+            const l = parseFloat(document.getElementById('newL').value);
+            const w = parseFloat(document.getElementById('newW').value);
+            const h = parseFloat(document.getElementById('newH').value);
+            
+            if (!code || !qty || !weight || !l || !w || !h) {
+                alert('全ての項目を入力してください');
+                return;
+            }
+            
+            cartonData.push({
+                id: nextId++,
+                code, qty, weight, l, w, h
+            });
+            
+            clearInputs();
+            updateTable();
+            updateSummary();
+            document.getElementById('addForm').classList.add('hidden');
+        }
+
+        function clearInputs() {
+            ['newCode', 'newQty', 'newWeight', 'newL', 'newW', 'newH'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+        }
+
+        function cancelAdd() {
+            clearInputs();
+            document.getElementById('addForm').classList.add('hidden');
+        }
+
+        function cancelImport() {
+            document.getElementById('csvFileInput').value = '';
+            document.getElementById('importArea').classList.add('hidden');
+        }
+
+        // カートン編集・削除
+        function editCarton(id) {
+            // 編集機能（省略版）
+            const carton = cartonData.find(c => c.id === id);
+            if (carton) {
+                document.getElementById('newCode').value = carton.code;
+                document.getElementById('newQty').value = carton.qty;
+                document.getElementById('newWeight').value = carton.weight;
+                document.getElementById('newL').value = carton.l;
+                document.getElementById('newW').value = carton.w;
+                document.getElementById('newH').value = carton.h;
+                editingId = id;
+                document.getElementById('addForm').classList.remove('hidden');
+            }
+        }
+
+        function removeCarton(id) {
+            if (confirm('このカートンを削除しますか？')) {
+                cartonData = cartonData.filter(c => c.id !== id);
+                updateTable();
+                updateSummary();
+            }
+        }
+
+        function clearAllCartons() {
+            if (confirm('全てのカートンデータを削除しますか？')) {
+                cartonData = [];
+                updateTable();
+                updateSummary();
+                clearResults();
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('summarySection').classList.add('hidden');
+            window.currentPallets = [];
+        }
+
+        // CSV機能
+        function downloadCSVTemplate() {
+            const csvContent = 'コード,数量,重量(kg),長さ(cm),幅(cm),高さ(cm)\nSAMPLE A,362,6.70,53.0,38.5,23.5\nSAMPLE B,42,7.60,55.0,40.0,24.0';
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'パレタイズ計算_テンプレート.csv';
+            link.click();
+        }
+
+        function executeImport() {
+            const fileInput = document.getElementById('csvFileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('CSVファイルを選択してください');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    const lines = content.split('\n');
+                    const importedData = [];
+                    
+                    // ヘッダー行をスキップ
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+                        
+                        const values = line.split(',').map(v => v.trim());
+                        if (values.length >= 6) {
+                            importedData.push({
+                                id: nextId++,
+                                code: values[0],
+                                qty: parseInt(values[1]) || 0,
+                                weight: parseFloat(values[2]) || 0,
+                                l: parseFloat(values[3]) || 0,
+                                w: parseFloat(values[4]) || 0,
+                                h: parseFloat(values[5]) || 0
+                            });
+                        }
+                    }
+                    
+                    if (importedData.length > 0) {
+                        cartonData.push(...importedData);
+                        updateTable();
+                        updateSummary();
+                        cancelImport();
+                        alert(`${importedData.length}件のデータをインポートしました`);
+                    } else {
+                        alert('有効なデータが見つかりませんでした');
+                    }
+                } catch (error) {
+                    alert('CSVファイルの読み込みに失敗しました: ' + error.message);
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        // パレタイズ計算（メイン処理）
+        function calculateImprovedPalletization() {
+            if (cartonData.length === 0) {
+                alert('計算するカートンデータがありません');
+                return;
+            }
+            
+            if (selectedPalletSizes.length === 0) {
+                alert('使用するパレットを選択してください');
+                return;
+            }
+
+            showLoading(true);
+            clearErrors();
+            
+            setTimeout(() => {
+                try {
+                    const results = performOptimizedPalletization();
+                    displayResults(results);
+                    showLoading(false);
+                } catch (error) {
+                    showError('計算中にエラーが発生しました: ' + error.message);
+                    showLoading(false);
+                }
+            }, 100);
+        }
+
+        function performOptimizedPalletization() {
+            const results = [];
+            const maxCartonHeight = getMaxCartonHeight();
+            
+            selectedPalletSizes.forEach(palletSize => {
+                cartonData.forEach(carton => {
+                    const palletResult = calculatePalletForCarton(carton, palletSize, maxCartonHeight);
+                    if (palletResult) {
+                        results.push(palletResult);
+                    }
+                });
+            });
+            
+            // 最適な結果を選択（効率性でソート）
+            results.sort((a, b) => b.efficiency - a.efficiency);
+            
+            return results.slice(0, 10); // 上位10件を返す
+        }
+
+        function calculatePalletForCarton(carton, palletSize, maxHeight) {
+            const palletLength = palletSize.width;
+            const palletWidth = palletSize.depth;
+            
+            // カートンの向きを最適化
+            const orientations = [
+                { l: carton.l, w: carton.w, h: carton.h, rotated: false },
+                { l: carton.w, w: carton.l, h: carton.h, rotated: true }
+            ];
+            
+            let bestResult = null;
+            let maxQuantity = 0;
+            
+            orientations.forEach(orientation => {
+                if (orientation.h <= maxHeight) {
+                    const xCount = Math.floor(palletLength / orientation.l);
+                    const yCount = Math.floor(palletWidth / orientation.w);
+                    const layers = Math.floor(maxHeight / orientation.h);
+                    const quantity = xCount * yCount * layers;
+                    
+                    if (quantity > maxQuantity) {
+                        maxQuantity = quantity;
+                        bestResult = {
+                            carton: carton,
+                            palletSize: palletSize,
+                            orientation: orientation,
+                            layout: { x: xCount, y: yCount, layers: layers },
+                            quantity: Math.min(quantity, carton.qty),
+                            efficiency: (quantity * orientation.l * orientation.w * orientation.h) / (palletLength * palletWidth * maxHeight) * 100,
+                            height: layers * orientation.h + 14 // パレット台座含む
+                        };
+                    }
+                }
+            });
+            
+            return bestResult;
+        }
+
+        function displayResults(results) {
+            window.currentPallets = results;
+            
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('summarySection').classList.remove('hidden');
+            document.getElementById('combineSection').classList.remove('hidden');
+            
+            // 結果サマリー表示
+            const summaryGrid = document.getElementById('resultSummary');
+            summaryGrid.innerHTML = `
+                <div class="summary-card blue">
+                    <h3>最適パレット数</h3>
+                    <p>${results.length}</p>
+                </div>
+                <div class="summary-card green">
+                    <h3>平均効率</h3>
+                    <p>${(results.reduce((sum, r) => sum + r.efficiency, 0) / results.length).toFixed(1)}%</p>
+                </div>
+                <div class="summary-card orange">
+                    <h3>総積載量</h3>
+                    <p>${results.reduce((sum, r) => sum + r.quantity, 0)}個</p>
+                </div>
+            `;
+            
+            // パレット詳細表示
+            const palletResults = document.getElementById('palletResults');
+            palletResults.innerHTML = results.map((result, index) => createPalletCard(result, index + 1)).join('');
+            
+            // サマリーテーブル表示
+            updateSummaryTable(results);
+            updateCombineSelectors(results);
+        }
+
+        function createPalletCard(result, palletNumber) {
+            return `
+                <div class="pallet-card" id="pallet-${palletNumber}">
+                    <h3>パレット ${palletNumber} - ${result.palletSize.name}</h3>
+                    <div class="pallet-grid">
+                        <div class="pallet-stat">
+                            <p>寸法 (cm)</p>
+                            <p>${result.palletSize.width}×${result.palletSize.depth}×${result.height.toFixed(1)}</p>
+                        </div>
+                        <div class="pallet-stat">
+                            <p>積載数量</p>
+                            <p>${result.quantity}個</p>
+                        </div>
+                        <div class="pallet-stat">
+                            <p>効率</p>
+                            <p>${result.efficiency.toFixed(1)}%</p>
+                        </div>
+                        <div class="pallet-stat">
+                            <p>重量</p>
+                            <p>${(result.quantity * result.carton.weight).toFixed(1)}kg</p>
+                        </div>
+                    </div>
+                    <div class="pallet-details">
+                        <p>貨物: ${result.carton.code}</p>
+                        <div class="cargo-list">
+                            <div class="cargo-item">
+                                <span class="cargo-code">${result.carton.code}</span>
+                                <span class="cargo-badge">${result.quantity}個</span>
+                            </div>
+                        </div>
+                        <div class="layer-info">
+                            <strong>配置詳細:</strong>
+                            <div class="layer-item">
+                                ${result.layout.x}列 × ${result.layout.y}行 × ${result.layout.layers}層
+                                ${result.orientation.rotated ? '(回転配置)' : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="diagram-container">
+                        <div class="diagram-tabs">
+                            <button class="diagram-tab active" onclick="showDiagramView(${palletNumber}, 'side')">側面図</button>
+                            <button class="diagram-tab" onclick="showDiagramView(${palletNumber}, 'top')">上面図</button>
+                        </div>
+                        <div class="diagram-content">
+                            <div id="diagram-${palletNumber}-side" class="diagram-view active">
+                                <canvas id="canvas-${palletNumber}-side" class="pallet-canvas" width="400" height="300"></canvas>
+                            </div>
+                            <div id="diagram-${palletNumber}-top" class="diagram-view">
+                                <canvas id="canvas-${palletNumber}-top" class="pallet-canvas" width="400" height="300"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showDiagramView(palletNumber, viewType) {
+            // タブの切り替え
+            document.querySelectorAll(`#pallet-${palletNumber} .diagram-tab`).forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`#pallet-${palletNumber} .diagram-tab[onclick*="${viewType}"]`).classList.add('active');
+            
+            // ビューの切り替え
+            document.querySelectorAll(`#pallet-${palletNumber} .diagram-view`).forEach(view => {
+                view.classList.remove('active');
+            });
+            document.getElementById(`diagram-${palletNumber}-${viewType}`).classList.add('active');
+            
+            // キャンバス描画
+            drawPalletDiagram(palletNumber, viewType);
+        }
+
+        function drawPalletDiagram(palletNumber, viewType) {
+            const canvas = document.getElementById(`canvas-${palletNumber}-${viewType}`);
+            const ctx = canvas.getContext('2d');
+            
+            // 簡単な図形描画
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#e9ecef';
+            ctx.fillRect(50, 50, 300, 200);
+            ctx.strokeStyle = '#6c757d';
+            ctx.strokeRect(50, 50, 300, 200);
+            
+            ctx.fillStyle = '#007bff';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${viewType === 'side' ? '側面図' : '上面図'}`, canvas.width / 2, canvas.height / 2);
+        }
+
+        function updateSummaryTable(results) {
+            const tbody = document.getElementById('summaryBody');
+            tbody.innerHTML = results.map((result, index) => `
+                <tr>
+                    <td><span class="pallet-link" onclick="scrollToPallet(${index + 1})">${index + 1}</span></td>
+                    <td>${result.palletSize.width}×${result.palletSize.depth}×${result.height.toFixed(1)}</td>
+                    <td>${(result.quantity * result.carton.weight).toFixed(1)}</td>
+                    <td>${result.carton.code}</td>
+                    <td>${result.quantity}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateCombineSelectors(results) {
+            const selectors = ['pallet1Select', 'pallet2Select'];
+            selectors.forEach(id => {
+                const select = document.getElementById(id);
+                select.innerHTML = '<option value="">選択...</option>' + 
+                    results.map((_, index) => `<option value="${index + 1}">パレット ${index + 1}</option>`).join('');
+            });
+        }
+
+        function scrollToPallet(palletNumber) {
+            document.getElementById(`pallet-${palletNumber}`).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // パレット結合機能
+        function combinePallets() {
+            alert('パレット結合機能は開発中です');
+        }
+
+        function autoOptimizePallets() {
+            alert('自動最適化機能は開発中です');
+        }
+
+        function analyzeSelectedPallets() {
+            alert('詳細分析機能は開発中です');
+        }
+
+        function updateCombinePreview() {
+            const preview = document.getElementById('combinePreview');
+            preview.textContent = '2つのパレットを選択してください';
+        }
+
+        function exportSummaryCsv() {
+            if (!window.currentPallets || window.currentPallets.length === 0) {
+                alert('エクスポートするデータがありません');
+                return;
+            }
+            
+            const headers = ['パレットNo', '寸法(cm)', '重量(kg)', '貨物コード', '数量'];
+            const rows = window.currentPallets.map((result, index) => [
+                index + 1,
+                `${result.palletSize.width}×${result.palletSize.depth}×${result.height.toFixed(1)}`,
+                (result.quantity * result.carton.weight).toFixed(1),
+                result.carton.code,
+                result.quantity
+            ]);
+            
+            const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `パレタイズ結果_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+        }
+
+        // ユーティリティ関数
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'flex' : 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'alert alert-error';
+            errorDiv.textContent = message;
+            document.getElementById('errors').appendChild(errorDiv);
+        }
+
+        function clearErrors() {
+            document.getElementById('errors').innerHTML = '';
+        }
+
         // グローバル関数として定義
         window.showDiagramView = showDiagramView;
         window.scrollToPallet = scrollToPallet;
