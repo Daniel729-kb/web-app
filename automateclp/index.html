@@ -2,39 +2,40 @@
 <html lang="ja">
 <head>
     <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Automate Container Loader Planner - Enhanced</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>コンテナローディングプランナー</title>
     
     <!-- 共通CSSファイルの読み込み -->
     <link rel="stylesheet" href="../styles/variables.css">
     <link rel="stylesheet" href="../styles/components.css">
-    <link rel="stylesheet" href="container-specific.css">
+    <link rel="stylesheet" href="automateclp-specific.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
     <div class="container">
         <!-- ヘッダーコントロール -->
-        <div class="header-controls" style="position: absolute; top: 24px; right: 32px; display: flex; gap: 12px; align-items: center; z-index: 10;">
-            <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="ダークモード切り替え" style="background: rgba(255, 255, 255, 0.1); border: none; border-radius: 6px; padding: 8px; color: rgba(255, 255, 255, 0.8); cursor: pointer; transition: all 0.2s ease; font-size: 16px; display: flex; align-items: center; justify-content: center; width: 36px; height: 32px;">
+        <div class="header-controls">
+            <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="ダークモード切り替え">
                 <span class="dark-mode-icon">🌙</span>
             </button>
         </div>
-
+        
         <div class="header">
-            <h1>📦 コンテナ積載プランナー（高さ調整対応版）</h1>
-            <p>パフォーマンス改善・バグ修正・高さ差調整機能を実装した改良バージョン</p>
+            <h1>📦 コンテナローディングプランナー</h1>
+            <p>パフォーマンス改善とバグ修正を実施した改良バージョン</p>
         </div>
-
+        
         <div class="main-content">
             <div class="sidebar">
                 <div class="form-group">
                     <label for="containerType">コンテナタイプ</label>
-                    <select id="containerType" class="form-select">
+                    <select id="containerType">
                         <option value="20ft">20ftコンテナ (5.898m × 2.352m 内寸)</option>
                         <option value="40ft">40ftコンテナ (12.032m × 2.350m 内寸)</option>
                     </select>
                 </div>
-
+                
                 <div class="form-group">
                     <label>パレット寸法 (cm)</label>
                     <div class="dimensions-grid">
@@ -59,87 +60,64 @@
                         </button>
                     </div>
                 </div>
-
+                
                 <div class="form-group">
                     <label for="palletQty">数量</label>
                     <input id="palletQty" max="100" min="1" placeholder="パレット数" type="number" value="1" class="form-input"/>
                 </div>
-
-                <!-- 高さ調整設定 -->
-                <div class="height-adjustment-setting">
-                    <h4>📏 高さ調整設定</h4>
-                    <div class="height-adjustment-controls">
-                        <div class="height-adjustment-input">
-                            <label for="heightAdjustment">高さ調整値:</label>
-                            <input id="heightAdjustment" type="number" min="0" max="50" step="0.5" value="0" class="form-input"/>
-                            <span class="height-adjustment-unit">cm</span>
-                        </div>
-                        <div class="height-adjustment-info">
-                            💡 同じ層内でのパレット高さを揃えるための底上げ調整値です。<br/>
-                            パレット下部に挿入するスペーサーやクッション材の厚さを設定してください。
-                        </div>
-                    </div>
-                </div>
-
+                
                 <div class="form-group">
                     <label for="clearanceValue">クリアランス (cm)</label>
                     <input id="clearanceValue" max="50" min="0" placeholder="クリアランス" step="0.1" type="number" value="0" class="form-input"/>
-                    <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
+                    <small style="color: var(--text-tertiary); font-size: var(--font-size-xs); margin-top: var(--space-1); display: block;">
                         パレット間の最小間隔を設定（0.1cm刻み調整可能）<br/>
                         <strong>※計算時に適用されます（0=隙間なし配置で最大積載）</strong>
                     </small>
                 </div>
-
+                
                 <button class="add-pallet-btn" id="addPalletBtn" type="button">➕ パレットタイプを追加</button>
-
+                
                 <div class="form-group">
                     <label>パレットリスト</label>
                     <div class="pallet-list" id="palletList">
-                        <p style="text-align: center; color: #6c757d; font-style: italic;">パレットがまだ追加されていません</p>
+                        <p style="text-align: center; color: var(--text-tertiary); font-style: italic;">パレットがまだ追加されていません</p>
                     </div>
                 </div>
-
+                
                 <button class="test-btn" id="testBtn" type="button">🧪 テストケース実行</button>
                 <button class="calculate-btn" id="calculateBtn" type="button">🔄 積載プランを計算</button>
                 <button class="export-btn" id="exportBtn" style="display: none;" type="button">🖼️ 配置図を画像で保存</button>
             </div>
-
+            
             <div class="visualization">
                 <div class="error-message" id="errorMessage"></div>
                 <div class="success-message" id="successMessage"></div>
                 <div class="container-info" id="containerInfo">
                     コンテナタイプを選択してパレットを追加してください
                 </div>
-
                 <div class="loading-animation" id="loadingAnimation">
                     <div class="spinner"></div>
                     <p>最適な積載プランを計算中...</p>
                 </div>
-
                 <div class="manual-instructions" id="manualInstructions" style="display: none;">
                     <h4>📋 マニュアル調整ガイド</h4>
                     <ul>
                         <li>🖱️ パレットをドラッグして自由に位置調整</li>
                         <li>↻ 回転ボタンで向きを変更</li>
-                        <li>📏 高さボタンで個別の高さ調整</li>
                         <li>🗑️ 削除ボタンで不要なパレットを除去</li>
                         <li>🔴 赤い枠線はコンテナ枠外配置を示します</li>
-                        <li>🔵 青い枠線は高さ調整されたパレットを示します</li>
                         <li>📦 グレー枠線は下側配置（自動で配置されたもの）</li>
-                        <li>🔄 同じサイズでも個別に向きや高さを変更可能</li>
+                        <li>🔄 同じサイズでも個別に向きを変更可能</li>
                         <li>✨ 境界制限なし：コンテナ枠線ぴったりまで配置可能</li>
                     </ul>
                 </div>
-
                 <div class="legend" id="legend" style="display: none;"></div>
                 <div class="unloaded-summary" id="unloadedSummary" style="display: none;"></div>
-
                 <div class="container-view">
                     <div class="work-area">
                         <div class="container-floor" id="containerFloor"></div>
                     </div>
                 </div>
-
                 <div class="stats" id="stats" style="display: none;">
                     <div class="stat-card">
                         <div class="stat-value" id="inputPallets">0</div>
@@ -165,10 +143,6 @@
                         <div class="stat-value" id="remainingArea">0m²</div>
                         <div class="stat-label">残り床面積</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalHeightAdjustment">0cm</div>
-                        <div class="stat-label">総高さ調整</div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -191,6 +165,7 @@
             }
         }
 
+        // 初期化時にダークモードを無効化（ライトモードをデフォルトに）
         function initializeDarkMode() {
             document.body.classList.remove('dark-mode');
             isDarkMode = false;
@@ -228,7 +203,6 @@
             palletLength: document.getElementById('palletLength'),
             palletWidth: document.getElementById('palletWidth'),
             palletQty: document.getElementById('palletQty'),
-            heightAdjustment: document.getElementById('heightAdjustment'),
             clearanceValue: document.getElementById('clearanceValue'),
             addPalletBtn: document.getElementById('addPalletBtn'),
             calculateBtn: document.getElementById('calculateBtn'),
@@ -249,7 +223,6 @@
         // ユーティリティ関数
         const utils = {
             getCurrentClearance: () => parseFloat(elements.clearanceValue.value) || 0,
-            getCurrentHeightAdjustment: () => parseFloat(elements.heightAdjustment.value) || 0,
             getRandomColor: () => {
                 const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22'];
                 return colors[Math.floor(Math.random() * colors.length)];
@@ -282,7 +255,6 @@
                 const length = parseInt(elements.palletLength.value);
                 const width = parseInt(elements.palletWidth.value);
                 const qty = parseInt(elements.palletQty.value);
-                const heightAdjustment = utils.getCurrentHeightAdjustment();
                 
                 if (!this.validate(length, width, qty)) return;
                 
@@ -291,7 +263,6 @@
                     length,
                     width,
                     qty,
-                    heightAdjustment,
                     color: utils.getRandomColor()
                 });
                 
@@ -331,11 +302,10 @@
             allPalletsGenerated = [];
             elements.containerType.value = '40ft';
             elements.clearanceValue.value = '0';
-            elements.heightAdjustment.value = '2.5';
             
             const testData = [
-                { l: 110, w: 110, q: 12, h: 2.5, c: '#f39c12' },  // 黄色
-                { l: 100, w: 125, q: 8, h: 1.0, c: '#3498db' }    // 青色
+                { l: 110, w: 110, q: 12, c: '#f39c12' },  // 黄色
+                { l: 100, w: 125, q: 8, c: '#3498db' }    // 青色
             ];
             
             testData.forEach((p, i) => pallets.push({
@@ -343,14 +313,13 @@
                 length: p.l,
                 width: p.w,
                 qty: p.q,
-                heightAdjustment: p.h,
                 color: p.c
             }));
             
             updatePalletList();
             updateContainerInfo();
             clearResults();
-            utils.showSuccess('🎯 高さ調整テスト: 110×110 (+2.5cm) + 100×125 (+1.0cm)');
+            utils.showSuccess('🎯 エリア分割配置テスト: 110×110 (12個) + 100×125 (8個)');
         }
 
         // UI更新関数
@@ -358,15 +327,14 @@
             elements.palletList.innerHTML = '';
             
             if (pallets.length === 0) {
-                elements.palletList.innerHTML = '<p style="text-align:center;color:#6c757d;font-style:italic;">パレットがありません</p>';
+                elements.palletList.innerHTML = '<p style="text-align:center;color:var(--text-tertiary);font-style:italic;">パレットがありません</p>';
                 return;
             }
             
             pallets.forEach(p => {
                 const item = document.createElement('div');
                 item.className = 'pallet-item';
-                const heightInfo = p.heightAdjustment > 0 ? ` +${p.heightAdjustment}cm` : '';
-                item.innerHTML = `<span>${p.length}×${p.width}cm (${p.qty}個)${heightInfo}</span><button class="remove-btn">✕</button>`;
+                item.innerHTML = `<span>${p.length}×${p.width}cm (${p.qty}個)</span><button class="remove-btn">✕</button>`;
                 item.querySelector('.remove-btn').addEventListener('click', () => palletManager.remove(p.id));
                 elements.palletList.appendChild(item);
             });
@@ -374,9 +342,7 @@
 
         function updateContainerInfo() {
             const container = containers[elements.containerType.value];
-            const heightAdjustment = utils.getCurrentHeightAdjustment();
-            const heightInfo = heightAdjustment > 0 ? ` | 高さ調整: ${heightAdjustment}cm` : '';
-            elements.containerInfo.innerHTML = `${elements.containerType.value}内寸: ${(container.length/100).toFixed(3)}m×${(container.width/100).toFixed(3)}m <small>クリアランス: ${utils.getCurrentClearance()}cm${heightInfo}</small>`;
+            elements.containerInfo.innerHTML = `${elements.containerType.value}内寸: ${(container.length/100).toFixed(3)}m×${(container.width/100).toFixed(3)}m <small>クリアランス: ${utils.getCurrentClearance()}cm</small>`;
         }
 
         function clearInputs() {
@@ -448,7 +414,6 @@
                             instance: i,
                             length: pt.length,
                             width: pt.width,
-                            heightAdjustment: pt.heightAdjustment,
                             color: pt.color,
                             placed: false,
                             deleted: false,
@@ -456,8 +421,7 @@
                             y: 0,
                             finalLength: pt.length,
                             finalWidth: pt.width,
-                            rotated: false,
-                            individualHeightAdjustment: pt.heightAdjustment // 個別調整用
+                            rotated: false
                         });
                     }
                 });
@@ -471,7 +435,6 @@
                 
                 const placedCount = allPalletsGenerated.filter(p => p.placed).length;
                 const rotatedCount = allPalletsGenerated.filter(p => p.placed && p.rotated).length;
-                const heightAdjustedCount = allPalletsGenerated.filter(p => p.individualHeightAdjustment > 0).length;
                 
                 elements.loadingAnimation.style.display = 'none';
                 elements.exportBtn.style.display = 'block';
@@ -481,23 +444,17 @@
                 updateStats(container);
                 updateLegend();
 
-                let message = '';
                 if (placedCount === allPalletsGenerated.length) {
-                    message = `🎉 全${allPalletsGenerated.length}個のパレットが自動配置されました！`;
+                    utils.showSuccess(`🎉 全${allPalletsGenerated.length}個のパレットが自動配置されました！（回転: ${rotatedCount}個）`);
                 } else if (placedCount > 0) {
-                    message = `⚡ ${placedCount}/${allPalletsGenerated.length}個を自動配置。残りはマニュアル調整してください。`;
+                    utils.showSuccess(`⚡ ${placedCount}/${allPalletsGenerated.length}個を自動配置（回転: ${rotatedCount}個）。残りはマニュアル調整してください。`);
                 } else {
-                    message = `📦 ${allPalletsGenerated.length}個のパレットを生成しました。マニュアルで配置してください。`;
+                    utils.showSuccess(`📦 ${allPalletsGenerated.length}個のパレットを生成しました。マニュアルで配置してください。`);
                 }
-                
-                if (rotatedCount > 0) message += ` (回転: ${rotatedCount}個)`;
-                if (heightAdjustedCount > 0) message += ` (高さ調整: ${heightAdjustedCount}個)`;
-                
-                utils.showSuccess(message);
             }, CONSTANTS.ANIMATION_DELAY);
         }
 
-        // 簡略化された配置アルゴリズム（高さ調整対応）
+        // 簡略化された配置アルゴリズム
         function packPallets2D(palletsToPlace, container, clearance) {
             const placed = [];
             
@@ -519,6 +476,7 @@
                 const specialPlaced = trySpecialPattern100x125(groups['100x125'], container, clearance);
                 if (specialPlaced.length > 0) {
                     console.log(`100×125特殊パターンで ${specialPlaced.length} 個配置成功`);
+                    // 配置されたパレットの情報を更新
                     specialPlaced.forEach(p => {
                         const original = allPalletsGenerated.find(pallet => 
                             pallet.id === p.id && pallet.instance === p.instance
@@ -647,21 +605,24 @@
                 });
             }
         }
-
-        // 100×125パレットの特殊配置パターン（高さ調整対応）
+        
+        // 100×125パレットの特殊配置パターン
         function trySpecialPattern100x125(pallets, container, clearance) {
             const placedPallets = [];
             const areaPlaced = [];
             
+            // 配置パターン定義（横向き=true, 縦向き=false）
             const pattern = [
-                { row: 0, col: 0, rotated: true },
-                { row: 0, col: 1, rotated: false },
-                { row: 0, col: 2, rotated: true },
-                { row: 0, col: 3, rotated: false },
-                { row: 1, col: 0, rotated: false },
-                { row: 1, col: 1, rotated: true },
-                { row: 1, col: 2, rotated: false },
-                { row: 1, col: 3, rotated: true }
+                // 上段: 横、縦、横、縦
+                { row: 0, col: 0, rotated: true },   // 125×100
+                { row: 0, col: 1, rotated: false },  // 100×125
+                { row: 0, col: 2, rotated: true },   // 125×100
+                { row: 0, col: 3, rotated: false },  // 100×125
+                // 下段: 縦、横、縦、横
+                { row: 1, col: 0, rotated: false },  // 100×125
+                { row: 1, col: 1, rotated: true },   // 125×100
+                { row: 1, col: 2, rotated: false },  // 100×125
+                { row: 1, col: 3, rotated: true }    // 125×100
             ];
             
             let palletIndex = 0;
@@ -675,6 +636,7 @@
                 let x, y, length, width;
                 
                 if (pos.row === 0) {
+                    // 上段の配置
                     if (pos.col === 0) {
                         x = startX;
                         length = pos.rotated ? 125 : 100;
@@ -694,6 +656,7 @@
                     }
                     y = startY;
                 } else {
+                    // 下段の配置
                     if (pos.col === 0) {
                         x = startX;
                         length = pos.rotated ? 125 : 100;
@@ -711,9 +674,10 @@
                         length = pos.rotated ? 125 : 100;
                         width = pos.rotated ? 100 : 125;
                     }
-                    y = startY + 125 + clearance;
+                    y = startY + 125 + clearance;  // 下段は125cm下（上段の高さは100と125の最大値）
                 }
                 
+                // 配置可能かチェック
                 if (x + length <= container.length && y + width <= container.width &&
                     canPlace2D(x, y, length, width, areaPlaced, 0)) {
                     
@@ -741,14 +705,15 @@
             
             return placedPallets;
         }
-
-        // グリッドパターン配置（110×110用、高さ調整対応）
+        
+        // グリッドパターン配置（110×110用）
         function placeGridPattern(pallets, container, clearance, alreadyPlaced) {
             const placedPallets = [];
             const length = 110;
             const width = 110;
             
-            const startX = 500 + clearance;
+            // 100×125の配置エリアを避けて右側に配置
+            const startX = 500 + clearance;  // 100×125エリアの右側
             const startY = 0;
             
             const cols = Math.floor((container.length - startX) / (length + clearance));
@@ -781,7 +746,7 @@
             return placedPallets;
         }
 
-        // レンダリング関数（高さ調整対応）
+        // レンダリング関数
         function renderAllPallets(container) {
             const containerFloor = elements.containerFloor;
             const workArea = containerFloor.parentElement;
@@ -790,12 +755,14 @@
             const actualDisplayWidth = container.length * renderConfig.scale;
             const actualDisplayHeight = container.width * renderConfig.scale;
             
+            // コンテナの表示設定
             containerFloor.style.width = `${actualDisplayWidth}px`;
             containerFloor.style.height = `${actualDisplayHeight}px`;
             containerFloor.style.position = 'absolute';
             containerFloor.style.left = `${CONSTANTS.CONTAINER_OFFSET_X}px`;
             containerFloor.style.top = `${CONSTANTS.CONTAINER_OFFSET_Y}px`;
             
+            // 作業エリアのサイズ計算
             const unplacedPallets = allPalletsGenerated.filter(p => !p.deleted && !p.placed);
             let maxBottomY = actualDisplayHeight + CONSTANTS.CONTAINER_OFFSET_Y;
             
@@ -810,9 +777,10 @@
             workArea.style.height = `${Math.max(maxBottomY, 400 + CONSTANTS.CONTAINER_OFFSET_Y)}px`;
             workArea.style.position = 'relative';
             
+            // 既存のパレットを削除
             workArea.querySelectorAll('.pallet-2d').forEach(el => el.remove());
             
-            // パレットを描画（高さ調整表示対応）
+            // パレットを描画
             allPalletsGenerated.forEach(pallet => {
                 if (pallet.deleted) return;
                 
@@ -842,7 +810,6 @@
                 // 状態に応じたクラス付与
                 const isOutside = isOutsideContainer(pallet, container);
                 const isBottomPlaced = pallet.y > container.width;
-                const hasHeightAdjustment = pallet.individualHeightAdjustment > 0;
                 
                 if (isBottomPlaced) {
                     el.classList.add('bottom-placed');
@@ -850,18 +817,10 @@
                     el.classList.add('outside-container');
                 }
                 
-                if (hasHeightAdjustment) {
-                    el.classList.add('height-adjusted');
-                }
-                
-                const heightInfo = hasHeightAdjustment ? ` +${pallet.individualHeightAdjustment}cm` : '';
-                const rotationInfo = pallet.rotated ? ' ↻' : '';
-                
                 el.innerHTML = `
-                    <div class="pallet-label">${pallet.finalLength}×${pallet.finalWidth}${rotationInfo}${heightInfo}</div>
+                    <div class="pallet-label">${pallet.finalLength}×${pallet.finalWidth}${pallet.rotated ? ' ↻' : ''}</div>
                     <div class="pallet-controls">
                         <button class="rotate-btn" title="回転">↻</button>
-                        <button class="height-btn" title="高さ調整">📏</button>
                         <button class="delete-btn" title="削除">✕</button>
                     </div>
                 `;
@@ -869,6 +828,7 @@
                 workArea.appendChild(el);
             });
             
+            // レンダリング設定を保存
             renderConfig.containerBounds = {
                 left: CONSTANTS.CONTAINER_OFFSET_X,
                 top: CONSTANTS.CONTAINER_OFFSET_Y,
@@ -885,7 +845,7 @@
                    pallet.y + pallet.finalWidth > container.width;
         }
 
-        // ドラッグ＆ドロップ機能（高さ調整対応）
+        // ドラッグ＆ドロップ機能
         let isDDListenerAttached = false;
         function enableDragAndDropAndActions() {
             const workArea = elements.containerFloor.parentElement;
@@ -902,9 +862,6 @@
                 if (target.classList.contains('rotate-btn')) {
                     e.stopPropagation();
                     rotatePallet(target.closest('.pallet-2d'));
-                } else if (target.classList.contains('height-btn')) {
-                    e.stopPropagation();
-                    adjustPalletHeight(target.closest('.pallet-2d'));
                 } else if (target.classList.contains('delete-btn')) {
                     e.stopPropagation();
                     deletePallet(target.closest('.pallet-2d'));
@@ -939,6 +896,7 @@
                 let newLeft = e.clientX - workAreaRect.left - initialMouseX;
                 let newTop = e.clientY - workAreaRect.top - initialMouseY;
                 
+                // 作業エリア内に制限
                 newLeft = Math.max(CONSTANTS.MIN_DRAG_MARGIN, 
                           Math.min(newLeft, workArea.clientWidth - activePalletEl.clientWidth - CONSTANTS.MIN_DRAG_MARGIN));
                 newTop = Math.max(CONSTANTS.MIN_DRAG_MARGIN, 
@@ -968,24 +926,24 @@
                 );
                 if (!palletData) return;
 
+                // 寸法を入れ替え
                 [palletData.finalLength, palletData.finalWidth] = [palletData.finalWidth, palletData.finalLength];
                 palletData.rotated = !palletData.rotated;
 
                 const container = containers[elements.containerType.value];
                 palletEl.style.width = `${palletData.finalLength * renderConfig.scale}px`;
                 palletEl.style.height = `${palletData.finalWidth * renderConfig.scale}px`;
-                
-                const heightInfo = palletData.individualHeightAdjustment > 0 ? ` +${palletData.individualHeightAdjustment}cm` : '';
-                const rotationInfo = palletData.rotated ? ' ↻' : '';
                 palletEl.querySelector('.pallet-label').textContent = 
-                    `${palletData.finalLength}×${palletData.finalWidth}${rotationInfo}${heightInfo}`;
+                    `${palletData.finalLength}×${palletData.finalWidth}${palletData.rotated ? ' ↻' : ''}`;
                 
+                // 背景更新
                 if (palletData.rotated) {
                     palletEl.style.background = `repeating-linear-gradient(45deg, ${palletData.color}, ${palletData.color} 10px, ${utils.adjustColor(palletData.color, -20)} 10px, ${utils.adjustColor(palletData.color, -20)} 20px)`;
                 } else {
                     palletEl.style.background = palletData.color;
                 }
 
+                // 位置調整
                 if (palletEl.offsetLeft + palletEl.offsetWidth > workArea.clientWidth) {
                     palletEl.style.left = `${Math.max(0, workArea.clientWidth - palletEl.offsetWidth)}px`;
                 }
@@ -996,42 +954,6 @@
                 updatePalletModel(palletEl);
                 updatePalletStatus(palletEl);
                 updateStats(container);
-            }
-
-            function adjustPalletHeight(palletEl) {
-                if (!palletEl) return;
-                
-                const palletData = allPalletsGenerated.find(p =>
-                    p.id == palletEl.dataset.palletId && p.instance == palletEl.dataset.instance
-                );
-                if (!palletData) return;
-
-                const currentHeight = palletData.individualHeightAdjustment || 0;
-                const newHeight = prompt(
-                    `パレットの高さ調整値を入力してください (現在: ${currentHeight}cm)`, 
-                    currentHeight
-                );
-                
-                if (newHeight !== null && !isNaN(parseFloat(newHeight))) {
-                    const heightValue = Math.max(0, Math.min(50, parseFloat(newHeight)));
-                    palletData.individualHeightAdjustment = heightValue;
-                    
-                    // 表示更新
-                    const heightInfo = heightValue > 0 ? ` +${heightValue}cm` : '';
-                    const rotationInfo = palletData.rotated ? ' ↻' : '';
-                    palletEl.querySelector('.pallet-label').textContent = 
-                        `${palletData.finalLength}×${palletData.finalWidth}${rotationInfo}${heightInfo}`;
-                    
-                    // スタイル更新
-                    if (heightValue > 0) {
-                        palletEl.classList.add('height-adjusted');
-                    } else {
-                        palletEl.classList.remove('height-adjusted');
-                    }
-                    
-                    updateStats(containers[elements.containerType.value]);
-                    utils.showSuccess(`パレットの高さ調整を${heightValue}cmに設定しました`);
-                }
             }
 
             function deletePallet(palletEl) {
@@ -1099,20 +1021,17 @@
             }
         }
 
-        // 統計更新（高さ調整対応）
+        // 統計更新
         function updateStats(container) {
             const visiblePallets = allPalletsGenerated.filter(p => !p.deleted);
             const insidePallets = visiblePallets.filter(p => !isOutsideContainer(p, container));
             
-            const containerArea = (container.length * container.width) / 10000;
+            const containerArea = (container.length * container.width) / 10000; // m²
             const usedArea = insidePallets.reduce((sum, p) => 
                 sum + (p.finalLength * p.finalWidth) / 10000, 0
             );
             
             const totalInputPallets = pallets.reduce((sum, p) => sum + p.qty, 0);
-            const totalHeightAdjustment = allPalletsGenerated.reduce((sum, p) => 
-                sum + (p.individualHeightAdjustment || 0), 0
-            );
             
             document.getElementById('inputPallets').textContent = totalInputPallets;
             document.getElementById('visiblePallets').textContent = visiblePallets.length;
@@ -1122,7 +1041,6 @@
             document.getElementById('efficiency').textContent = 
                 `${containerArea > 0 ? Math.round((usedArea / containerArea) * 100) : 0}%`;
             document.getElementById('remainingArea').textContent = `${(containerArea - usedArea).toFixed(2)}m²`;
-            document.getElementById('totalHeightAdjustment').textContent = `${totalHeightAdjustment.toFixed(1)}cm`;
             
             elements.stats.style.display = 'grid';
         }
@@ -1135,11 +1053,10 @@
             }
             
             pallets.forEach(p => {
-                const heightInfo = p.heightAdjustment > 0 ? ` (+${p.heightAdjustment}cm)` : '';
                 elements.legend.innerHTML += `
                     <div class="legend-item">
                         <div class="legend-color" style="background:${p.color};"></div>
-                        <span>${p.length}×${p.width}cm (${p.qty}個)${heightInfo}</span>
+                        <span>${p.length}×${p.width}cm (${p.qty}個)</span>
                     </div>
                 `;
             });
@@ -1183,10 +1100,8 @@
                 updateContainerInfo();
                 clearResults();
             });
-            elements.heightAdjustment.addEventListener('input', () => {
-                updateContainerInfo();
-            });
             
+            // Enterキーでの追加
             [elements.palletLength, elements.palletWidth, elements.palletQty].forEach(input => {
                 input.addEventListener('keypress', e => {
                     if (e.key === 'Enter') palletManager.add();
