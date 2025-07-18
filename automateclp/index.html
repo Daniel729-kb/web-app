@@ -1,598 +1,202 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Automae Container Loader Planeer</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #2c3e50, #34495e);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 320px 1fr;
-            gap: 0;
-            min-height: 700px;
-        }
-
-        .sidebar {
-            background: #f8f9fa;
-            padding: 30px;
-            border-right: 1px solid #e9ecef;
-        }
-
-        .form-group {
-            margin-bottom: 25px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .dimensions-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .preset-pallets {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .preset-btn {
-            padding: 8px 6px;
-            background: #e9ecef;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 11px;
-            transition: all 0.3s ease;
-            font-family: inherit;
-            text-align: center;
-            line-height: 1.2;
-            min-height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .preset-btn:nth-child(5) {
-            grid-column: 1 / -1;
-            max-width: 50%;
-            margin: 0 auto;
-        }
-
-        .preset-btn:hover {
-            background: #667eea;
-            color: white;
-        }
-
-        .add-pallet-btn, .calculate-btn, .test-btn, .export-btn {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 15px;
-            font-family: inherit;
-        }
-
-        .test-btn {
-            background: linear-gradient(135deg, #28a745, #20c997);
-        }
-
-        .export-btn {
-             background: linear-gradient(135deg, #5bc0de, #337ab7);
-        }
-
-
-        .add-pallet-btn:hover, .calculate-btn:hover, .test-btn:hover, .export-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .pallet-list {
-            max-height: 200px;
-            overflow-y: auto;
-            background: white;
-            border-radius: 8px;
-            padding: 15px;
-            border: 1px solid #e9ecef;
-        }
-
-        .pallet-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            margin-bottom: 8px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .pallet-item .remove-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        .visualization {
-            padding: 30px;
-            background: white;
-        }
-
-        .container-view {
-            background: #2c3e50;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-            position: relative;
-            overflow: visible;
-            min-height: 400px;
-        }
-
-        .work-area {
-            position: relative;
-            width: 100%;
-            min-height: 400px;
-            overflow: visible;
-        }
-
-        .container-floor {
-            background: #34495e;
-            border: 3px solid #e74c3c;
-            border-radius: 8px;
-            position: absolute;
-            left: 0;
-            top: 0;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
-            width: 600px;
-            height: 300px;
-        }
-
-        .container-floor::before {
-            content: '';
-            position: absolute;
-            top: -1px;
-            left: -1px;
-            right: -1px;
-            bottom: -1px;
-            border: 1px solid rgba(231, 76, 60, 0.5);
-            pointer-events: none;
-        }
-
-        .pallet-2d {
-            position: absolute;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 4px;
-            cursor: grab;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            box-shadow: 0 0 0 5px rgba(255,255,255,0.1);
-            touch-action: none;
-            transition: box-shadow 0.2s ease, background 0.2s ease;
-        }
-
-        .pallet-2d:hover {
-            filter: brightness(1.2);
-            z-index: 10;
-        }
-        
-        .pallet-2d.dragging {
-            cursor: grabbing;
-            z-index: 1000;
-            opacity: 0.8;
-            box-shadow: 0 0 15px rgba(255,255,255,0.7);
-        }
-        
-        .pallet-2d.colliding {
-            box-shadow: 0 0 0 4px rgba(255, 20, 20, 0.8) !important;
-        }
-
-        .pallet-2d.outside-container {
-            border-color: rgba(231, 76, 60, 0.9) !important;
-            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.6) !important;
-            opacity: 0.9;
-        }
-
-        .pallet-2d.bottom-placed {
-            opacity: 0.9;
-            border-color: rgba(108, 117, 125, 0.8);
-            box-shadow: 0 0 0 2px rgba(108, 117, 125, 0.4);
-        }
-
-        .pallet-2d.deleted {
-            opacity: 0.3;
-            filter: grayscale(100%);
-            pointer-events: none;
-        }
-
-        .pallet-label {
-            font-size: 10px;
-            font-weight: bold;
-            color: white;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
-            pointer-events: none;
-            text-align: center;
-            line-height: 1.2;
-            padding: 0 5px;
-            box-sizing: border-box;
-        }
-
-        .pallet-controls {
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            display: flex;
-            gap: 2px;
-            z-index: 100;
-        }
-
-        .rotate-btn, .delete-btn {
-            width: 20px;
-            height: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: white;
-            cursor: pointer;
-            transition: background 0.2s ease;
-            pointer-events: auto;
-            border: none;
-        }
-
-        .rotate-btn:hover {
-            background: rgba(0, 100, 200, 0.8);
-        }
-
-        .delete-btn:hover {
-            background: rgba(220, 53, 69, 0.8);
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 15px;
-            margin-top: 30px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 18px;
-            border-radius: 12px;
-            text-align: center;
-            min-height: 80px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            opacity: 0.9;
-            font-size: 14px;
-        }
-
-        .loading-animation {
-            display: none;
-            text-align: center;
-            padding: 40px;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .success-message {
-            background: #d1edff;
-            color: #0c5460;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .container-info {
-            background: #e9ecef;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: 500;
-        }
-
-        .legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            border: 2px solid rgba(255,255,255,0.3);
-        }
-
-        .manual-instructions {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #856404;
-        }
-
-        .manual-instructions h4 {
-            margin-bottom: 8px;
-            color: #856404;
-        }
-
-        .manual-instructions ul {
-            margin-left: 20px;
-        }
-
-        .unloaded-summary {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .unloaded-summary h4 {
-            color: #856404;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-
-        .unloaded-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            margin-bottom: 5px;
-            background: rgba(255, 193, 7, 0.1);
-            border-radius: 4px;
-            font-size: 13px;
-            color: #856404;
-        }
-    </style>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Automate Container Loader Planner - Enhanced</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- 共通CSSファイルの読み込み -->
+    <link rel="stylesheet" href="../styles/variables.css">
+    <link rel="stylesheet" href="../styles/components.css">
+    <link rel="stylesheet" href="container-specific.css">
 </head>
 <body>
-<div class="container">
-<div class="header">
-<h1>📦 コンテナ積載プランナー（最適化版）</h1>
-<p>パフォーマンス改善とバグ修正を実施した改良バージョン</p>
-</div>
-<div class="main-content">
-<div class="sidebar">
-<div class="form-group">
-<label for="containerType">コンテナタイプ</label>
-<select id="containerType">
-<option value="20ft">20ftコンテナ (5.898m × 2.352m 内寸)</option>
-<option value="40ft">40ftコンテナ (12.032m × 2.350m 内寸)</option>
-</select>
-</div>
-<div class="form-group">
-<label>パレット寸法 (cm)</label>
-<div class="dimensions-grid">
-<input id="palletLength" max="300" min="1" placeholder="長さ" type="number"/>
-<input id="palletWidth" max="300" min="1" placeholder="幅" type="number"/>
-</div>
-<div class="preset-pallets">
-<button class="preset-btn" data-length="120" data-width="100" type="button">
+    <div class="container">
+        <!-- ヘッダーコントロール -->
+        <div class="header-controls" style="position: absolute; top: 24px; right: 32px; display: flex; gap: 12px; align-items: center; z-index: 10;">
+            <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="ダークモード切り替え" style="background: rgba(255, 255, 255, 0.1); border: none; border-radius: 6px; padding: 8px; color: rgba(255, 255, 255, 0.8); cursor: pointer; transition: all 0.2s ease; font-size: 16px; display: flex; align-items: center; justify-content: center; width: 36px; height: 32px;">
+                <span class="dark-mode-icon">🌙</span>
+            </button>
+        </div>
+
+        <div class="header">
+            <h1>📦 コンテナ積載プランナー（高さ調整対応版）</h1>
+            <p>パフォーマンス改善・バグ修正・高さ差調整機能を実装した改良バージョン</p>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="form-group">
+                    <label for="containerType">コンテナタイプ</label>
+                    <select id="containerType" class="form-select">
+                        <option value="20ft">20ftコンテナ (5.898m × 2.352m 内寸)</option>
+                        <option value="40ft">40ftコンテナ (12.032m × 2.350m 内寸)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>パレット寸法 (cm)</label>
+                    <div class="dimensions-grid">
+                        <input id="palletLength" max="300" min="1" placeholder="長さ" type="number" class="form-input"/>
+                        <input id="palletWidth" max="300" min="1" placeholder="幅" type="number" class="form-input"/>
+                    </div>
+                    <div class="preset-pallets">
+                        <button class="preset-btn" data-length="120" data-width="100" type="button">
                             EUR<br/>(120×100)
                         </button>
-<button class="preset-btn" data-length="120" data-width="80" type="button">
+                        <button class="preset-btn" data-length="120" data-width="80" type="button">
                             EUR2<br/>(120×80)
                         </button>
-<button class="preset-btn" data-length="122" data-width="102" type="button">
+                        <button class="preset-btn" data-length="122" data-width="102" type="button">
                             US<br/>(122×102)
                         </button>
-<button class="preset-btn" data-length="110" data-width="110" type="button">
+                        <button class="preset-btn" data-length="110" data-width="110" type="button">
                             正方形<br/>(110×110)
                         </button>
-<button class="preset-btn" data-length="100" data-width="125" type="button">
+                        <button class="preset-btn" data-length="100" data-width="125" type="button">
                             カスタム<br/>(100×125)
                         </button>
-</div>
-</div>
-<div class="form-group">
-<label for="palletQty">数量</label>
-<input id="palletQty" max="100" min="1" placeholder="パレット数" type="number" value="1"/>
-</div>
-<div class="form-group">
-<label for="clearanceValue">クリアランス (cm)</label>
-<input id="clearanceValue" max="50" min="0" placeholder="クリアランス" step="0.1" type="number" value="0"/>
-<small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="palletQty">数量</label>
+                    <input id="palletQty" max="100" min="1" placeholder="パレット数" type="number" value="1" class="form-input"/>
+                </div>
+
+                <!-- 高さ調整設定 -->
+                <div class="height-adjustment-setting">
+                    <h4>📏 高さ調整設定</h4>
+                    <div class="height-adjustment-controls">
+                        <div class="height-adjustment-input">
+                            <label for="heightAdjustment">高さ調整値:</label>
+                            <input id="heightAdjustment" type="number" min="0" max="50" step="0.5" value="0" class="form-input"/>
+                            <span class="height-adjustment-unit">cm</span>
+                        </div>
+                        <div class="height-adjustment-info">
+                            💡 同じ層内でのパレット高さを揃えるための底上げ調整値です。<br/>
+                            パレット下部に挿入するスペーサーやクッション材の厚さを設定してください。
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="clearanceValue">クリアランス (cm)</label>
+                    <input id="clearanceValue" max="50" min="0" placeholder="クリアランス" step="0.1" type="number" value="0" class="form-input"/>
+                    <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
                         パレット間の最小間隔を設定（0.1cm刻み調整可能）<br/>
-<strong>※計算時に適用されます（0=隙間なし配置で最大積載）</strong>
-</small>
-</div>
-<button class="add-pallet-btn" id="addPalletBtn" type="button">➕ パレットタイプを追加</button>
-<div class="form-group">
-<label>パレットリスト</label>
-<div class="pallet-list" id="palletList">
-<p style="text-align: center; color: #6c757d; font-style: italic;">パレットがまだ追加されていません</p>
-</div>
-</div>
-<button class="test-btn" id="testBtn" type="button">🧪 テストケース実行</button>
-<button class="calculate-btn" id="calculateBtn" type="button">🔄 積載プランを計算</button>
-<button class="export-btn" id="exportBtn" style="display: none;" type="button">🖼️ 配置図を画像で保存</button>
-</div>
-<div class="visualization">
-<div class="error-message" id="errorMessage"></div>
-<div class="success-message" id="successMessage"></div>
-<div class="container-info" id="containerInfo">
+                        <strong>※計算時に適用されます（0=隙間なし配置で最大積載）</strong>
+                    </small>
+                </div>
+
+                <button class="add-pallet-btn" id="addPalletBtn" type="button">➕ パレットタイプを追加</button>
+
+                <div class="form-group">
+                    <label>パレットリスト</label>
+                    <div class="pallet-list" id="palletList">
+                        <p style="text-align: center; color: #6c757d; font-style: italic;">パレットがまだ追加されていません</p>
+                    </div>
+                </div>
+
+                <button class="test-btn" id="testBtn" type="button">🧪 テストケース実行</button>
+                <button class="calculate-btn" id="calculateBtn" type="button">🔄 積載プランを計算</button>
+                <button class="export-btn" id="exportBtn" style="display: none;" type="button">🖼️ 配置図を画像で保存</button>
+            </div>
+
+            <div class="visualization">
+                <div class="error-message" id="errorMessage"></div>
+                <div class="success-message" id="successMessage"></div>
+                <div class="container-info" id="containerInfo">
                     コンテナタイプを選択してパレットを追加してください
                 </div>
-<div class="loading-animation" id="loadingAnimation">
-<div class="spinner"></div>
-<p>最適な積載プランを計算中...</p>
-</div>
+
+                <div class="loading-animation" id="loadingAnimation">
+                    <div class="spinner"></div>
+                    <p>最適な積載プランを計算中...</p>
+                </div>
+
                 <div class="manual-instructions" id="manualInstructions" style="display: none;">
-<h4>📋 マニュアル調整ガイド</h4>
-<ul>
-<li>🖱️ パレットをドラッグして自由に位置調整</li>
-<li>↻ 回転ボタンで向きを変更</li>
-<li>🗑️ 削除ボタンで不要なパレットを除去</li>
-<li>🔴 赤い枠線はコンテナ枠外配置を示します</li>
-<li>📦 グレー枠線は下側配置（自動で配置されたもの）</li>
-<li>🔄 同じサイズでも個別に向きを変更可能</li>
-<li>✨ 境界制限なし：コンテナ枠線ぴったりまで配置可能</li>
-</ul>
-</div>
-<div class="legend" id="legend" style="display: none;">
-</div>
-<div class="unloaded-summary" id="unloadedSummary" style="display: none;"></div>
-<div class="container-view">
-<div class="work-area">
-<div class="container-floor" id="containerFloor">
-</div>
-</div>
-</div>
-<div class="stats" id="stats" style="display: none;">
-<div class="stat-card">
-<div class="stat-value" id="inputPallets">0</div>
-<div class="stat-label">入力パレット数</div>
-</div>
-<div class="stat-card">
-<div class="stat-value" id="visiblePallets">0</div>
-<div class="stat-label">表示パレット数</div>
-</div>
-<div class="stat-card">
-<div class="stat-value" id="loadedPallets">0</div>
-<div class="stat-label">枠内パレット数</div>
-</div>
-<div class="stat-card">
-<div class="stat-value" id="loadingRate">0%</div>
-<div class="stat-label">積載率</div>
-</div>
-<div class="stat-card">
-<div class="stat-value" id="efficiency">0%</div>
-<div class="stat-label">床面効率</div>
-</div>
-<div class="stat-card">
-<div class="stat-value" id="remainingArea">0m²</div>
-<div class="stat-label">残り床面積</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<script>
+                    <h4>📋 マニュアル調整ガイド</h4>
+                    <ul>
+                        <li>🖱️ パレットをドラッグして自由に位置調整</li>
+                        <li>↻ 回転ボタンで向きを変更</li>
+                        <li>📏 高さボタンで個別の高さ調整</li>
+                        <li>🗑️ 削除ボタンで不要なパレットを除去</li>
+                        <li>🔴 赤い枠線はコンテナ枠外配置を示します</li>
+                        <li>🔵 青い枠線は高さ調整されたパレットを示します</li>
+                        <li>📦 グレー枠線は下側配置（自動で配置されたもの）</li>
+                        <li>🔄 同じサイズでも個別に向きや高さを変更可能</li>
+                        <li>✨ 境界制限なし：コンテナ枠線ぴったりまで配置可能</li>
+                    </ul>
+                </div>
+
+                <div class="legend" id="legend" style="display: none;"></div>
+                <div class="unloaded-summary" id="unloadedSummary" style="display: none;"></div>
+
+                <div class="container-view">
+                    <div class="work-area">
+                        <div class="container-floor" id="containerFloor"></div>
+                    </div>
+                </div>
+
+                <div class="stats" id="stats" style="display: none;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="inputPallets">0</div>
+                        <div class="stat-label">入力パレット数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="visiblePallets">0</div>
+                        <div class="stat-label">表示パレット数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="loadedPallets">0</div>
+                        <div class="stat-label">枠内パレット数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="loadingRate">0%</div>
+                        <div class="stat-label">積載率</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="efficiency">0%</div>
+                        <div class="stat-label">床面効率</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="remainingArea">0m²</div>
+                        <div class="stat-label">残り床面積</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalHeightAdjustment">0cm</div>
+                        <div class="stat-label">総高さ調整</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ダークモード管理
+        let isDarkMode = false;
+
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            updateDarkModeIcon();
+        }
+
+        function updateDarkModeIcon() {
+            const icon = document.querySelector('.dark-mode-icon');
+            if (icon) {
+                icon.textContent = isDarkMode ? '☀️' : '🌙';
+            }
+        }
+
+        function initializeDarkMode() {
+            document.body.classList.remove('dark-mode');
+            isDarkMode = false;
+            updateDarkModeIcon();
+        }
+
         // 定数の一元管理
         const CONSTANTS = {
             CONTAINER_OFFSET_X: 30,
@@ -624,6 +228,7 @@
             palletLength: document.getElementById('palletLength'),
             palletWidth: document.getElementById('palletWidth'),
             palletQty: document.getElementById('palletQty'),
+            heightAdjustment: document.getElementById('heightAdjustment'),
             clearanceValue: document.getElementById('clearanceValue'),
             addPalletBtn: document.getElementById('addPalletBtn'),
             calculateBtn: document.getElementById('calculateBtn'),
@@ -644,6 +249,7 @@
         // ユーティリティ関数
         const utils = {
             getCurrentClearance: () => parseFloat(elements.clearanceValue.value) || 0,
+            getCurrentHeightAdjustment: () => parseFloat(elements.heightAdjustment.value) || 0,
             getRandomColor: () => {
                 const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22'];
                 return colors[Math.floor(Math.random() * colors.length)];
@@ -676,6 +282,7 @@
                 const length = parseInt(elements.palletLength.value);
                 const width = parseInt(elements.palletWidth.value);
                 const qty = parseInt(elements.palletQty.value);
+                const heightAdjustment = utils.getCurrentHeightAdjustment();
                 
                 if (!this.validate(length, width, qty)) return;
                 
@@ -684,6 +291,7 @@
                     length,
                     width,
                     qty,
+                    heightAdjustment,
                     color: utils.getRandomColor()
                 });
                 
@@ -723,10 +331,11 @@
             allPalletsGenerated = [];
             elements.containerType.value = '40ft';
             elements.clearanceValue.value = '0';
+            elements.heightAdjustment.value = '2.5';
             
             const testData = [
-                { l: 110, w: 110, q: 12, c: '#f39c12' },  // 黄色
-                { l: 100, w: 125, q: 8, c: '#3498db' }    // 青色
+                { l: 110, w: 110, q: 12, h: 2.5, c: '#f39c12' },  // 黄色
+                { l: 100, w: 125, q: 8, h: 1.0, c: '#3498db' }    // 青色
             ];
             
             testData.forEach((p, i) => pallets.push({
@@ -734,13 +343,14 @@
                 length: p.l,
                 width: p.w,
                 qty: p.q,
+                heightAdjustment: p.h,
                 color: p.c
             }));
             
             updatePalletList();
             updateContainerInfo();
             clearResults();
-            utils.showSuccess('🎯 エリア分割配置テスト: 110×110 (12個) + 100×125 (8個)');
+            utils.showSuccess('🎯 高さ調整テスト: 110×110 (+2.5cm) + 100×125 (+1.0cm)');
         }
 
         // UI更新関数
@@ -755,7 +365,8 @@
             pallets.forEach(p => {
                 const item = document.createElement('div');
                 item.className = 'pallet-item';
-                item.innerHTML = `<span>${p.length}×${p.width}cm (${p.qty}個)</span><button class="remove-btn">✕</button>`;
+                const heightInfo = p.heightAdjustment > 0 ? ` +${p.heightAdjustment}cm` : '';
+                item.innerHTML = `<span>${p.length}×${p.width}cm (${p.qty}個)${heightInfo}</span><button class="remove-btn">✕</button>`;
                 item.querySelector('.remove-btn').addEventListener('click', () => palletManager.remove(p.id));
                 elements.palletList.appendChild(item);
             });
@@ -763,7 +374,9 @@
 
         function updateContainerInfo() {
             const container = containers[elements.containerType.value];
-            elements.containerInfo.innerHTML = `${elements.containerType.value}内寸: ${(container.length/100).toFixed(3)}m×${(container.width/100).toFixed(3)}m <small>クリアランス: ${utils.getCurrentClearance()}cm</small>`;
+            const heightAdjustment = utils.getCurrentHeightAdjustment();
+            const heightInfo = heightAdjustment > 0 ? ` | 高さ調整: ${heightAdjustment}cm` : '';
+            elements.containerInfo.innerHTML = `${elements.containerType.value}内寸: ${(container.length/100).toFixed(3)}m×${(container.width/100).toFixed(3)}m <small>クリアランス: ${utils.getCurrentClearance()}cm${heightInfo}</small>`;
         }
 
         function clearInputs() {
@@ -813,6 +426,7 @@
                 r2.y + r2.width + clearance <= r1.y + CONSTANTS.EPSILON
             );
         }
+
         function calculateLoading() {
             if (pallets.length === 0) {
                 return utils.showError('少なくとも1つのパレットタイプを追加してください');
@@ -834,6 +448,7 @@
                             instance: i,
                             length: pt.length,
                             width: pt.width,
+                            heightAdjustment: pt.heightAdjustment,
                             color: pt.color,
                             placed: false,
                             deleted: false,
@@ -841,7 +456,8 @@
                             y: 0,
                             finalLength: pt.length,
                             finalWidth: pt.width,
-                            rotated: false
+                            rotated: false,
+                            individualHeightAdjustment: pt.heightAdjustment // 個別調整用
                         });
                     }
                 });
@@ -855,6 +471,7 @@
                 
                 const placedCount = allPalletsGenerated.filter(p => p.placed).length;
                 const rotatedCount = allPalletsGenerated.filter(p => p.placed && p.rotated).length;
+                const heightAdjustedCount = allPalletsGenerated.filter(p => p.individualHeightAdjustment > 0).length;
                 
                 elements.loadingAnimation.style.display = 'none';
                 elements.exportBtn.style.display = 'block';
@@ -864,17 +481,23 @@
                 updateStats(container);
                 updateLegend();
 
+                let message = '';
                 if (placedCount === allPalletsGenerated.length) {
-                    utils.showSuccess(`🎉 全${allPalletsGenerated.length}個のパレットが自動配置されました！（回転: ${rotatedCount}個）`);
+                    message = `🎉 全${allPalletsGenerated.length}個のパレットが自動配置されました！`;
                 } else if (placedCount > 0) {
-                    utils.showSuccess(`⚡ ${placedCount}/${allPalletsGenerated.length}個を自動配置（回転: ${rotatedCount}個）。残りはマニュアル調整してください。`);
+                    message = `⚡ ${placedCount}/${allPalletsGenerated.length}個を自動配置。残りはマニュアル調整してください。`;
                 } else {
-                    utils.showSuccess(`📦 ${allPalletsGenerated.length}個のパレットを生成しました。マニュアルで配置してください。`);
+                    message = `📦 ${allPalletsGenerated.length}個のパレットを生成しました。マニュアルで配置してください。`;
                 }
+                
+                if (rotatedCount > 0) message += ` (回転: ${rotatedCount}個)`;
+                if (heightAdjustedCount > 0) message += ` (高さ調整: ${heightAdjustedCount}個)`;
+                
+                utils.showSuccess(message);
             }, CONSTANTS.ANIMATION_DELAY);
         }
 
-        // 簡略化された配置アルゴリズム
+        // 簡略化された配置アルゴリズム（高さ調整対応）
         function packPallets2D(palletsToPlace, container, clearance) {
             const placed = [];
             
@@ -896,7 +519,6 @@
                 const specialPlaced = trySpecialPattern100x125(groups['100x125'], container, clearance);
                 if (specialPlaced.length > 0) {
                     console.log(`100×125特殊パターンで ${specialPlaced.length} 個配置成功`);
-                    // 配置されたパレットの情報を更新
                     specialPlaced.forEach(p => {
                         const original = allPalletsGenerated.find(pallet => 
                             pallet.id === p.id && pallet.instance === p.instance
@@ -1025,24 +647,21 @@
                 });
             }
         }
-        
-        // 100×125パレットの特殊配置パターン
+
+        // 100×125パレットの特殊配置パターン（高さ調整対応）
         function trySpecialPattern100x125(pallets, container, clearance) {
             const placedPallets = [];
             const areaPlaced = [];
             
-            // 配置パターン定義（横向き=true, 縦向き=false）
             const pattern = [
-                // 上段: 横、縦、横、縦
-                { row: 0, col: 0, rotated: true },   // 125×100
-                { row: 0, col: 1, rotated: false },  // 100×125
-                { row: 0, col: 2, rotated: true },   // 125×100
-                { row: 0, col: 3, rotated: false },  // 100×125
-                // 下段: 縦、横、縦、横
-                { row: 1, col: 0, rotated: false },  // 100×125
-                { row: 1, col: 1, rotated: true },   // 125×100
-                { row: 1, col: 2, rotated: false },  // 100×125
-                { row: 1, col: 3, rotated: true }    // 125×100
+                { row: 0, col: 0, rotated: true },
+                { row: 0, col: 1, rotated: false },
+                { row: 0, col: 2, rotated: true },
+                { row: 0, col: 3, rotated: false },
+                { row: 1, col: 0, rotated: false },
+                { row: 1, col: 1, rotated: true },
+                { row: 1, col: 2, rotated: false },
+                { row: 1, col: 3, rotated: true }
             ];
             
             let palletIndex = 0;
@@ -1056,7 +675,6 @@
                 let x, y, length, width;
                 
                 if (pos.row === 0) {
-                    // 上段の配置
                     if (pos.col === 0) {
                         x = startX;
                         length = pos.rotated ? 125 : 100;
@@ -1076,7 +694,6 @@
                     }
                     y = startY;
                 } else {
-                    // 下段の配置
                     if (pos.col === 0) {
                         x = startX;
                         length = pos.rotated ? 125 : 100;
@@ -1094,10 +711,9 @@
                         length = pos.rotated ? 125 : 100;
                         width = pos.rotated ? 100 : 125;
                     }
-                    y = startY + 125 + clearance;  // 下段は125cm下（上段の高さは100と125の最大値）
+                    y = startY + 125 + clearance;
                 }
                 
-                // 配置可能かチェック
                 if (x + length <= container.length && y + width <= container.width &&
                     canPlace2D(x, y, length, width, areaPlaced, 0)) {
                     
@@ -1125,15 +741,14 @@
             
             return placedPallets;
         }
-        
-        // グリッドパターン配置（110×110用）
+
+        // グリッドパターン配置（110×110用、高さ調整対応）
         function placeGridPattern(pallets, container, clearance, alreadyPlaced) {
             const placedPallets = [];
             const length = 110;
             const width = 110;
             
-            // 100×125の配置エリアを避けて右側に配置
-            const startX = 500 + clearance;  // 100×125エリアの右側
+            const startX = 500 + clearance;
             const startY = 0;
             
             const cols = Math.floor((container.length - startX) / (length + clearance));
@@ -1165,319 +780,8 @@
             
             return placedPallets;
         }
-        
-        // エリア分割配置戦略
-        function tryAreaDivisionPlacement(groups, container, clearance) {
-            const placedPallets = [];
-            const groupKeys = Object.keys(groups);
-            
-            if (groupKeys.length !== 2) return placedPallets;
-            
-            // 2つのグループのパレットサイズを取得
-            const group1 = groups[groupKeys[0]];
-            const group2 = groups[groupKeys[1]];
-            
-            console.log(`エリア分割配置: ${groupKeys[0]} (${group1.length}個) と ${groupKeys[1]} (${group2.length}個)`);
-            
-            // 各グループの最適な配置幅を計算
-            const result1 = calculateOptimalGroupWidth(group1[0], container, clearance);
-            const result2 = calculateOptimalGroupWidth(group2[0], container, clearance);
-            
-            // コンテナを左右に分割する最適な位置を探索
-            let bestDivision = null;
-            let maxPallets = 0;
-            
-            // 100x125と110x110の特殊ケース
-            if ((group1[0].length === 100 && group1[0].width === 125 && group2[0].length === 110) ||
-                (group2[0].length === 100 && group2[0].width === 125 && group1[0].length === 110)) {
-                
-                // 100x125を左、110x110を右に配置
-                const divX = 500; // 100x125用に約500cm確保
-                const leftArea = { x: 0, y: 0, width: divX, height: container.width };
-                const rightArea = { x: divX, y: 0, width: container.length - divX, height: container.width };
-                
-                let leftPlaced, rightPlaced;
-                if (group1[0].length === 100 && group1[0].width === 125) {
-                    leftPlaced = placeGroupInArea(group1, leftArea, clearance, true);
-                    rightPlaced = placeGroupInArea(group2, rightArea, clearance, false);
-                } else {
-                    leftPlaced = placeGroupInArea(group2, leftArea, clearance, true);
-                    rightPlaced = placeGroupInArea(group1, rightArea, clearance, false);
-                }
-                
-                bestDivision = { divX, leftPlaced, rightPlaced };
-                maxPallets = leftPlaced.length + rightPlaced.length;
-                
-            } else {
-                // 一般的なケースの分割位置探索
-                const testDivisions = [];
-                
-                // 各グループの必要幅に基づいて候補を生成
-                for (let i = 1; i <= 5; i++) {
-                    testDivisions.push(result1.minWidth * i);
-                    testDivisions.push(container.length - result2.minWidth * i);
-                }
-                
-                // 重複を除去してソート
-                const uniqueDivisions = [...new Set(testDivisions)]
-                    .filter(d => d >= result1.minWidth && d <= container.length - result2.minWidth)
-                    .sort((a, b) => a - b);
-                
-                // 各分割位置を試行
-                uniqueDivisions.forEach(divX => {
-                    const leftArea = { x: 0, y: 0, width: divX, height: container.width };
-                    const rightArea = { x: divX, y: 0, width: container.length - divX, height: container.width };
-                    
-                    // 左側エリアにgroup1を配置
-                    const leftPlaced = placeGroupInArea(group1, leftArea, clearance, true);
-                    // 右側エリアにgroup2を配置
-                    const rightPlaced = placeGroupInArea(group2, rightArea, clearance, false);
-                    
-                    const totalPlaced = leftPlaced.length + rightPlaced.length;
-                    if (totalPlaced > maxPallets) {
-                        maxPallets = totalPlaced;
-                        bestDivision = { divX, leftPlaced, rightPlaced };
-                    }
-                });
-                
-                // 左右を入れ替えた配置も試行
-                uniqueDivisions.forEach(divX => {
-                    const leftArea = { x: 0, y: 0, width: divX, height: container.width };
-                    const rightArea = { x: divX, y: 0, width: container.length - divX, height: container.width };
-                    
-                    // 左側エリアにgroup2を配置
-                    const leftPlaced = placeGroupInArea(group2, leftArea, clearance, true);
-                    // 右側エリアにgroup1を配置
-                    const rightPlaced = placeGroupInArea(group1, rightArea, clearance, false);
-                    
-                    const totalPlaced = leftPlaced.length + rightPlaced.length;
-                    if (totalPlaced > maxPallets) {
-                        maxPallets = totalPlaced;
-                        bestDivision = { divX, leftPlaced, rightPlaced };
-                    }
-                });
-            }
-            
-            // 最適な分割で配置
-            if (bestDivision) {
-                console.log(`最適分割位置: ${bestDivision.divX}cm, 配置数: ${maxPallets}個`);
-                placedPallets.push(...bestDivision.leftPlaced);
-                placedPallets.push(...bestDivision.rightPlaced);
-            }
-            
-            return placedPallets;
-        }
-        
-        // グループの最適配置幅を計算
-        function calculateOptimalGroupWidth(samplePallet, container, clearance) {
-            const orientations = samplePallet.length !== samplePallet.width ?
-                [[samplePallet.length, samplePallet.width], [samplePallet.width, samplePallet.length]] :
-                [[samplePallet.length, samplePallet.width]];
-            
-            let minWidth = Infinity;
-            let maxCols = 0;
-            
-            orientations.forEach(([length, width]) => {
-                const cols = Math.floor(container.length / (length + clearance));
-                if (cols > 0) {
-                    const requiredWidth = cols * (length + clearance) - clearance;
-                    minWidth = Math.min(minWidth, length + clearance);
-                    maxCols = Math.max(maxCols, cols);
-                }
-            });
-            
-            return { minWidth, maxCols };
-        }
-        
-        // エリア内にグループを配置
-        function placeGroupInArea(group, area, clearance, allowMixedOrientation) {
-            const placed = [];
-            const areaPlaced = [];
-            
-            // エリア内での最適な配置を計算
-            const samplePallet = group[0];
-            const orientations = samplePallet.length !== samplePallet.width ?
-                [[samplePallet.length, samplePallet.width, false], [samplePallet.width, samplePallet.length, true]] :
-                [[samplePallet.length, samplePallet.width, false]];
-            
-            let palletIndex = 0;
-            
-            // 混合配置を許可する場合（左側エリア）
-            if (allowMixedOrientation && orientations.length > 1) {
-                // 100×125パレットの特殊配置パターン
-                if (samplePallet.length === 100 && samplePallet.width === 125) {
-                    // 上部に横向き（125×100）を2列
-                    let currentY = area.y;
-                    
-                    // 1列目：横向き2個
-                    for (let i = 0; i < 2 && palletIndex < group.length; i++) {
-                        const x = area.x + i * 125;
-                        if (x + 125 <= area.x + area.width) {
-                            const pallet = group[palletIndex++];
-                            placed.push({
-                                ...pallet,
-                                x: x,
-                                y: currentY,
-                                finalLength: 125,
-                                finalWidth: 100,
-                                rotated: true,
-                                placed: true
-                            });
-                            areaPlaced.push({ x, y: currentY, length: 125, width: 100 });
-                        }
-                    }
-                    
-                    currentY += 100 + clearance;
-                    
-                    // 2列目：縦向き（100×125）を2個
-                    for (let i = 0; i < 2 && palletIndex < group.length; i++) {
-                        const x = area.x + i * 100;
-                        if (x + 100 <= area.x + area.width) {
-                            const pallet = group[palletIndex++];
-                            placed.push({
-                                ...pallet,
-                                x: x,
-                                y: currentY,
-                                finalLength: 100,
-                                finalWidth: 125,
-                                rotated: false,
-                                placed: true
-                            });
-                            areaPlaced.push({ x, y: currentY, length: 100, width: 125 });
-                        }
-                    }
-                    
-                    // 3列目：下部に横向き2個 + 縦向き1個
-                    if (palletIndex < group.length) {
-                        currentY = area.y;
-                        const x3Start = area.x + 250 + clearance;
-                        
-                        // 横向き2個（上下に配置）
-                        for (let i = 0; i < 2 && palletIndex < group.length; i++) {
-                            const y = currentY + i * 100;
-                            if (x3Start + 125 <= area.x + area.width && y + 100 <= area.y + area.height) {
-                                const pallet = group[palletIndex++];
-                                placed.push({
-                                    ...pallet,
-                                    x: x3Start,
-                                    y: y,
-                                    finalLength: 125,
-                                    finalWidth: 100,
-                                    rotated: true,
-                                    placed: true
-                                });
-                                areaPlaced.push({ x: x3Start, y, length: 125, width: 100 });
-                            }
-                        }
-                        
-                    // 残りのパレットを配置（4列目）
-                    if (palletIndex < group.length && area.width >= 500) {
-                        const x4Start = 500;
-                        
-                        // 縦向き1個（右下）
-                        if (palletIndex < group.length) {
-                            const pallet = group[palletIndex++];
-                            placed.push({
-                                ...pallet,
-                                x: x4Start,
-                                y: area.y,
-                                finalLength: 100,
-                                finalWidth: 125,
-                                rotated: false,
-                                placed: true
-                            });
-                            areaPlaced.push({ x: x4Start, y: area.y, length: 100, width: 125 });
-                        }
-                    }
-                    }
-                } else {
-                    // その他のパレットの混合配置
-                    let currentY = area.y;
-                    
-                    while (currentY < area.y + area.height && palletIndex < group.length) {
-                        const useRotated = Math.floor((currentY - area.y) / 150) % 2 === 1;
-                        const [length, width, rotated] = useRotated && orientations.length > 1 ? 
-                            orientations[1] : orientations[0];
-                        
-                        let currentX = area.x;
-                        let rowHeight = 0;
-                        
-                        while (currentX + length <= area.x + area.width && palletIndex < group.length) {
-                            const pallet = group[palletIndex];
-                            
-                            if (canPlace2D(currentX, currentY, length, width, areaPlaced, clearance)) {
-                                placed.push({
-                                    ...pallet,
-                                    x: currentX,
-                                    y: currentY,
-                                    finalLength: length,
-                                    finalWidth: width,
-                                    rotated: rotated,
-                                    placed: true
-                                });
-                                
-                                areaPlaced.push({
-                                    x: currentX,
-                                    y: currentY,
-                                    length: length,
-                                    width: width
-                                });
-                                
-                                palletIndex++;
-                                currentX += length + clearance;
-                                rowHeight = Math.max(rowHeight, width);
-                            } else {
-                                break;
-                            }
-                        }
-                        
-                        currentY += rowHeight + clearance;
-                    }
-                }
-            } else {
-                // 単一向き配置（右側エリア用、110×110の整然配置）
-                const [length, width, rotated] = orientations[0];
-                const cols = Math.floor(area.width / (length + clearance));
-                const rows = Math.floor(area.height / (width + clearance));
-                
-                let placedInArea = 0;
-                for (let row = 0; row < rows && palletIndex < group.length; row++) {
-                    for (let col = 0; col < cols && palletIndex < group.length; col++) {
-                        const x = area.x + col * (length + clearance);
-                        const y = area.y + row * (width + clearance);
-                        const pallet = group[palletIndex];
-                        
-                        if (canPlace2D(x, y, length, width, areaPlaced, clearance)) {
-                            placed.push({
-                                ...pallet,
-                                x: x,
-                                y: y,
-                                finalLength: length,
-                                finalWidth: width,
-                                rotated: rotated,
-                                placed: true
-                            });
-                            
-                            areaPlaced.push({
-                                x: x,
-                                y: y,
-                                length: length,
-                                width: width
-                            });
-                            
-                            palletIndex++;
-                            placedInArea++;
-                        }
-                    }
-                }
-                
-                console.log(`${length}×${width}パレット: ${cols}列×${rows}行で${placedInArea}個配置`);
-            }
-            
-            return placed;
-        }
 
-        // レンダリング関数
+        // レンダリング関数（高さ調整対応）
         function renderAllPallets(container) {
             const containerFloor = elements.containerFloor;
             const workArea = containerFloor.parentElement;
@@ -1486,14 +790,12 @@
             const actualDisplayWidth = container.length * renderConfig.scale;
             const actualDisplayHeight = container.width * renderConfig.scale;
             
-            // コンテナの表示設定
             containerFloor.style.width = `${actualDisplayWidth}px`;
             containerFloor.style.height = `${actualDisplayHeight}px`;
             containerFloor.style.position = 'absolute';
             containerFloor.style.left = `${CONSTANTS.CONTAINER_OFFSET_X}px`;
             containerFloor.style.top = `${CONSTANTS.CONTAINER_OFFSET_Y}px`;
             
-            // 作業エリアのサイズ計算
             const unplacedPallets = allPalletsGenerated.filter(p => !p.deleted && !p.placed);
             let maxBottomY = actualDisplayHeight + CONSTANTS.CONTAINER_OFFSET_Y;
             
@@ -1508,10 +810,9 @@
             workArea.style.height = `${Math.max(maxBottomY, 400 + CONSTANTS.CONTAINER_OFFSET_Y)}px`;
             workArea.style.position = 'relative';
             
-            // 既存のパレットを削除
             workArea.querySelectorAll('.pallet-2d').forEach(el => el.remove());
             
-            // パレットを描画
+            // パレットを描画（高さ調整表示対応）
             allPalletsGenerated.forEach(pallet => {
                 if (pallet.deleted) return;
                 
@@ -1541,6 +842,7 @@
                 // 状態に応じたクラス付与
                 const isOutside = isOutsideContainer(pallet, container);
                 const isBottomPlaced = pallet.y > container.width;
+                const hasHeightAdjustment = pallet.individualHeightAdjustment > 0;
                 
                 if (isBottomPlaced) {
                     el.classList.add('bottom-placed');
@@ -1548,10 +850,18 @@
                     el.classList.add('outside-container');
                 }
                 
+                if (hasHeightAdjustment) {
+                    el.classList.add('height-adjusted');
+                }
+                
+                const heightInfo = hasHeightAdjustment ? ` +${pallet.individualHeightAdjustment}cm` : '';
+                const rotationInfo = pallet.rotated ? ' ↻' : '';
+                
                 el.innerHTML = `
-                    <div class="pallet-label">${pallet.finalLength}×${pallet.finalWidth}${pallet.rotated ? ' ↻' : ''}</div>
+                    <div class="pallet-label">${pallet.finalLength}×${pallet.finalWidth}${rotationInfo}${heightInfo}</div>
                     <div class="pallet-controls">
                         <button class="rotate-btn" title="回転">↻</button>
+                        <button class="height-btn" title="高さ調整">📏</button>
                         <button class="delete-btn" title="削除">✕</button>
                     </div>
                 `;
@@ -1559,7 +869,6 @@
                 workArea.appendChild(el);
             });
             
-            // レンダリング設定を保存
             renderConfig.containerBounds = {
                 left: CONSTANTS.CONTAINER_OFFSET_X,
                 top: CONSTANTS.CONTAINER_OFFSET_Y,
@@ -1576,7 +885,7 @@
                    pallet.y + pallet.finalWidth > container.width;
         }
 
-        // ドラッグ＆ドロップ機能
+        // ドラッグ＆ドロップ機能（高さ調整対応）
         let isDDListenerAttached = false;
         function enableDragAndDropAndActions() {
             const workArea = elements.containerFloor.parentElement;
@@ -1593,6 +902,9 @@
                 if (target.classList.contains('rotate-btn')) {
                     e.stopPropagation();
                     rotatePallet(target.closest('.pallet-2d'));
+                } else if (target.classList.contains('height-btn')) {
+                    e.stopPropagation();
+                    adjustPalletHeight(target.closest('.pallet-2d'));
                 } else if (target.classList.contains('delete-btn')) {
                     e.stopPropagation();
                     deletePallet(target.closest('.pallet-2d'));
@@ -1627,7 +939,6 @@
                 let newLeft = e.clientX - workAreaRect.left - initialMouseX;
                 let newTop = e.clientY - workAreaRect.top - initialMouseY;
                 
-                // 作業エリア内に制限
                 newLeft = Math.max(CONSTANTS.MIN_DRAG_MARGIN, 
                           Math.min(newLeft, workArea.clientWidth - activePalletEl.clientWidth - CONSTANTS.MIN_DRAG_MARGIN));
                 newTop = Math.max(CONSTANTS.MIN_DRAG_MARGIN, 
@@ -1657,24 +968,24 @@
                 );
                 if (!palletData) return;
 
-                // 寸法を入れ替え
                 [palletData.finalLength, palletData.finalWidth] = [palletData.finalWidth, palletData.finalLength];
                 palletData.rotated = !palletData.rotated;
 
                 const container = containers[elements.containerType.value];
                 palletEl.style.width = `${palletData.finalLength * renderConfig.scale}px`;
                 palletEl.style.height = `${palletData.finalWidth * renderConfig.scale}px`;
-                palletEl.querySelector('.pallet-label').textContent = 
-                    `${palletData.finalLength}×${palletData.finalWidth}${palletData.rotated ? ' ↻' : ''}`;
                 
-                // 背景更新
+                const heightInfo = palletData.individualHeightAdjustment > 0 ? ` +${palletData.individualHeightAdjustment}cm` : '';
+                const rotationInfo = palletData.rotated ? ' ↻' : '';
+                palletEl.querySelector('.pallet-label').textContent = 
+                    `${palletData.finalLength}×${palletData.finalWidth}${rotationInfo}${heightInfo}`;
+                
                 if (palletData.rotated) {
                     palletEl.style.background = `repeating-linear-gradient(45deg, ${palletData.color}, ${palletData.color} 10px, ${utils.adjustColor(palletData.color, -20)} 10px, ${utils.adjustColor(palletData.color, -20)} 20px)`;
                 } else {
                     palletEl.style.background = palletData.color;
                 }
 
-                // 位置調整
                 if (palletEl.offsetLeft + palletEl.offsetWidth > workArea.clientWidth) {
                     palletEl.style.left = `${Math.max(0, workArea.clientWidth - palletEl.offsetWidth)}px`;
                 }
@@ -1685,6 +996,42 @@
                 updatePalletModel(palletEl);
                 updatePalletStatus(palletEl);
                 updateStats(container);
+            }
+
+            function adjustPalletHeight(palletEl) {
+                if (!palletEl) return;
+                
+                const palletData = allPalletsGenerated.find(p =>
+                    p.id == palletEl.dataset.palletId && p.instance == palletEl.dataset.instance
+                );
+                if (!palletData) return;
+
+                const currentHeight = palletData.individualHeightAdjustment || 0;
+                const newHeight = prompt(
+                    `パレットの高さ調整値を入力してください (現在: ${currentHeight}cm)`, 
+                    currentHeight
+                );
+                
+                if (newHeight !== null && !isNaN(parseFloat(newHeight))) {
+                    const heightValue = Math.max(0, Math.min(50, parseFloat(newHeight)));
+                    palletData.individualHeightAdjustment = heightValue;
+                    
+                    // 表示更新
+                    const heightInfo = heightValue > 0 ? ` +${heightValue}cm` : '';
+                    const rotationInfo = palletData.rotated ? ' ↻' : '';
+                    palletEl.querySelector('.pallet-label').textContent = 
+                        `${palletData.finalLength}×${palletData.finalWidth}${rotationInfo}${heightInfo}`;
+                    
+                    // スタイル更新
+                    if (heightValue > 0) {
+                        palletEl.classList.add('height-adjusted');
+                    } else {
+                        palletEl.classList.remove('height-adjusted');
+                    }
+                    
+                    updateStats(containers[elements.containerType.value]);
+                    utils.showSuccess(`パレットの高さ調整を${heightValue}cmに設定しました`);
+                }
             }
 
             function deletePallet(palletEl) {
@@ -1752,17 +1099,20 @@
             }
         }
 
-        // 統計更新
+        // 統計更新（高さ調整対応）
         function updateStats(container) {
             const visiblePallets = allPalletsGenerated.filter(p => !p.deleted);
             const insidePallets = visiblePallets.filter(p => !isOutsideContainer(p, container));
             
-            const containerArea = (container.length * container.width) / 10000; // m²
+            const containerArea = (container.length * container.width) / 10000;
             const usedArea = insidePallets.reduce((sum, p) => 
                 sum + (p.finalLength * p.finalWidth) / 10000, 0
             );
             
             const totalInputPallets = pallets.reduce((sum, p) => sum + p.qty, 0);
+            const totalHeightAdjustment = allPalletsGenerated.reduce((sum, p) => 
+                sum + (p.individualHeightAdjustment || 0), 0
+            );
             
             document.getElementById('inputPallets').textContent = totalInputPallets;
             document.getElementById('visiblePallets').textContent = visiblePallets.length;
@@ -1772,6 +1122,7 @@
             document.getElementById('efficiency').textContent = 
                 `${containerArea > 0 ? Math.round((usedArea / containerArea) * 100) : 0}%`;
             document.getElementById('remainingArea').textContent = `${(containerArea - usedArea).toFixed(2)}m²`;
+            document.getElementById('totalHeightAdjustment').textContent = `${totalHeightAdjustment.toFixed(1)}cm`;
             
             elements.stats.style.display = 'grid';
         }
@@ -1784,10 +1135,11 @@
             }
             
             pallets.forEach(p => {
+                const heightInfo = p.heightAdjustment > 0 ? ` (+${p.heightAdjustment}cm)` : '';
                 elements.legend.innerHTML += `
                     <div class="legend-item">
                         <div class="legend-color" style="background:${p.color};"></div>
-                        <span>${p.length}×${p.width}cm (${p.qty}個)</span>
+                        <span>${p.length}×${p.width}cm (${p.qty}個)${heightInfo}</span>
                     </div>
                 `;
             });
@@ -1831,8 +1183,10 @@
                 updateContainerInfo();
                 clearResults();
             });
+            elements.heightAdjustment.addEventListener('input', () => {
+                updateContainerInfo();
+            });
             
-            // Enterキーでの追加
             [elements.palletLength, elements.palletWidth, elements.palletQty].forEach(input => {
                 input.addEventListener('keypress', e => {
                     if (e.key === 'Enter') palletManager.add();
@@ -1852,6 +1206,7 @@
 
         // 初期化
         function init() {
+            initializeDarkMode();
             setupPresetButtons();
             setupEventListeners();
             updateContainerInfo();

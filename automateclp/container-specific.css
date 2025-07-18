@@ -1,0 +1,566 @@
+/* container-specific.css - コンテナローダープランナー専用スタイル */
+
+/* === アプリケーション固有の設定 === */
+body {
+    font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: var(--space-5);
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+}
+
+/* === ヘッダーエリア === */
+.header {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: white;
+    padding: var(--space-8);
+    text-align: center;
+}
+
+.header h1 {
+    font-size: 2.5rem;
+    margin-bottom: var(--space-2);
+}
+
+.header p {
+    opacity: 0.9;
+    font-size: 1.1rem;
+}
+
+/* === メインコンテンツ === */
+.main-content {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 0;
+    min-height: 700px;
+}
+
+/* === サイドバー === */
+.sidebar {
+    background: var(--bg-tertiary);
+    padding: var(--space-8);
+    border-right: 1px solid var(--border-color);
+}
+
+.dimensions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+}
+
+.preset-pallets {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+}
+
+.preset-btn {
+    padding: var(--space-2) var(--space-1);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-base);
+    cursor: pointer;
+    font-size: 11px;
+    transition: all var(--transition-base);
+    font-family: inherit;
+    text-align: center;
+    line-height: 1.2;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+}
+
+.preset-btn:nth-child(5) {
+    grid-column: 1 / -1;
+    max-width: 50%;
+    margin: 0 auto;
+}
+
+.preset-btn:hover {
+    background: var(--primary-500);
+    color: white;
+    border-color: var(--primary-500);
+}
+
+/* === 特殊ボタン === */
+.add-pallet-btn, .calculate-btn, .test-btn, .export-btn {
+    width: 100%;
+    padding: var(--space-4);
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: white;
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    margin-bottom: var(--space-4);
+    font-family: inherit;
+}
+
+.test-btn {
+    background: linear-gradient(135deg, var(--success-500), var(--success-600));
+}
+
+.export-btn {
+    background: linear-gradient(135deg, #5bc0de, #337ab7);
+}
+
+.add-pallet-btn:hover, .calculate-btn:hover, .test-btn:hover, .export-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* === パレットリスト === */
+.pallet-list {
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-base);
+    padding: var(--space-4);
+    border: 1px solid var(--border-color);
+}
+
+.pallet-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3);
+    margin-bottom: var(--space-2);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-base);
+    font-size: var(--font-size-sm);
+}
+
+.pallet-item .remove-btn {
+    background: var(--error-500);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: var(--space-1) var(--space-2);
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    transition: all var(--transition-fast);
+}
+
+.pallet-item .remove-btn:hover {
+    background: var(--error-600);
+}
+
+/* === 高さ調整設定 === */
+.height-adjustment-setting {
+    background: #e0f2fe;
+    border: 1px solid #0288d1;
+    border-radius: var(--radius-base);
+    padding: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.height-adjustment-setting h4 {
+    color: #0277bd;
+    margin-bottom: var(--space-3);
+    font-size: var(--font-size-base);
+}
+
+.height-adjustment-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.height-adjustment-input {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.height-adjustment-input input {
+    width: 80px;
+    padding: var(--space-2);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-base);
+    text-align: center;
+    font-size: var(--font-size-sm);
+}
+
+.height-adjustment-unit {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.height-adjustment-info {
+    font-size: var(--font-size-xs);
+    color: #0277bd;
+    line-height: 1.4;
+    margin-top: var(--space-2);
+}
+
+/* === ビジュアライゼーション === */
+.visualization {
+    padding: var(--space-8);
+    background: var(--bg-secondary);
+}
+
+.container-view {
+    background: #2c3e50;
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-bottom: var(--space-8);
+    position: relative;
+    overflow: visible;
+    min-height: 400px;
+}
+
+.work-area {
+    position: relative;
+    width: 100%;
+    min-height: 400px;
+    overflow: visible;
+}
+
+.container-floor {
+    background: #34495e;
+    border: 3px solid #e74c3c;
+    border-radius: var(--radius-base);
+    position: absolute;
+    left: 0;
+    top: 0;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+    width: 600px;
+    height: 300px;
+}
+
+.container-floor::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    border: 1px solid rgba(231, 76, 60, 0.5);
+    pointer-events: none;
+}
+
+/* === パレット2D表示 === */
+.pallet-2d {
+    position: absolute;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: var(--radius-sm);
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 0 0 5px rgba(255,255,255,0.1);
+    touch-action: none;
+    transition: box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.pallet-2d:hover {
+    filter: brightness(1.2);
+    z-index: 10;
+}
+
+.pallet-2d.dragging {
+    cursor: grabbing;
+    z-index: 1000;
+    opacity: 0.8;
+    box-shadow: 0 0 15px rgba(255,255,255,0.7);
+}
+
+.pallet-2d.colliding {
+    box-shadow: 0 0 0 4px rgba(255, 20, 20, 0.8) !important;
+}
+
+.pallet-2d.outside-container {
+    border-color: rgba(231, 76, 60, 0.9) !important;
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.6) !important;
+    opacity: 0.9;
+}
+
+.pallet-2d.bottom-placed {
+    opacity: 0.9;
+    border-color: rgba(108, 117, 125, 0.8);
+    box-shadow: 0 0 0 2px rgba(108, 117, 125, 0.4);
+}
+
+.pallet-2d.height-adjusted {
+    border-color: rgba(33, 150, 243, 0.8) !important;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.4) !important;
+}
+
+.pallet-2d.deleted {
+    opacity: 0.3;
+    filter: grayscale(100%);
+    pointer-events: none;
+}
+
+.pallet-label {
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+    pointer-events: none;
+    text-align: center;
+    line-height: 1.2;
+    padding: 0 var(--space-1);
+    box-sizing: border-box;
+}
+
+.pallet-controls {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    display: flex;
+    gap: 2px;
+    z-index: 100;
+}
+
+.rotate-btn, .delete-btn, .height-btn {
+    width: 20px;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: white;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    pointer-events: auto;
+    border: none;
+}
+
+.rotate-btn:hover {
+    background: rgba(0, 100, 200, 0.8);
+}
+
+.delete-btn:hover {
+    background: var(--error-500);
+}
+
+.height-btn:hover {
+    background: rgba(33, 150, 243, 0.8);
+}
+
+/* === 統計表示 === */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--space-4);
+    margin-top: var(--space-8);
+}
+
+.stat-card {
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: white;
+    padding: var(--space-5);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: var(--space-1);
+}
+
+.stat-label {
+    opacity: 0.9;
+    font-size: var(--font-size-sm);
+}
+
+/* === アニメーション === */
+.loading-animation {
+    display: none;
+    text-align: center;
+    padding: var(--space-10);
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--gray-200);
+    border-top: 4px solid var(--primary-500);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto var(--space-5);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* === メッセージ === */
+.error-message {
+    background: #f8d7da;
+    color: #721c24;
+    padding: var(--space-4);
+    border-radius: var(--radius-base);
+    margin-bottom: var(--space-5);
+    display: none;
+}
+
+.success-message {
+    background: #d1edff;
+    color: #0c5460;
+    padding: var(--space-4);
+    border-radius: var(--radius-base);
+    margin-bottom: var(--space-5);
+    display: none;
+}
+
+.container-info {
+    background: var(--bg-tertiary);
+    padding: var(--space-4);
+    border-radius: var(--radius-base);
+    margin-bottom: var(--space-5);
+    text-align: center;
+    font-weight: 500;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+/* === 凡例とガイド === */
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+    padding: var(--space-4);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-base);
+    border: 1px solid var(--border-color);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-sm);
+    border: 2px solid rgba(255,255,255,0.3);
+}
+
+.manual-instructions {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: var(--radius-base);
+    padding: var(--space-4);
+    margin-bottom: var(--space-5);
+    font-size: var(--font-size-sm);
+    color: #856404;
+}
+
+.manual-instructions h4 {
+    margin-bottom: var(--space-2);
+    color: #856404;
+}
+
+.manual-instructions ul {
+    margin-left: var(--space-5);
+}
+
+.unloaded-summary {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: var(--radius-base);
+    padding: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.unloaded-summary h4 {
+    color: #856404;
+    margin-bottom: var(--space-3);
+    font-size: var(--font-size-sm);
+}
+
+.unloaded-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-2) var(--space-3);
+    margin-bottom: var(--space-1);
+    background: rgba(255, 193, 7, 0.1);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    color: #856404;
+}
+
+/* === ダークモード対応 === */
+body.dark-mode .height-adjustment-setting {
+    background: rgba(33, 150, 243, 0.1);
+    border-color: var(--primary-400);
+}
+
+body.dark-mode .height-adjustment-setting h4 {
+    color: var(--primary-400);
+}
+
+body.dark-mode .height-adjustment-info {
+    color: var(--primary-400);
+}
+
+body.dark-mode .pallet-2d.height-adjusted {
+    border-color: var(--primary-400) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4) !important;
+}
+
+/* === レスポンシブ対応 === */
+@media (max-width: 768px) {
+    body {
+        padding: var(--space-3);
+    }
+    
+    .container {
+        border-radius: var(--radius-base);
+    }
+    
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+        padding: var(--space-5);
+    }
+    
+    .visualization {
+        padding: var(--space-5);
+    }
+    
+    .dimensions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .height-adjustment-controls {
+        align-items: stretch;
+    }
+    
+    .height-adjustment-input {
+        justify-content: space-between;
+    }
+}
