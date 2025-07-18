@@ -28,6 +28,44 @@
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-lg);
             padding: var(--space-8);
+            position: relative;
+        }
+
+        /* ヘッダーコントロール */
+        .header-controls {
+            position: absolute;
+            top: var(--space-6);
+            right: var(--space-6);
+            display: flex;
+            gap: var(--space-3);
+            align-items: center;
+        }
+
+        .dark-mode-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-base);
+            padding: var(--space-2);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-size: var(--font-size-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+
+        .dark-mode-toggle:hover {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-color: var(--primary-500);
+        }
+
+        /* ダークモード時のアイコン変更 */
+        body.dark-mode .dark-mode-icon::before {
+            content: '☀️';
         }
 
         h1 {
@@ -298,6 +336,12 @@
                 padding: var(--space-4);
             }
 
+            .header-controls {
+                position: static;
+                margin-bottom: var(--space-4);
+                justify-content: flex-end;
+            }
+
             .control-panel {
                 grid-template-columns: 1fr;
                 gap: var(--space-4);
@@ -347,6 +391,11 @@
 </head>
 <body>
     <div class="container">
+        <div class="header-controls">
+            <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="ダークモード切り替え">
+                <span class="dark-mode-icon">🌙</span>
+            </button>
+        </div>
         <h1>作業効率管理ボード</h1>
 
         <div class="improvement-note">
@@ -431,6 +480,30 @@
     </div>
 
     <script>
+        // ダークモード管理
+        let isDarkMode = false;
+
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            updateDarkModeIcon();
+        }
+
+        function updateDarkModeIcon() {
+            const icon = document.querySelector('.dark-mode-icon');
+            if (icon) {
+                icon.textContent = isDarkMode ? '☀️' : '🌙';
+            }
+        }
+
+        // 初期化時にダークモードを無効化（ライトモードをデフォルトに）
+        function initializeDarkMode() {
+            // システムのダークモード設定を無視してライトモードから開始
+            document.body.classList.remove('dark-mode');
+            isDarkMode = false;
+            updateDarkModeIcon();
+        }
+
         // 既存のJavaScriptをそのまま使用（元のコードをここにコピー）
         let workers = [
             { id: 1, name: '田中太郎' },
@@ -871,6 +944,9 @@
 
         // Enterキーで追加
         document.addEventListener('DOMContentLoaded', () => {
+            // ダークモード初期化（ライトモードから開始）
+            initializeDarkMode();
+            
             document.getElementById('workerNameInput').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') addWorker();
             });

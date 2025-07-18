@@ -1,312 +1,109 @@
-/* whiteboard-specific.css - 作業員管理ホワイトボード専用スタイル */
+/* variables.css - 色、サイズ、フォントの統一設定 */
 
-/* === タッチ操作設定 === */
-body {
-    touch-action: pan-y;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
+:root {
+  /* === カラーパレット === */
+  /* プライマリーカラー */
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;  /* メインブルー */
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+
+  /* グレースケール */
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+
+  /* セマンティックカラー */
+  --success-500: #10b981;
+  --success-600: #059669;
+  --warning-500: #f59e0b;
+  --warning-600: #d97706;
+  --error-500: #ef4444;
+  --error-600: #dc2626;
+
+  /* === ダークモード対応 === */
+  --bg-primary: var(--gray-50);
+  --bg-secondary: #ffffff;
+  --bg-tertiary: var(--gray-100);
+  --text-primary: var(--gray-900);
+  --text-secondary: var(--gray-600);
+  --text-tertiary: var(--gray-500);
+  --border-color: var(--gray-200);
+  --shadow-color: rgba(0, 0, 0, 0.1);
+
+  /* === スペーシング === */
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+
+  /* === フォント === */
+  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+  --font-family-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  
+  --font-size-xs: 0.75rem;   /* 12px */
+  --font-size-sm: 0.875rem;  /* 14px */
+  --font-size-base: 1rem;    /* 16px */
+  --font-size-lg: 1.125rem;  /* 18px */
+  --font-size-xl: 1.25rem;   /* 20px */
+  --font-size-2xl: 1.5rem;   /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+
+  /* === ボーダー半径 === */
+  --radius-sm: 0.25rem;   /* 4px */
+  --radius-base: 0.375rem; /* 6px */
+  --radius-md: 0.5rem;    /* 8px */
+  --radius-lg: 0.75rem;   /* 12px */
+  --radius-xl: 1rem;      /* 16px */
+
+  /* === シャドウ === */
+  --shadow-sm: 0 1px 2px 0 var(--shadow-color);
+  --shadow-base: 0 1px 3px 0 var(--shadow-color), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px var(--shadow-color), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px var(--shadow-color), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* === アニメーション === */
+  --transition-fast: 0.15s ease-in-out;
+  --transition-base: 0.3s ease-in-out;
+  --transition-slow: 0.5s ease-in-out;
+
+  /* === Z-index === */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
 }
 
-/* === 使用方法ノート === */
-.improvement-note {
-    background-color: rgba(59, 130, 246, 0.05);
-    border: 1px solid var(--primary-200);
-    border-left: 4px solid var(--primary-500);
-    border-radius: var(--radius-base);
-    padding: var(--space-6);
-    margin-bottom: var(--space-8);
-}
-
-.improvement-note h3 {
-    color: var(--primary-600);
-    margin-bottom: var(--space-3);
-}
-
-.improvement-note ul {
-    margin-left: var(--space-5);
-}
-
-.improvement-note li {
-    margin-bottom: var(--space-1);
-}
-
-/* === コントロールパネル === */
-.control-panel {
-    display: grid;
-    grid-template-columns: 1fr 1fr auto;
-    gap: var(--space-5);
-    margin-bottom: var(--space-8);
-}
-
-.control-section h3 {
-    margin-bottom: var(--space-3);
-    color: var(--text-secondary);
-}
-
-.input-group {
-    display: flex;
-    gap: var(--space-3);
-}
-
-/* === 特殊ボタンスタイル === */
-.btn-purple {
-    background-color: #8b5cf6;
-    color: white;
-}
-
-.btn-purple:hover {
-    background-color: #7c3aed;
-}
-
-.btn-import {
-    background-color: var(--warning-500);
-    color: white;
-    cursor: pointer;
-    padding: var(--space-2) var(--space-4);
-    border: none;
-    border-radius: var(--radius-base);
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    transition: all var(--transition-fast);
-}
-
-.btn-import:hover {
-    background-color: var(--warning-600);
-}
-
-/* === インポートセクション === */
-.import-section {
-    margin-top: var(--space-5);
-    grid-column: 1 / -1;
-    background-color: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: var(--space-5);
-}
-
-.import-section h3 {
-    margin-bottom: var(--space-3);
-    color: var(--text-secondary);
-}
-
-.import-buttons {
-    display: flex;
-    gap: var(--space-3);
-    flex-wrap: wrap;
-}
-
-/* === ホワイトボード === */
-.whiteboard {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: var(--space-5);
-    margin-bottom: var(--space-8);
-}
-
-/* === 作業エリア === */
-.work-area {
-    min-height: 200px;
-    padding: var(--space-5);
-    border-radius: var(--radius-lg);
-    position: relative;
-    border: 1px solid var(--border-color);
-}
-
-.work-area.waiting {
-    background-color: var(--gray-100);
-}
-
-.work-area.blue {
-    background-color: #dbeafe;
-}
-
-.work-area.green {
-    background-color: #d1fae5;
-}
-
-.work-area.yellow {
-    background-color: #fef3c7;
-}
-
-.work-area.purple {
-    background-color: #e9d5ff;
-}
-
-.work-area.pink {
-    background-color: #fce7f3;
-}
-
-/* === エリアヘッダー === */
-.area-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--space-4);
-}
-
-.area-title {
-    font-size: var(--font-size-lg);
-    font-weight: bold;
-    color: var(--text-primary);
-}
-
-.area-controls {
-    display: flex;
-    gap: var(--space-2);
-}
-
-.icon-btn {
-    padding: var(--space-1) var(--space-2);
-    background: transparent;
-    color: var(--text-tertiary);
-    cursor: pointer;
-    border: none;
-    border-radius: var(--radius-base);
-    transition: color var(--transition-fast);
-}
-
-.icon-btn:hover {
-    color: var(--text-primary);
-}
-
-.icon-btn.delete:hover {
-    color: var(--error-500);
-}
-
-/* === 作業員カード === */
-.worker-card {
-    background-color: var(--bg-secondary);
-    padding: var(--space-3) var(--space-4);
-    border-radius: var(--radius-base);
-    box-shadow: var(--shadow-sm);
-    cursor: move;
-    margin-bottom: var(--space-3);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: all var(--transition-base);
-    border: 1px solid var(--border-color);
-}
-
-.worker-card:hover {
-    box-shadow: var(--shadow-md);
-}
-
-.worker-card.dragging {
-    opacity: 0.5;
-    transform: rotate(2deg);
-    box-shadow: var(--shadow-lg);
-}
-
-.worker-name {
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.timer {
-    display: flex;
-    align-items: center;
-    gap: var(--space-1);
-    color: var(--text-secondary);
-    font-size: var(--font-size-sm);
-    font-family: var(--font-family-mono);
-}
-
-.delete-worker {
-    padding: var(--space-1) var(--space-2);
-    background: transparent;
-    color: var(--error-500);
-    font-size: var(--font-size-base);
-    cursor: pointer;
-    border: none;
-    border-radius: var(--radius-base);
-}
-
-.delete-worker:hover {
-    background-color: rgba(239, 68, 68, 0.1);
-}
-
-/* === ログセクション === */
-.logs-section {
-    margin-top: var(--space-10);
-}
-
-.logs-section h2 {
-    margin-bottom: var(--space-5);
-    color: var(--text-primary);
-}
-
-.empty-logs {
-    text-align: center;
-    color: var(--text-tertiary);
-    padding: var(--space-10);
-    font-style: italic;
-}
-
-/* === ドラッグ効果 === */
-.dragover {
-    background-color: rgba(59, 130, 246, 0.1) !important;
-    border: 2px dashed var(--primary-500) !important;
-}
-
-.edit-input {
-    padding: var(--space-1) var(--space-2);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-base);
-    font-size: 1em;
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-}
-
-.edit-input:focus {
-    outline: none;
-    border-color: var(--primary-500);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-}
-
-/* === レスポンシブ対応 === */
-@media (max-width: 768px) {
-    .control-panel {
-        grid-template-columns: 1fr;
-        gap: var(--space-4);
-    }
-
-    .whiteboard {
-        grid-template-columns: 1fr;
-    }
-
-    .worker-card {
-        touch-action: none;
-    }
-
-    .import-buttons {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .import-buttons button,
-    .import-buttons label {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-/* === タッチデバイス向けの調整 === */
-@media (hover: none) and (pointer: coarse) {
-    .worker-card {
-        padding: var(--space-4) var(--space-5);
-        margin-bottom: var(--space-3);
-    }
-
-    .icon-btn {
-        padding: var(--space-2) var(--space-3);
-    }
-
-    input[type="text"], .form-input {
-        font-size: var(--font-size-base); /* iOSのズーム防止 */
-    }
+/* ダークモード - システム設定ではなく、クラスベースのみ適用 */
+body.dark-mode {
+  --bg-primary: var(--gray-900);
+  --bg-secondary: var(--gray-800);
+  --bg-tertiary: var(--gray-700);
+  --text-primary: var(--gray-100);
+  --text-secondary: var(--gray-300);
+  --text-tertiary: var(--gray-400);
+  --border-color: var(--gray-600);
+  --shadow-color: rgba(0, 0, 0, 0.3);
 }
