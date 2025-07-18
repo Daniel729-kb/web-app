@@ -373,7 +373,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        .error-message {
+        .error- {
             background: #f8d7da;
             color: #721c24;
             padding: 15px;
@@ -651,12 +651,12 @@
             showError: (message) => {
                 elements.errorMessage.textContent = message;
                 elements.errorMessage.style.display = 'block';
-                setTimeout(() => elements.errorMessage.style.display = 'none', 5000);
+                    // setTimeout(() => elements.errorMessage.style.display = 'none', 5000);
             },
             showSuccess: (message) => {
                 elements.successMessage.textContent = message;
                 elements.successMessage.style.display = 'block';
-                setTimeout(() => elements.successMessage.style.display = 'none', 5000);
+                    // setTimeout(() => elements.successMessage.style.display = 'none', 5000);
             },
             adjustColor: (color, amount) => {
                 return '#' + color.replace(/^#/, '').replace(/../g, value => 
