@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>倉庫面積可視化マップ - 全体面積と販売可能面積の見える化</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <style>
+        /* 基本的なスタイル（外部CSSがない場合を想定して簡易的に設定） */
+        body { font-family: sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; transition: background-color 0.3s, color 0.3s; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #0061ff 0%, #60efff 100%); color: white; padding: 20px 30px; text-align: center; position: relative; }
+        h1 { margin: 0; font-size: 2em; }
+        p { margin: 5px 0 0; }
+
+        /* ダークモード */
+        body.dark-mode { background-color: #1a202c; color: #e2e8f0; }
+        body.dark-mode .container { background-color: #2d3748; }
+        body.dark-mode .stat-item, body.dark-mode .warehouse-item { background-color: #4a5568; }
+        body.dark-mode .upload-section, body.dark-mode .controls, body.dark-mode .warehouse-list { background-color: #2d3748; border-color: #4a5568; }
+        body.dark-mode .multi-select-button, body.dark-mode .checkbox-list { background-color: #4a5568; border-color: #718096; }
+        body.dark-mode .checkbox-list-item:hover { background-color: #718096; }
+        body.dark-mode .popup-header { color: #90cdf4; border-color: #90cdf4; }
+        body.dark-mode .warehouse-name { color: #90cdf4; }
+        
+        /* コンポーネント */
+        .header-controls { position: absolute; top: 15px; right: 15px; }
+        .dark-mode-toggle { background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; }
+        .upload-section { padding: 30px; text-align: center; border-bottom: 1px solid #e2e6ea; }
+        .upload-area { border: 3px dashed #0061ff; border-radius: 15px; padding: 40px; cursor: pointer; transition: all 0.3s; }
+        .upload-area:hover { border-color: #60efff; background: #f8f9fa; }
+        .upload-icon { font-size: 3em; color: #0061ff; }
+        #file-input { display: none; }
+        .controls { padding: 20px; display: none; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #e2e6ea; }
+        .legend { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.85em; }
+        .legend-color { width: 20px; height: 20px; border-radius: 4px; }
+        .stats { display: flex; gap: 10px; flex-wrap: wrap; }
+        .stat-item { padding: 8px 16px; background: #f8f9fa; border-radius: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .main-content { display: flex; height: 600px; }
+        #map { flex: 1; position: relative; display: none; }
+        .loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 18px; }
+        .warehouse-list { width: 400px; background: #f8f9fa; border-left: 1px solid #e2e6ea; overflow-y: auto; padding: 20px; display: none; }
+        h3 { margin: 0 0 15px 0; font-size: 1.2em; border-bottom: 2px solid #0061ff; padding-bottom: 8px; }
+        .warehouse-item { background: white; border-radius: 8px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; transition: all 0.2s; }
+        .warehouse-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .warehouse-name { font-weight: bold; color: #0061ff; }
+        .availability-bar { width: 100%; height: 8px; background: #e9ecef; border-radius: 4px; margin: 5px 0; overflow: hidden; }
+        .availability-fill { height: 100%; border-radius: 4px; }
+        .message, .error, .success { border-radius: 8px; padding: 15px; margin-top: 20px; }
+        .error { color: #dc3545; background: #f8d7da; border: 1px solid #f5c6cb; }
+        .success { color: #155724; background: #d4edda; border: 1px solid #c3e6cb; }
+        
+        /* 複数国選択のスタイル */
+        .multi-select-container { position: relative; display: inline-block; }
+        .multi-select-button { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; font-size: 14px; cursor: pointer; min-width: 200px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+        .multi-select-button::after { content: '▼'; font-size: 10px; }
+        .checkbox-list { display: none; position: absolute; background-color: white; border: 1px solid #ddd; border-radius: 6px; min-width: 250px; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 8px 16px rgba(0,0,0,0.2); padding: 5px; }
+        .checkbox-list.show { display: block; }
+        .checkbox-list-item { display: block; padding: 8px 12px; cursor: pointer; }
+        .checkbox-list-item:hover { background-color: #f1f1f1; }
+        .checkbox-list-item input { margin-right: 8px; cursor: pointer; }
+        .checkbox-list-controls { padding: 5px 12px; border-bottom: 1px solid #eee; display: flex; gap: 10px; }
+        .control-link { font-size: 12px; color: #007bff; cursor: pointer; text-decoration: none; }
+        .control-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-controls">
+                <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="ダークモード切り替え">
+                    <span class="dark-mode-icon">🌙</span>
+                </button>
+            </div>
+            <h1>倉庫面積可視化マップ</h1>
+            <p>全体面積と販売可能面積の可視化</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" onclick="document.getElementById('file-input').click()">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">倉庫データCSVファイルをアップロード</div>
+                <div class="upload-subtext">クリックしてファイルを選択するか、ここにドラッグ＆ドロップ</div>
+            </div>
+            <input type="file" id="file-input" accept=".csv" />
+        </div>
+
+        <div class="controls" id="controls">
+             <div>
+                <div id="multi-select-container" class="multi-select-container">
+                    <strong>国選択:</strong><br>
+                    <div id="multi-select-button" class="multi-select-button">国を選択してください</div>
+                    <div id="checkbox-list" class="checkbox-list">
+                         <div class="checkbox-list-controls">
+                            <a href="#" id="select-all" class="control-link">すべて選択</a>
+                            <a href="#" id="deselect-all" class="control-link">すべて解除</a>
+                        </div>
+                        <div id="checkbox-items"></div>
+                    </div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-color" style="background: #ef4444;"></div><span>空きが多い</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background: #eab308;"></div><span>普通</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background: #22c55e;"></div><span>ほぼ満杯</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background: #fff; border: 2px solid #888; border-radius: 50%;"></div><span>GPS</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background: #fff; border: 3px solid #ffd43b; border-radius: 50%;"></div><span>都市</span></div>
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat-item"><strong>倉庫数:</strong> <span id="warehouse-count">-</span></div>
+                <div class="stat-item"><strong>総面積:</strong> <span id="total-area">-</span> m²</div>
+                <div class="stat-item"><strong>販売可能:</strong> <span id="available-area">-</span> m²</div>
+                <div class="stat-item"><strong>平均使用率:</strong> <span id="avg-usage">-</span>%</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="map"><div class="loading">地図とデータを読み込み中...</div></div>
+            <div class="warehouse-list" id="warehouse-list">
+                <h3>📦 空きが多い順リスト</h3>
+                <div id="warehouse-items"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 修正・追加されたJavaScript ---
+
+        // ダークモード管理 (元のまま)
+        let isDarkMode = false;
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            updateDarkModeIcon();
+        }
+        function updateDarkModeIcon() {
+            const icon = document.querySelector('.dark-mode-icon');
+            if (icon) icon.textContent = isDarkMode ? '☀️' : '🌙';
+        }
+        function initializeDarkMode() {
+            document.body.classList.remove('dark-mode'); isDarkMode = false; updateDarkModeIcon();
+        }
+
+        // グローバル変数
+        let map;
+        let warehouseData = [];
+        let allWarehouseData = [];
+        let warehouseMarkers = [];
+        let selectedCountries = []; // 単一選択(string)から複数選択(array)へ変更
+
+        // 類似国名を正規化するためのマッピング
+        const countryNameMapping = {
+            "united states": "USA", "united states of america": "USA", "us": "USA", "america": "USA",
+            "viet nam": "Vietnam",
+            "south korea": "South Korea", "republic of korea": "South Korea",
+            "uae": "United Arab Emirates", "united arab emirates": "United Arab Emirates",
+            "uk": "United Kingdom", "united kingdom": "United Kingdom", "england": "United Kingdom"
+        };
+        const normalizeCountryName = (name) => {
+            if (!name) return "Unknown";
+            const lowerCaseName = name.toLowerCase().trim();
+            return countryNameMapping[lowerCaseName] || name;
+        };
+
+        const cityCoordinates = { // (座標データは長いため省略)
+            'ahmedabad': [23.0225, 72.5714], 'sonipat': [28.9931, 76.9981], 'gurgaon': [28.4595, 77.0266], 'bangalore': [12.9716, 77.5946], 'bengaluru': [12.9716, 77.5946], 'pune': [18.5204, 73.8567], 'sri city': [13.6288, 79.9731], 'mumbai': [19.0760, 72.8777], 'chennai': [13.0827, 80.2707], 'delhi': [28.6139, 77.2090], 'kolkata': [22.5726, 88.3639], 'hyderabad': [17.3850, 78.4867],
+            'ho chi minh city': [10.8231, 106.6297],'hanoi': [21.0285, 105.8542], 'tokyo': [35.6762, 139.6503], 'osaka': [34.6937, 135.5023], 'new york': [40.7128, -74.0060], 'london': [51.5074, -0.1278] // 他多数
+        };
+
+        function getWarehouseCoordinates(warehouse, index = 0) {
+            if (warehouse.Latitude && warehouse.Longitude && warehouse.Latitude !== 0 && warehouse.Longitude !== 0) return [warehouse.Latitude, warehouse.Longitude];
+            const city = warehouse.City ? warehouse.City.toLowerCase().trim() : '';
+            const coords = cityCoordinates[city];
+            if (coords) return [coords[0] + (Math.random() - 0.5) * 0.02, coords[1] + (Math.random() - 0.5) * 0.02];
+            return [20, 0];
+        }
+
+        function initMap() {
+            if (map) map.remove();
+            map = L.map('map').setView([20, 0], 2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
+        }
+
+        function createWarehouseChart(warehouse) { // (ダークモード対応は元のコードを維持)
+            const totalArea = warehouse["Warehouse floor space (m2)"] || 0; const availableArea = warehouse["Available storage space (m2)"] || 0;
+            const canvas = document.createElement('canvas'); canvas.width = 180; canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            const barWidth = 40, barSpacing = 20, chartHeight = 60, chartTop = 20;
+            const maxValue = Math.max(totalArea, 1);
+            const totalHeight = (totalArea / maxValue) * chartHeight; const availableHeight = (availableArea / maxValue) * chartHeight;
+            const bgColor = isDarkMode ? '#1e293b' : '#f8f9fa'; ctx.fillStyle = bgColor; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#2193b0'; ctx.fillRect(30, chartTop + chartHeight - totalHeight, barWidth, totalHeight);
+            ctx.fillStyle = '#6dd5ed'; ctx.fillRect(30 + barWidth + barSpacing, chartTop + chartHeight - availableHeight, barWidth, availableHeight);
+            const textColor = isDarkMode ? '#e2e8f0' : '#333'; ctx.fillStyle = textColor; ctx.font = '10px Arial'; ctx.textAlign = 'center';
+            ctx.fillText('全体', 50, chartTop + chartHeight + 15); ctx.fillText('販売可能', 110, chartTop + chartHeight + 15); ctx.font = '8px Arial';
+            ctx.fillText(`${totalArea.toLocaleString()}`, 50, chartTop + chartHeight + 25); ctx.fillText(`${availableArea.toLocaleString()}`, 110, chartTop + chartHeight + 25);
+            return canvas;
+        }
+
+        function displayWarehouses() {
+            warehouseMarkers.forEach(marker => map.removeLayer(marker));
+            warehouseMarkers = [];
+            warehouseData.forEach((warehouse, index) => {
+                const [lat, lng] = getWarehouseCoordinates(warehouse, index);
+                const totalArea = warehouse["Warehouse floor space (m2)"] || 0, availableArea = warehouse["Available storage space (m2)"] || 0;
+                const isEstimated = !warehouse.Latitude || !warehouse.Longitude || warehouse.Latitude === 0 || warehouse.Longitude === 0;
+                const iconSize = Math.max(8, Math.min(25, Math.sqrt(totalArea) / 12));
+                const usageRate = totalArea > 0 ? (totalArea - availableArea) / totalArea : 0;
+                let fillColor;
+                if (usageRate >= 0.8) fillColor = '#22c55e'; else if (usageRate >= 0.6) fillColor = '#84cc16';
+                else if (usageRate >= 0.4) fillColor = '#eab308'; else if (usageRate >= 0.2) fillColor = '#f97316'; else fillColor = '#ef4444';
+                const marker = L.circleMarker([lat, lng], { radius: iconSize, fillColor: fillColor, color: isEstimated ? '#ffd43b' : '#fff', weight: isEstimated ? 3 : 2, opacity: 1, fillOpacity: isEstimated ? 0.7 : 0.8 }).addTo(map);
+                marker.warehouseData = warehouse; warehouseMarkers.push(marker);
+                const popupContent = document.createElement('div'); popupContent.className = 'warehouse-popup';
+                const usagePercentage = totalArea > 0 ? Math.round(((totalArea - availableArea) / totalArea) * 100) : 0;
+                popupContent.innerHTML = `
+                    <div class="popup-header">${warehouse["Warehouse name"] || 'Unknown'}</div>
+                    <div class="popup-detail"><span>🏙️ 場所:</span> <span>${warehouse.City}, ${warehouse.Country}</span></div>
+                    <div class="popup-detail"><span>🏢 全体面積:</span> <strong>${totalArea.toLocaleString()} m²</strong></div>
+                    <div class="popup-detail"><span>📦 販売可能:</span> <strong>${availableArea.toLocaleString()} m²</strong></div>
+                    <div class="popup-detail"><span>📊 使用率:</span> <strong>${usagePercentage}%</strong></div>
+                `;
+                const chartContainer = document.createElement('div'); chartContainer.className = 'chart-container';
+                chartContainer.appendChild(createWarehouseChart(warehouse)); popupContent.appendChild(chartContainer);
+                marker.bindPopup(popupContent, { maxWidth: 300 });
+            });
+            displayWarehouseList();
+        }
+        
+        function populateCountryCheckboxes() {
+            const container = document.getElementById('checkbox-items'); container.innerHTML = '';
+            const countries = [...new Set(allWarehouseData.map(row => row.Country))].filter(Boolean).sort();
+            countries.forEach(country => {
+                const count = allWarehouseData.filter(row => row.Country === country).length;
+                const item = document.createElement('label'); item.className = 'checkbox-list-item';
+                item.innerHTML = `<input type="checkbox" value="${country}"> ${country} (${count}棟)`;
+                container.appendChild(item);
+            });
+            container.addEventListener('change', () => {
+                selectedCountries = Array.from(container.querySelectorAll('input:checked')).map(cb => cb.value);
+                updateButtonText(); filterAndDisplayData();
+            });
+            document.getElementById('select-all').addEventListener('click', (e) => {
+                e.preventDefault(); container.querySelectorAll('input').forEach(cb => cb.checked = true);
+                selectedCountries = countries; updateButtonText(); filterAndDisplayData();
+            });
+            document.getElementById('deselect-all').addEventListener('click', (e) => {
+                e.preventDefault(); container.querySelectorAll('input').forEach(cb => cb.checked = false);
+                selectedCountries = []; updateButtonText(); filterAndDisplayData();
+            });
+            updateButtonText();
+        }
+
+        function updateButtonText() {
+            const button = document.getElementById('multi-select-button');
+            if (selectedCountries.length === 0) button.textContent = 'すべての国が表示されています';
+            else if (selectedCountries.length > 2) button.textContent = `${selectedCountries.length}カ国を選択中`;
+            else button.textContent = selectedCountries.join(', ');
+        }
+        
+        function filterAndDisplayData() {
+            warehouseData = (selectedCountries.length === 0)
+                ? allWarehouseData
+                : allWarehouseData.filter(row => selectedCountries.includes(row.Country));
+            
+            const listTitle = document.querySelector('.warehouse-list h3');
+            listTitle.textContent = (selectedCountries.length === 0)
+                ? '📦 空きが多い順リスト（全世界）'
+                : `📦 空きが多い順リスト (${selectedCountries.length}カ国)`;
+            displayWarehouses(); updateStats();
+            if (warehouseData.length > 0) fitMapToData();
+            else map.setView([20, 0], 2);
+        }
+
+        function fitMapToData() { /* (変更なし) */
+            const validCoords = warehouseData.map((w, i) => getWarehouseCoordinates(w, i));
+            if (validCoords.length > 0) {
+                const group = new L.featureGroup(validCoords.map(coord => L.marker(coord)));
+                if (validCoords.length === 1) map.setView(validCoords[0], 10);
+                else map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        function displayWarehouseList() { /* (変更なし) */
+            const container = document.getElementById('warehouse-items'); container.innerHTML = '';
+            const sorted = [...warehouseData].sort((a, b) => {
+                const rateA = (a["Available storage space (m2)"] || 0) / (a["Warehouse floor space (m2)"] || 1);
+                const rateB = (b["Available storage space (m2)"] || 0) / (b["Warehouse floor space (m2)"] || 1);
+                return rateB - rateA;
+            });
+            sorted.forEach(w => {
+                const total = w["Warehouse floor space (m2)"] || 0, avail = w["Available storage space (m2)"] || 0;
+                const availRate = total > 0 ? Math.round((avail / total) * 100) : 0;
+                const usageRate = 100 - availRate;
+                let color;
+                if (usageRate >= 80) color = '#22c55e'; else if (usageRate >= 60) color = '#84cc16';
+                else if (usageRate >= 40) color = '#eab308'; else if (usageRate >= 20) color = '#f97316'; else color = '#ef4444';
+                const item = document.createElement('div'); item.className = 'warehouse-item';
+                item.innerHTML = `<div class="warehouse-name">${w["Warehouse name"] || 'Unknown'}</div><div class="warehouse-details">${w.City}, ${w.Country}</div><div class="warehouse-stats"><span>全体: ${total.toLocaleString()}m²</span><span>販売可能: ${avail.toLocaleString()}m²</span><span style="color: ${color}; font-weight: bold;">${availRate}%空き</span></div><div class="availability-bar"><div class="availability-fill" style="width: ${availRate}%; background-color: ${color};"></div></div>`;
+                item.addEventListener('click', () => focusOnWarehouse(w)); container.appendChild(item);
+            });
+        }
+
+        function focusOnWarehouse(targetWarehouse) { /* (変更なし) */
+            const marker = warehouseMarkers.find(m => m.warehouseData["Warehouse name"] === targetWarehouse["Warehouse name"]);
+            if (marker) {
+                map.setView(marker.getLatLng(), Math.max(map.getZoom(), 10)); marker.openPopup();
+                marker.setStyle({ weight: 5, color: '#ff4757', fillOpacity: 1 });
+                setTimeout(() => {
+                    const isEst = !targetWarehouse.Latitude || !targetWarehouse.Longitude || targetWarehouse.Latitude === 0 || targetWarehouse.Longitude === 0;
+                    marker.setStyle({ weight: isEst ? 3 : 2, color: isEst ? '#ffd43b' : '#fff', fillOpacity: isEst ? 0.7 : 0.8 });
+                }, 2000);
+            }
+        }
+
+        function updateStats() { /* (変更なし) */
+            const totalWarehouses = warehouseData.length;
+            const totalArea = warehouseData.reduce((sum, w) => sum + (w["Warehouse floor space (m2)"] || 0), 0);
+            const availableArea = warehouseData.reduce((sum, w) => sum + (w["Available storage space (m2)"] || 0), 0);
+            const usageRates = warehouseData.map(w => {
+                const total = w["Warehouse floor space (m2)"] || 0; const available = w["Available storage space (m2)"] || 0;
+                return total > 0 ? ((total - available) / total) * 100 : 0;
+            });
+            const avgUsage = usageRates.length > 0 ? Math.round(usageRates.reduce((a, b) => a + b, 0) / usageRates.length) : 0;
+            const withGPS = warehouseData.filter(w => w.Latitude && w.Longitude && w.Latitude !== 0 && w.Longitude !== 0).length;
+            const withCityCoords = totalWarehouses - withGPS;
+            document.getElementById('warehouse-count').textContent = `${totalWarehouses} (GPS: ${withGPS}, 都市: ${withCityCoords})`;
+            document.getElementById('total-area').textContent = totalArea.toLocaleString();
+            document.getElementById('available-area').textContent = availableArea.toLocaleString();
+            document.getElementById('avg-usage').textContent = avgUsage;
+        }
+
+        function showMessage(message, type = 'success') { /* (変更なし) */
+            const section = document.querySelector('.upload-section');
+            const existing = section.querySelector('.message'); if (existing) existing.remove();
+            const div = document.createElement('div'); div.className = `message ${type}`; div.textContent = message; section.appendChild(div);
+        }
+        
+        function processCSVFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) { showMessage('CSVファイルを選択してください。', 'error'); return; }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                Papa.parse(e.target.result, {
+                    header: true, dynamicTyping: true, skipEmptyLines: true, delimitersToGuess: [',', '\t', '|', ';'],
+                    complete: function(results) {
+                        try {
+                            allWarehouseData = results.data
+                                .filter(row => row.Country && row["Warehouse floor space (m2)"] > 0)
+                                .map(row => {
+                                    row.Country = normalizeCountryName(row.Country); // 国名を正規化
+                                    return row;
+                                });
+
+                            if (allWarehouseData.length === 0) { showMessage('有効な倉庫データが見つかりませんでした。', 'error'); return; }
+                            const countriesCount = [...new Set(allWarehouseData.map(row => row.Country))].length;
+                            showMessage(`${allWarehouseData.length}件の倉庫データを${countriesCount}カ国から読み込みました。`, 'success');
+                            
+                            document.getElementById('controls').style.display = 'flex';
+                            document.getElementById('map').style.display = 'block';
+                            document.getElementById('warehouse-list').style.display = 'block';
+                            document.querySelector('.loading').style.display = 'none';
+
+                            initMap();
+                            populateCountryCheckboxes(); // 従来のセレクタからチェックボックス生成へ変更
+                            filterAndDisplayData();
+                        } catch (error) { showMessage('データの処理中にエラーが発生しました: ' + error.message, 'error'); }
+                    },
+                    error: (error) => showMessage('CSVファイルの読み込みエラー: ' + error.message, 'error')
+                });
+            };
+            reader.onerror = () => showMessage('ファイルの読み込みに失敗しました。', 'error');
+            reader.readAsText(file);
+        }
+
+        function setupFileUpload() { /* (変更なし) */
+            const fileInput = document.getElementById('file-input');
+            const uploadArea = document.querySelector('.upload-area');
+            fileInput.addEventListener('change', e => e.target.files.length && processCSVFile(e.target.files[0]));
+            ['dragover', 'dragleave', 'drop'].forEach(eventName => uploadArea.addEventListener(eventName, e => {
+                e.preventDefault(); e.stopPropagation();
+                if (eventName === 'dragover') uploadArea.classList.add('dragover');
+                if (eventName === 'dragleave' || eventName === 'drop') uploadArea.classList.remove('dragover');
+                if (eventName === 'drop' && e.dataTransfer.files.length) processCSVFile(e.dataTransfer.files[0]);
+            }));
+        }
+
+        // 初期化処理
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDarkMode();
+            setupFileUpload();
+
+            // 複数選択ドロップダウンの動作
+            const button = document.getElementById('multi-select-button');
+            const list = document.getElementById('checkbox-list');
+            button.addEventListener('click', () => list.classList.toggle('show'));
+            window.addEventListener('click', (e) => {
+                if (!document.getElementById('multi-select-container').contains(e.target)) {
+                    list.classList.remove('show');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
