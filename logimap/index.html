@@ -403,86 +403,6 @@
             background: #2563eb;
         }
 
-        .custom-textbox {
-            position: absolute;
-            background: #fff;
-            border: 1px solid #3182ce;
-            border-radius: 4px;
-            padding: 8px 12px;
-            font-size: 16px;
-            min-width: 100px;
-            min-height: 32px;
-            resize: both;
-            overflow: auto;
-            cursor: move;
-            z-index: 1000;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-            color: #1a202c;
-        }
-
-        .dark-mode .custom-textbox {
-            background: #334155;
-            border-color: #60a5fa;
-            color: #e2e8f0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .custom-textbox:focus {
-            outline: none;
-            border-color: #2c5aa0;
-        }
-
-        .dark-mode .custom-textbox:focus {
-            border-color: #2563eb;
-        }
-
-        .custom-textbox.editing {
-            cursor: text;
-        }
-
-        .delete-textbox, .delete-location-box {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: #e53e3e;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 12px;
-            cursor: pointer;
-            display: none;
-            font-weight: 500;
-        }
-
-        .dark-mode .delete-textbox, 
-        .dark-mode .delete-location-box {
-            background: #ef4444;
-        }
-
-        .custom-textbox:hover .delete-textbox,
-        .edit-mode .location-box:hover .delete-location-box {
-            display: block;
-        }
-
-        .delete-textbox:hover, .delete-location-box:hover {
-            background: #c53030;
-        }
-
-        .dark-mode .delete-textbox:hover, 
-        .dark-mode .delete-location-box:hover {
-            background: #dc2626;
-        }
-
-        .edit-mode .location-box,
-        .edit-mode .flow-arrow,
-        .edit-mode .custom-textbox {
-            cursor: move;
-            border-style: dashed !important;
-        }
-
         .logistics-map {
             display: flex;
             align-items: flex-start;
@@ -499,26 +419,6 @@
             overflow-y: auto;
             padding: 32px 16px;
             transition: background-color 0.3s ease;
-        }
-
-        .edit-mode .logistics-map::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            border: 2px dashed rgba(49, 130, 206, 0.3);
-            border-radius: 8px;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .edit-mode .logistics-map {
-            min-height: 1200px;
-            min-width: 1600px;
-            border: 1px solid rgba(49, 130, 206, 0.2);
-            position: relative;
         }
 
         .dark-mode .logistics-map {
@@ -562,17 +462,6 @@
             justify-content: center;
             align-items: center;
             color: #1a202c;
-        }
-
-        .edit-mode .location-box {
-            cursor: move;
-            transition: none; /* Disable transitions during edit mode for smoother dragging */
-        }
-
-        .location-box.dragging {
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-            transform: rotate(2deg);
-            transition: none;
         }
 
         .dark-mode .location-box {
@@ -1068,6 +957,20 @@
             color: #ef4444;
         }
 
+        .debug-message {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 15px 0;
+            font-size: 14px;
+            display: none;
+        }
+
+        .debug-message.show {
+            display: block;
+        }
+
         @media (max-width: 1200px) {
             .container {
                 margin: 0;
@@ -1139,6 +1042,8 @@
         <div class="main-content">
             <div class="input-panel">
                 <div class="input-content">
+                    <div class="debug-message" id="debug-message"></div>
+                    
                     <div class="section-title">
                         <span data-i18n="suppliers">調達先情報</span>
                         <button class="add-btn" onclick="addSupplier()" data-i18n="add">+ 追加</button>
@@ -1325,11 +1230,11 @@
     </div>
 
     <script>
-        // Global state management - FIXED: Better index management
+        // **修正版グローバル状態管理**
         let globalState = {
-            suppliers: new Map(),
-            warehouses: new Map(), 
-            destinations: new Map(),
+            suppliers: new Map([[0, {}]]),    // 初期データとしてID:0を設定
+            warehouses: new Map([[0, {}]]),   // 初期データとしてID:0を設定  
+            destinations: new Map([[0, {}]]), // 初期データとしてID:0を設定
             nextSupplierId: 1,
             nextWarehouseId: 1,
             nextDestinationId: 1
@@ -1338,12 +1243,22 @@
         let editMode = false;
         let textBoxCounter = 0;
         let dragElements = new Map();
-
-        // Dark mode functionality - FIXED: Remove localStorage dependency
         let isDarkMode = false;
 
+        // **修正版デバッグ機能**
+        function showDebugMessage(message, isError = false) {
+            const debugElement = document.getElementById('debug-message');
+            if (debugElement) {
+                debugElement.textContent = message;
+                debugElement.className = isError ? 'debug-message show error' : 'debug-message show';
+                setTimeout(() => {
+                    debugElement.classList.remove('show');
+                }, 5000);
+            }
+            console.log('DEBUG:', message);
+        }
+
         function initializeDarkMode() {
-            // FIXED: Default to normal mode (no dark mode)
             isDarkMode = false;
             updateDarkModeIcon(false);
         }
@@ -1356,7 +1271,9 @@
 
         function updateDarkModeIcon(darkMode) {
             const icon = document.querySelector('.dark-mode-icon');
-            icon.textContent = darkMode ? '☀️' : '🌙';
+            if (icon) {
+                icon.textContent = darkMode ? '☀️' : '🌙';
+            }
         }
 
         // 多言語対応データ
@@ -1431,148 +1348,6 @@
                 cannotDeleteLast: "最後の項目は削除できません",
                 nameRequired: "名前を入力してください",
                 validationError: "入力エラーがあります"
-            },
-            en: {
-                title: "Logistics Map Generator",
-                subtitle: "Visualize logistics flow from suppliers to destinations",
-                suppliers: "Supplier Information",
-                warehouses: "Warehouse Information",
-                destinations: "Destination Information", 
-                transports: "Transport Information",
-                add: "+ Add",
-                remove: "Remove",
-                supplier: "Supplier",
-                warehouse: "Warehouse",
-                destination: "Destination",
-                supplierName: "Supplier Name",
-                warehouseName: "Warehouse Name",
-                destinationName: "Destination Name",
-                domesticOverseas: "Domestic/Overseas",
-                domestic: "Domestic",
-                overseas: "Overseas",
-                country: "Country",
-                city: "City",
-                existingNew: "Operation",
-                existing: "Existing",
-                new: "New",
-                existingOwn: "Existing (Own)",
-                existingOther: "Existing (Other)",
-                warehouseType: "Warehouse Type",
-                general: "General Warehouse",
-                bonded: "Bonded Warehouse",
-                workContent: "Work Content",
-                tempControl: "Temperature & Humidity Control",
-                none: "None",
-                yes: "Yes",
-                temperature: "Set Temperature (℃)",
-                humidity: "Set Humidity (%)",
-                transportMode: "Transport Mode",
-                transportStatus: "Operation",
-                truck: "Truck",
-                ship: "Ship",
-                air: "Air",
-                rail: "Rail",
-                departure: "Departure Port",
-                arrival: "Arrival Port",
-                frequency: "Transport Frequency",
-                package: "Package Type",
-                volume: "Volume",
-                generateMap: "Generate Map",
-                exportImage: "📷 Export as Image",
-                addText: "📝 Add Text",
-                editMode: "🔧 Edit Mode",
-                editComplete: "✅ Edit Complete",
-                generating: "📷 Generating...",
-                supplierTitle: "Supplier",
-                warehouseTitle: "Warehouse",
-                destinationTitle: "Destination",
-                transportModeLabel: "Transport Mode",
-                bondedWarehouse: "Bonded Warehouse",
-                tempHumidityControl: "🌡️ Temp & Humidity Control",
-                workContentLabel: "🔧 Work Content",
-                setTemp: "Set Temp",
-                setHumidity: "Set Humidity",
-                textPlaceholder: "Enter text...",
-                exportData: "📊 Export CSV Data",
-                importData: "📁 Import CSV",
-                downloadTemplate: "📋 Sample Template",
-                importSuccess: "Data import completed successfully",
-                importError: "Failed to read CSV file",
-                invalidFormat: "CSV file format is invalid",
-                cannotDeleteLast: "Cannot delete the last item",
-                nameRequired: "Please enter a name",
-                validationError: "There are input errors"
-            },
-            zh: {
-                title: "物流地图自动生成",
-                subtitle: "可视化从采购地到交付地的物流流程",
-                suppliers: "采购商信息",
-                warehouses: "仓库信息",
-                destinations: "交付地信息",
-                transports: "运输信息",
-                add: "+ 添加",
-                remove: "删除",
-                supplier: "采购商",
-                warehouse: "仓库",
-                destination: "交付地",
-                supplierName: "采购商名称",
-                warehouseName: "仓库名称",
-                destinationName: "交付地名称",
-                domesticOverseas: "国内/海外",
-                domestic: "国内",
-                overseas: "海外",
-                country: "国家",
-                city: "城市",
-                existingNew: "运营主体",
-                existing: "现有",
-                new: "新建",
-                existingOwn: "现有（自营）",
-                existingOther: "现有（他方）",
-                warehouseType: "仓库类型",
-                general: "普通仓库",
-                bonded: "保税仓库",
-                workContent: "作业内容",
-                tempControl: "温湿度管理",
-                none: "无",
-                yes: "有",
-                temperature: "设定温度（℃）",
-                humidity: "设定湿度（%）",
-                transportMode: "运输方式",
-                transportStatus: "运营主体",
-                truck: "卡车",
-                ship: "海运",
-                air: "航空",
-                rail: "铁路",
-                departure: "出发港",
-                arrival: "到达港",
-                frequency: "运输频率",
-                package: "包装形式",
-                volume: "物量",
-                generateMap: "生成地图",
-                exportImage: "📷 保存为图片",
-                addText: "📝 添加文本",
-                editMode: "🔧 编辑模式",
-                editComplete: "✅编辑完成",
-                generating: "📷 生成中...",
-                supplierTitle: "采购商",
-                warehouseTitle: "仓库",
-                destinationTitle: "交付地",
-                transportModeLabel: "运输方式",
-                bondedWarehouse: "保税仓库",
-                tempHumidityControl: "🌡️ 温湿度管理",
-                workContentLabel: "🔧 作业内容",
-                setTemp: "设定温度",
-                setHumidity: "设定湿度",
-                textPlaceholder: "输入文本...",
-                exportData: "📊 导出CSV数据",
-                importData: "📁 导入CSV",
-                downloadTemplate: "📋 示例模板",
-                importSuccess: "数据导入成功完成",
-                importError: "CSV文件读取失败",
-                invalidFormat: "CSV文件格式无效",
-                cannotDeleteLast: "无法删除最后一项",
-                nameRequired: "请输入名称",
-                validationError: "存在输入错误"
             }
         };
 
@@ -1587,8 +1362,6 @@
             
             if (buttonElement) {
                 buttonElement.classList.add('active');
-            } else {
-                document.querySelector(`.language-btn[onclick*="${lang}"]`).classList.add('active');
             }
             
             updateTranslations();
@@ -1615,7 +1388,6 @@
             return translations[currentLanguage][key] || key;
         }
 
-        // FIXED: Input validation
         function validateInput(type, index) {
             const nameInput = document.getElementById(`${type}-name-${index}`);
             const errorElement = document.getElementById(`${type}-name-${index}-error`);
@@ -1639,17 +1411,14 @@
         function validateAllInputs() {
             let isValid = true;
             
-            // Validate suppliers
             globalState.suppliers.forEach((_, id) => {
                 if (!validateInput('supplier', id)) isValid = false;
             });
             
-            // Validate warehouses
             globalState.warehouses.forEach((_, id) => {
                 if (!validateInput('warehouse', id)) isValid = false;
             });
             
-            // Validate destinations
             globalState.destinations.forEach((_, id) => {
                 if (!validateInput('destination', id)) isValid = false;
             });
@@ -1657,7 +1426,7 @@
             return isValid;
         }
 
-        // FIXED: Improved item management with proper ID tracking
+        // **修正版アイテム管理機能**
         function addSupplier() {
             const container = document.getElementById('suppliers-container');
             const newId = globalState.nextSupplierId++;
@@ -1907,13 +1676,12 @@
             const translation = translations[currentLanguage];
             let transportIndex = 0;
 
-            // FIXED: Better transport form generation with proper error handling
+            // 調達先→倉庫の輸送
             suppliers.forEach((supplier) => {
                 warehouses.forEach((warehouse) => {
                     const supplierIndex = supplier.getAttribute('data-index');
                     const warehouseIndex = warehouse.getAttribute('data-index');
                     
-                    // Safety check for element existence
                     const supplierNameEl = document.getElementById(`supplier-name-${supplierIndex}`);
                     const warehouseNameEl = document.getElementById(`warehouse-name-${warehouseIndex}`);
                     
@@ -1978,12 +1746,12 @@
                 });
             });
 
+            // 倉庫→納入先の輸送
             warehouses.forEach((warehouse) => {
                 destinations.forEach((destination) => {
                     const warehouseIndex = warehouse.getAttribute('data-index');
                     const destinationIndex = destination.getAttribute('data-index');
                     
-                    // Safety check for element existence
                     const warehouseNameEl = document.getElementById(`warehouse-name-${warehouseIndex}`);
                     const destinationNameEl = document.getElementById(`destination-name-${destinationIndex}`);
                     
@@ -2049,14 +1817,15 @@
             });
         }
 
+        // **修正版CSVエクスポート機能**
         function exportDataAsCSV() {
             try {
                 let csvData = [];
                 
-                // Header
+                // ヘッダー
                 csvData.push(['type', 'id', 'key', 'value']);
                 
-                // Suppliers
+                // 調達先データ
                 document.querySelectorAll('#suppliers-container .location-item').forEach(item => {
                     const index = item.getAttribute('data-index');
                     const nameEl = document.getElementById(`supplier-name-${index}`);
@@ -2070,7 +1839,7 @@
                     if (cityEl) csvData.push(['supplier', index, 'city', cityEl.value || '']);
                 });
 
-                // Warehouses
+                // 倉庫データ
                 document.querySelectorAll('#warehouses-container .location-item').forEach(item => {
                     const index = item.getAttribute('data-index');
                     const nameEl = document.getElementById(`warehouse-name-${index}`);
@@ -2096,7 +1865,7 @@
                     if (humidityEl) csvData.push(['warehouse', index, 'humidity', humidityEl.value || '']);
                 });
                 
-                // Destinations
+                // 納入先データ
                 document.querySelectorAll('#destinations-container .location-item').forEach(item => {
                     const index = item.getAttribute('data-index');
                     const nameEl = document.getElementById(`destination-name-${index}`);
@@ -2110,7 +1879,7 @@
                     if (cityEl) csvData.push(['destination', index, 'city', cityEl.value || '']);
                 });
 
-                // Transports
+                // 輸送データ
                 document.querySelectorAll('#transports-container .transport-item').forEach((item, index) => {
                     const modeEl = document.getElementById(`transport-${index}-mode`);
                     const statusEl = document.getElementById(`transport-${index}-status`);
@@ -2145,11 +1914,11 @@
                 link.download = `logistics_map_data_${new Date().toISOString().slice(0, 10)}.csv`;
                 link.click();
                 
-                // Cleanup
                 setTimeout(() => URL.revokeObjectURL(link.href), 100);
+                showDebugMessage('CSVエクスポートが完了しました');
             } catch (error) {
                 console.error('CSV export error:', error);
-                alert(getTranslation('exportError') || 'CSV export failed');
+                showDebugMessage('CSVエクスポートに失敗しました: ' + error.message, true);
             }
         }
 
@@ -2184,17 +1953,7 @@
                     ['transport', '0', 'volume', '50コンテナ'],
                     ['transport', '0', 'from', 's0'],
                     ['transport', '0', 'to', 'w0'],
-                    ['transport', '0', 'type', 'supplier-warehouse'],
-                    ['transport', '1', 'mode', 'truck'],
-                    ['transport', '1', 'status', 'existing-own'],
-                    ['transport', '1', 'departure', '成田倉庫'],
-                    ['transport', '1', 'arrival', '東京工場'],
-                    ['transport', '1', 'frequency', '毎日'],
-                    ['transport', '1', 'package', 'ダンボール'],
-                    ['transport', '1', 'volume', '200個'],
-                    ['transport', '1', 'from', 'w0'],
-                    ['transport', '1', 'to', 'd0'],
-                    ['transport', '1', 'type', 'warehouse-destination']
+                    ['transport', '0', 'type', 'supplier-warehouse']
                 ];
                 
                 const csvContent = csvData.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
@@ -2204,97 +1963,151 @@
                 link.download = 'logistics_map_template.csv';
                 link.click();
                 
-                // Cleanup
                 setTimeout(() => URL.revokeObjectURL(link.href), 100);
+                showDebugMessage('テンプレートのダウンロードが完了しました');
             } catch (error) {
                 console.error('Template download error:', error);
-                alert(getTranslation('downloadError') || 'Template download failed');
+                showDebugMessage('テンプレートのダウンロードに失敗しました: ' + error.message, true);
             }
         }
 
-        // FIXED: Improved CSV parsing with better error handling
+        // **修正版CSVインポート機能**
         function importDataFromCSV(event) {
             const file = event.target.files[0];
             if (!file) return;
             
+            showDebugMessage('CSVファイルの読み込みを開始します...');
+            
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const data = {};
                     const text = e.target.result;
+                    showDebugMessage(`ファイル読み込み完了: ${text.length}文字`);
                     
-                    // Improved CSV parsing with better regex and error handling
-                    const lines = text.split('\n').filter(line => line.trim() !== '').slice(1); // Skip header and empty lines
+                    // **修正版CSVパース処理**
+                    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+                    showDebugMessage(`処理対象行数: ${lines.length}行`);
+                    
+                    if (lines.length < 2) {
+                        throw new Error('CSVファイルが空または不正です');
+                    }
+                    
+                    // ヘッダーをスキップして処理
+                    const dataLines = lines.slice(1);
+                    const data = {};
+                    let processedLines = 0;
+                    let errorLines = 0;
 
-                    lines.forEach((line, lineNumber) => {
+                    dataLines.forEach((line, lineNumber) => {
                         try {
-                            // More robust CSV parsing
-                            const regex = /("(?:[^"]+|"")*"|[^,]*)/g;
+                            // **改良されたCSVパース**
                             const parts = [];
-                            let match;
-                            while ((match = regex.exec(line)) !== null) {
-                                parts.push(match[1]);
+                            let currentField = '';
+                            let inQuotes = false;
+                            let i = 0;
+                            
+                            while (i < line.length) {
+                                const char = line[i];
+                                const nextChar = line[i + 1];
+                                
+                                if (char === '"' && !inQuotes) {
+                                    inQuotes = true;
+                                } else if (char === '"' && inQuotes) {
+                                    if (nextChar === '"') {
+                                        currentField += '"';
+                                        i++; // Skip the next quote
+                                    } else {
+                                        inQuotes = false;
+                                    }
+                                } else if (char === ',' && !inQuotes) {
+                                    parts.push(currentField);
+                                    currentField = '';
+                                } else {
+                                    currentField += char;
+                                }
+                                i++;
                             }
+                            parts.push(currentField); // Add the last field
                             
                             if (parts.length !== 4) {
-                                console.warn(`Line ${lineNumber + 2}: Invalid format, expected 4 columns, got ${parts.length}`);
-                                return;
+                                throw new Error(`行${lineNumber + 2}: 列数が不正です (期待値: 4, 実際: ${parts.length})`);
                             }
                             
-                            const [type, id, key, value] = parts.map(field => {
-                                let cleanField = field.trim();
-                                if (cleanField.startsWith('"') && cleanField.endsWith('"')) {
-                                    cleanField = cleanField.slice(1, -1).replace(/""/g, '"');
-                                }
-                                return cleanField;
-                            });
-
+                            const [type, id, key, value] = parts.map(field => field.trim());
+                            
                             if (!data[type]) data[type] = {};
                             if (!data[type][id]) data[type][id] = {};
                             data[type][id][key] = value;
+                            
+                            processedLines++;
                         } catch (lineError) {
-                            console.warn(`Error parsing line ${lineNumber + 2}:`, lineError);
+                            console.warn(`行パースエラー (行${lineNumber + 2}):`, lineError.message);
+                            errorLines++;
                         }
                     });
                     
+                    showDebugMessage(`パース完了: ${processedLines}行処理, ${errorLines}行エラー`);
+                    
+                    if (processedLines === 0) {
+                        throw new Error('有効なデータが見つかりませんでした');
+                    }
+                    
+                    // **修正版データ適用**
                     applyImportedData(data);
                     
+                    showDebugMessage('データのインポートが完了しました');
                     alert(getTranslation('importSuccess'));
                 } catch (error) {
                     console.error('CSV import error:', error);
-                    alert(getTranslation('importError'));
+                    showDebugMessage('インポートエラー: ' + error.message, true);
+                    alert(getTranslation('importError') + ': ' + error.message);
                 } finally {
                     event.target.value = ''; // Reset file input
                 }
             };
+            
+            reader.onerror = function() {
+                showDebugMessage('ファイル読み込みエラーが発生しました', true);
+                alert(getTranslation('importError'));
+                event.target.value = '';
+            };
+            
             reader.readAsText(file, 'UTF-8');
         }
 
-        // FIXED: Improved data application with proper state management
+        // **修正版データ適用機能**
         function applyImportedData(data) {
             try {
-                // Clear existing data and reset state
+                showDebugMessage('既存データをクリアしています...');
+                
+                // 既存データをクリア
                 document.getElementById('suppliers-container').innerHTML = '';
                 document.getElementById('warehouses-container').innerHTML = '';
                 document.getElementById('destinations-container').innerHTML = '';
                 
-                globalState.suppliers.clear();
-                globalState.warehouses.clear();
-                globalState.destinations.clear();
-                globalState.nextSupplierId = 0;
-                globalState.nextWarehouseId = 0;
-                globalState.nextDestinationId = 0;
+                // **修正版状態リセット**
+                globalState = {
+                    suppliers: new Map(),
+                    warehouses: new Map(),
+                    destinations: new Map(),
+                    nextSupplierId: 0,
+                    nextWarehouseId: 0,
+                    nextDestinationId: 0
+                };
 
-                // Add suppliers
+                const translation = translations[currentLanguage];
+
+                // **修正版調達先追加**
                 if (data.supplier) {
+                    showDebugMessage(`調達先データを処理中: ${Object.keys(data.supplier).length}件`);
                     const sortedSupplierIds = Object.keys(data.supplier).sort((a, b) => parseInt(a) - parseInt(b));
+                    
                     sortedSupplierIds.forEach(id => {
                         const numId = parseInt(id);
                         globalState.nextSupplierId = Math.max(globalState.nextSupplierId, numId + 1);
                         globalState.suppliers.set(numId, {});
                         
                         const container = document.getElementById('suppliers-container');
-                        const translation = translations[currentLanguage];
                         const sData = data.supplier[id];
                         
                         const newSupplier = document.createElement('div');
@@ -2332,16 +2145,17 @@
                     });
                 }
 
-                // Add warehouses
+                // **修正版倉庫追加**
                 if (data.warehouse) {
+                    showDebugMessage(`倉庫データを処理中: ${Object.keys(data.warehouse).length}件`);
                     const sortedWarehouseIds = Object.keys(data.warehouse).sort((a, b) => parseInt(a) - parseInt(b));
+                    
                     sortedWarehouseIds.forEach(id => {
                         const numId = parseInt(id);
                         globalState.nextWarehouseId = Math.max(globalState.nextWarehouseId, numId + 1);
                         globalState.warehouses.set(numId, {});
                         
                         const container = document.getElementById('warehouses-container');
-                        const translation = translations[currentLanguage];
                         const wData = data.warehouse[id];
                         
                         const newWarehouse = document.createElement('div');
@@ -2421,16 +2235,17 @@
                     });
                 }
 
-                // Add destinations
+                // **修正版納入先追加**
                 if (data.destination) {
+                    showDebugMessage(`納入先データを処理中: ${Object.keys(data.destination).length}件`);
                     const sortedDestinationIds = Object.keys(data.destination).sort((a, b) => parseInt(a) - parseInt(b));
+                    
                     sortedDestinationIds.forEach(id => {
                         const numId = parseInt(id);
                         globalState.nextDestinationId = Math.max(globalState.nextDestinationId, numId + 1);
                         globalState.destinations.set(numId, {});
                         
                         const container = document.getElementById('destinations-container');
-                        const translation = translations[currentLanguage];
                         const dData = data.destination[id];
                         
                         const newDestination = document.createElement('div');
@@ -2468,13 +2283,13 @@
                     });
                 }
 
-                // Update remove buttons
+                // 状態を正しく更新
                 updateRemoveButtons();
-
-                // Regenerate transport forms and apply data
                 generateTransportForms();
                 
+                // 輸送データの適用
                 if (data.transport) {
+                    showDebugMessage(`輸送データを適用中: ${Object.keys(data.transport).length}件`);
                     Object.keys(data.transport).forEach(id => {
                         const tData = data.transport[id];
                         const modeEl = document.getElementById(`transport-${id}-mode`);
@@ -2496,251 +2311,13 @@
                 }
 
                 generateMap();
+                showDebugMessage('データ適用が完了しました');
+                
             } catch (error) {
                 console.error('Data application error:', error);
-                alert(getTranslation('importError'));
+                showDebugMessage('データ適用エラー: ' + error.message, true);
+                throw error;
             }
-        }
-
-        function deleteLocationBox(type, index, event) {
-            event.preventDefault();
-            event.stopPropagation();
-            
-            const stateKeys = {
-                'supplier': 'suppliers',
-                'warehouse': 'warehouses',
-                'destination': 'destinations'
-            };
-            
-            const removeFunctions = {
-                'supplier': removeSupplier,
-                'warehouse': removeWarehouse,
-                'destination': removeDestination
-            };
-            
-            const stateKey = stateKeys[type];
-            if (!stateKey || globalState[stateKey].size <= 1) {
-                alert(getTranslation('cannotDeleteLast') || 'Cannot delete the last item');
-                return;
-            }
-            
-            // Call the appropriate remove function
-            removeFunctions[type](parseInt(index));
-        }
-
-        function toggleEditMode() {
-            editMode = !editMode;
-            const mapElement = document.getElementById('logistics-map');
-            const editBtn = document.getElementById('edit-mode-btn');
-            
-            mapElement.classList.toggle('edit-mode', editMode);
-            
-            if (editMode) {
-                editBtn.textContent = getTranslation('editComplete');
-                editBtn.style.background = '#e53e3e';
-                enableDragAndDrop();
-                
-                // Expand map area for better dragging experience - INCREASED VALUES
-                mapElement.style.minWidth = '3000px';
-                mapElement.style.minHeight = '2000px';
-            } else {
-                editBtn.textContent = getTranslation('editMode');
-                editBtn.style.background = '#4a5568';
-                disableDragAndDrop();
-                
-                // Reset map size when exiting edit mode
-                mapElement.style.minWidth = '';
-                mapElement.style.minHeight = '';
-            }
-        }
-        function addTextBox() {
-            textBoxCounter++;
-            const mapElement = document.getElementById('logistics-map');
-            const textBox = document.createElement('div');
-            textBox.className = 'custom-textbox';
-            textBox.contentEditable = true;
-            textBox.innerHTML = `<span>${getTranslation('textPlaceholder')}</span>`;
-            textBox.style.left = '50px';
-            textBox.style.top = '50px';
-            textBox.setAttribute('data-textbox-id', textBoxCounter);
-            
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'delete-textbox';
-            deleteBtn.innerHTML = '×';
-            deleteBtn.onclick = (e) => {
-                e.stopPropagation();
-                // FIXED: Proper cleanup of drag handlers
-                if (dragElements.has(textBox)) {
-                    removeDragHandlers(textBox);
-                }
-                if (textBox.parentNode) {
-                    textBox.parentNode.removeChild(textBox);
-                }
-            };
-            
-            textBox.appendChild(deleteBtn);
-            mapElement.appendChild(textBox);
-            
-            if (editMode) {
-                makeElementDraggable(textBox);
-                textBox.style.border = '1px dashed #3182ce';
-            }
-        }
-
-        function enableDragAndDrop() {
-            document.querySelectorAll('#logistics-map .location-box, #logistics-map .flow-arrow, #logistics-map .custom-textbox').forEach(makeElementDraggable);
-        }
-
-        function disableDragAndDrop() {
-            // FIXED: Proper cleanup of event listeners
-            dragElements.forEach((handlers, element) => {
-                removeDragHandlers(element);
-            });
-            dragElements.clear();
-            
-            // Remove draggable classes
-            document.querySelectorAll('.draggable').forEach(element => {
-                element.classList.remove('draggable');
-            });
-            
-            // FIXED: Reset location boxes to their original positions if needed
-            // Keep absolute positioning for boxes that were moved
-            document.querySelectorAll('#logistics-map .location-box').forEach(locationBox => {
-                if (locationBox.style.position === 'absolute') {
-                    // Keep the absolute position but ensure proper z-index
-                    locationBox.style.zIndex = '';
-                }
-            });
-        }
-
-        function removeDragHandlers(element) {
-            const handlers = dragElements.get(element);
-            if (handlers) {
-                element.removeEventListener('mousedown', handlers.mousedown);
-                dragElements.delete(element);
-            }
-        }
-
-        function makeElementDraggable(element) {
-            // FIXED: Better drag handler management
-            if (dragElements.has(element)) {
-                removeDragHandlers(element);
-            }
-
-            element.classList.add('draggable');
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            let isDragging = false;
-
-            const mouseDownHandler = function(e) {
-                // Prevent dragging when editing text
-
-                
-                e.preventDefault();
-                e.stopPropagation();
-                
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                isDragging = true;
-                
-                // Get current position before changing layout
-                const rect = element.getBoundingClientRect();
-                const mapElement = element.closest('.logistics-map');
-                const mapRect = mapElement.getBoundingClientRect();
-                
-                // FIXED: For location boxes, remove from flexbox layout and attach directly to map
-                let originalParent = null;
-                let originalNextSibling = null;
-                
-                if (element.classList.contains('location-box')) {
-                    originalParent = element.parentNode;
-                    originalNextSibling = element.nextSibling;
-                    
-                    // Store original parent info for restoration
-                    element.setAttribute('data-original-parent', originalParent.className);
-                    element.setAttribute('data-original-index', Array.from(originalParent.children).indexOf(element));
-                    
-                    // Move element directly to map container
-                    mapElement.appendChild(element);
-                }
-                
-                // Calculate precise position accounting for scroll
-                const scrollLeft = mapElement.scrollLeft;
-                const scrollTop = mapElement.scrollTop;
-                
-                element.style.position = 'absolute';
-                element.style.left = (rect.left - mapRect.left + scrollLeft) + 'px';
-                element.style.top = (rect.top - mapRect.top + scrollTop) + 'px';
-                element.style.zIndex = '2000';
-                element.classList.add('dragging');
-                
-                // Add event listeners to document for proper tracking
-                document.addEventListener('mousemove', mouseMoveHandler);
-                document.addEventListener('mouseup', mouseUpHandler);
-            };
-
-            const mouseMoveHandler = function(e) {
-                if (!isDragging) return;
-                
-                e.preventDefault();
-                pos1 = pos3 - e.clientX;
-                pos2 = pos4 - e.clientY;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                
-                const newTop = element.offsetTop - pos2;
-                const newLeft = element.offsetLeft - pos1;
-                
-                // FIXED: Much more generous boundary checking for better dragging experience
-                const mapElement = element.closest('.logistics-map');
-                
-                // Allow dragging in a much larger area (extend beyond current map size)
-                const maxLeft = Math.max(1200, mapElement.scrollWidth + 400);
-                const maxTop = Math.max(800, mapElement.scrollHeight + 400);
-                const minLeft = -100; // Allow dragging slightly outside left edge
-                const minTop = -50;   // Allow dragging slightly outside top edge
-                
-                element.style.top = Math.max(minTop, Math.min(newTop, maxTop)) + "px";
-                element.style.left = Math.max(minLeft, Math.min(newLeft, maxLeft)) + "px";
-                
-                // Dynamically expand map container if element is dragged near edges
-                const currentMapWidth = parseInt(mapElement.style.minWidth) || 1600;
-                const currentMapHeight = parseInt(mapElement.style.minHeight) || 1200;
-                
-                if (newLeft > currentMapWidth - 200) {
-                    mapElement.style.minWidth = (currentMapWidth + 300) + 'px';
-                }
-                if (newTop > currentMapHeight - 200) {
-                    mapElement.style.minHeight = (currentMapHeight + 300) + 'px';
-                }
-            };
-
-            const mouseUpHandler = function() {
-                isDragging = false;
-                element.classList.remove('dragging');
-                element.style.zIndex = '1000';
-                
-                // FIXED: For location boxes, keep them in absolute position instead of returning to flexbox
-                // This allows them to maintain their dragged position
-                if (element.classList.contains('location-box')) {
-                    // Remove the data attributes as they're no longer needed
-                    element.removeAttribute('data-original-parent');
-                    element.removeAttribute('data-original-index');
-                    
-                    // Keep the element in absolute position for free positioning
-                    element.style.position = 'absolute';
-                }
-                
-                // FIXED: Proper cleanup of event listeners
-                document.removeEventListener('mousemove', mouseMoveHandler);
-                document.removeEventListener('mouseup', mouseUpHandler);
-            };
-
-            element.addEventListener('mousedown', mouseDownHandler);
-            
-            // Store handlers for cleanup
-            dragElements.set(element, {
-                mousedown: mouseDownHandler
-            });
         }
 
         function toggleTempControl(index) {
@@ -2752,8 +2329,8 @@
         }
 
         function generateMap() {
-            // FIXED: Validation before generating map
             if (!validateAllInputs()) {
+                showDebugMessage('入力検証エラーがあります', true);
                 alert(getTranslation('validationError'));
                 return;
             }
@@ -2775,7 +2352,7 @@
                     country: countryEl ? countryEl.value : '', 
                     city: cityEl ? cityEl.value : '' 
                 };
-            }).filter(supplier => supplier.name); // Filter out empty suppliers
+            }).filter(supplier => supplier.name);
 
             const warehouses = Array.from(document.querySelectorAll('#warehouses-container .location-item')).map(item => {
                 const index = item.getAttribute('data-index');
@@ -2804,7 +2381,7 @@
                     temperature: temperatureEl ? temperatureEl.value : '', 
                     humidity: humidityEl ? humidityEl.value : '' 
                 };
-            }).filter(warehouse => warehouse.name); // Filter out empty warehouses
+            }).filter(warehouse => warehouse.name);
 
             const destinations = Array.from(document.querySelectorAll('#destinations-container .location-item')).map(item => {
                 const index = item.getAttribute('data-index');
@@ -2821,9 +2398,8 @@
                     country: countryEl ? countryEl.value : '', 
                     city: cityEl ? cityEl.value : '' 
                 };
-            }).filter(destination => destination.name); // Filter out empty destinations
+            }).filter(destination => destination.name);
 
-            // Create sets of existing IDs for validation
             const existingSupplierIds = new Set(suppliers.map(s => s.id));
             const existingWarehouseIds = new Set(warehouses.map(w => w.id));
             const existingDestinationIds = new Set(destinations.map(d => d.id));
@@ -2837,7 +2413,6 @@
                 const from = fromElement.value;
                 const to = toElement.value;
                 
-                // FIXED: Better validation of transport references
                 const fromExists = (from.startsWith('s') && existingSupplierIds.has(from)) ||
                                  (from.startsWith('w') && existingWarehouseIds.has(from));
                 const toExists = (to.startsWith('w') && existingWarehouseIds.has(to)) ||
@@ -2865,18 +2440,6 @@
                     to: to 
                 };
             }).filter(transport => transport !== null);
-            
-            // Preserve existing text boxes and dragged location boxes
-            const existingTextBoxes = Array.from(mapContainer.querySelectorAll('.custom-textbox'));
-            const draggedLocationBoxes = Array.from(mapContainer.querySelectorAll('.location-box[style*="position: absolute"]')).map(box => ({
-                id: box.id,
-                style: {
-                    position: box.style.position,
-                    left: box.style.left,
-                    top: box.style.top,
-                    zIndex: box.style.zIndex
-                }
-            }));
 
             mapContainer.innerHTML = '';
 
@@ -2884,14 +2447,13 @@
             const transportIcons = { truck: '🚛', ship: '🚢', air: '✈️', rail: '🚆' };
             const transportNames = { truck: translation.truck, ship: translation.ship, air: translation.air, rail: translation.rail };
 
-            // Function to create a location box
+            // 場所ボックス作成関数
             const createLocationBox = (item, type) => {
                 let itemClass = `${item.location} ${item.status || ''}`;
                 if (type === 'warehouse' && item.type === 'bonded') itemClass += ' bonded';
 
                 const locationText = item.country || item.city ? `${item.country}${item.country && item.city ? ' ' : ''}${item.city}` : (item.location === 'domestic' ? translation.domestic : translation.overseas);
                 
-                // Define emojis for each type
                 const emojis = {
                     'supplier': '🏭',
                     'warehouse': '🏢',
@@ -2907,7 +2469,6 @@
 
                 return `
                     <div id="${item.id}" class="location-box ${itemClass}" data-type="${type}" data-index="${item.index}">
-                        <button class="delete-location-box" onclick="deleteLocationBox('${type}', '${item.index}', event)">×</button>
                         <div class="location-emoji">${emojis[type]}</div>
                         <div class="location-title">${translation[type + 'Title']}</div>
                         <div class="location-name">${item.name}</div>
@@ -2917,7 +2478,7 @@
                 `;
             };
 
-            // Function to create a transport arrow
+            // 輸送矢印作成関数
             const createTransportArrow = (transport, index) => {
                 let statusDisplayText = '';
                 if (transport.status === 'existing-own') {
@@ -2950,7 +2511,7 @@
                 `;
             };
 
-            // Create groups
+            // グループ作成
             const supplierGroup = document.createElement('div');
             supplierGroup.className = 'location-group';
             supplierGroup.innerHTML = suppliers.map(s => createLocationBox(s, 'supplier')).join('');
@@ -2973,27 +2534,13 @@
 
             mapContainer.append(supplierGroup, transportGroup1, warehouseGroup, transportGroup2, destinationGroup);
 
-            // Re-append text boxes
-            existingTextBoxes.forEach(box => mapContainer.appendChild(box));
-
-            // FIXED: Restore positions of previously dragged location boxes
-            draggedLocationBoxes.forEach(boxData => {
-                const restoredBox = document.getElementById(boxData.id);
-                if (restoredBox) {
-                    // Move to map container and restore absolute positioning
-                    mapContainer.appendChild(restoredBox);
-                    Object.assign(restoredBox.style, boxData.style);
-                }
-            });
-
             updateDynamicLabels();
         }
 
         function updateDynamicLabels() {
-            // Update any dynamic labels if needed
+            // 動的ラベルの更新
         }
 
-        // FIXED: Improved image export with better error handling
         function exportAsImage() {
             const mapElement = document.getElementById('logistics-map');
             const exportBtn = document.querySelector('button[onclick="exportAsImage()"]');
@@ -3005,7 +2552,6 @@
             exportBtn.innerHTML = getTranslation('generating');
 
             try {
-                // FIXED: Better size calculation
                 const fullWidth = Math.max(mapElement.scrollWidth, mapElement.offsetWidth);
                 const fullHeight = Math.max(mapElement.scrollHeight, mapElement.offsetHeight);
 
@@ -3017,7 +2563,6 @@
                     width: fullWidth,
                     height: fullHeight,
                     onclone: (clonedDoc) => {
-                        // Clean up cloned document for export
                         const clonedMap = clonedDoc.getElementById('logistics-map');
                         if (clonedMap) {
                             clonedMap.classList.remove('edit-mode');
@@ -3036,44 +2581,98 @@
                     link.href = canvas.toDataURL('image/png');
                     link.click();
                     
-                    // Cleanup
                     setTimeout(() => {
                         if (link.href.startsWith('blob:')) {
                             URL.revokeObjectURL(link.href);
                         }
                     }, 100);
+                    showDebugMessage('画像エクスポートが完了しました');
                 }).catch(error => {
                     console.error('Image generation failed:', error);
-                    alert('Image generation failed: ' + error.message);
+                    showDebugMessage('画像生成に失敗しました: ' + error.message, true);
+                    alert('画像生成に失敗しました: ' + error.message);
                 }).finally(() => {
                     exportBtn.disabled = false;
                     exportBtn.innerHTML = originalButtonText;
                 });
             } catch (error) {
                 console.error('Image export error:', error);
-                alert('Image export failed: ' + error.message);
+                showDebugMessage('画像エクスポートエラー: ' + error.message, true);
+                alert('画像エクスポートに失敗しました: ' + error.message);
                 exportBtn.disabled = false;
                 exportBtn.innerHTML = originalButtonText;
             }
         }
 
-        // Initialize application
+        function addTextBox() {
+            textBoxCounter++;
+            const mapElement = document.getElementById('logistics-map');
+            const textBox = document.createElement('div');
+            textBox.className = 'custom-textbox';
+            textBox.contentEditable = true;
+            textBox.innerHTML = `<span>${getTranslation('textPlaceholder')}</span>`;
+            textBox.style.left = '50px';
+            textBox.style.top = '50px';
+            textBox.setAttribute('data-textbox-id', textBoxCounter);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-textbox';
+            deleteBtn.innerHTML = '×';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (dragElements.has(textBox)) {
+                    removeDragHandlers(textBox);
+                }
+                if (textBox.parentNode) {
+                    textBox.parentNode.removeChild(textBox);
+                }
+            };
+            
+            textBox.appendChild(deleteBtn);
+            mapElement.appendChild(textBox);
+        }
+
+        function toggleEditMode() {
+            editMode = !editMode;
+            const mapElement = document.getElementById('logistics-map');
+            const editBtn = document.getElementById('edit-mode-btn');
+            
+            mapElement.classList.toggle('edit-mode', editMode);
+            
+            if (editMode) {
+                editBtn.textContent = getTranslation('editComplete');
+                editBtn.style.background = '#e53e3e';
+                mapElement.style.minWidth = '3000px';
+                mapElement.style.minHeight = '2000px';
+            } else {
+                editBtn.textContent = getTranslation('editMode');
+                editBtn.style.background = '#4a5568';
+                mapElement.style.minWidth = '';
+                mapElement.style.minHeight = '';
+            }
+        }
+
+        function removeDragHandlers(element) {
+            const handlers = dragElements.get(element);
+            if (handlers) {
+                element.removeEventListener('mousedown', handlers.mousedown);
+                dragElements.delete(element);
+            }
+        }
+
+        // アプリケーション初期化
         window.onload = function() {
             try {
                 initializeDarkMode();
                 updateTranslations();
-                
-                // Initialize with default data
-                globalState.suppliers.set(0, {});
-                globalState.warehouses.set(0, {});
-                globalState.destinations.set(0, {});
-                
+                updateRemoveButtons();
                 generateTransportForms();
                 generateMap();
-                updateRemoveButtons();
+                showDebugMessage('アプリケーションが正常に初期化されました');
             } catch (error) {
                 console.error('Initialization error:', error);
-                alert('Application initialization failed. Please refresh the page.');
+                showDebugMessage('初期化エラー: ' + error.message, true);
+                alert('アプリケーションの初期化に失敗しました。ページを再読み込みしてください。');
             }
         };
     </script>
