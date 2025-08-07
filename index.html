@@ -6,7 +6,6 @@
   <title>業務用アプリ一覧</title>
 
   <!-- Google tag (gtag.js) -->
- <!-- https://www.googletagmanager.com/gtag/js?id=G-DV9LBPYG0F-->
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
@@ -15,71 +14,258 @@
   </script>
 
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: "Segoe UI", "Helvetica Neue", sans-serif;
-      background-color: #f3f4f6;
-      color: #1f2937;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      justify-content: center;
-      text-align: center;
+    :root {
+      --primary-color: #2563eb;
+      --secondary-color: #1e40af;
+      --accent-color: #3b82f6;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --background: #f8fafc;
+      --card-bg: #ffffff;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --border-color: #e5e7eb;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
 
-    h1 {
-      font-size: 2.2rem;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, var(--background) 0%, #e2e8f0 100%);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
       margin-bottom: 2rem;
+    }
+
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 2rem;
+    }
+
+    .app-card {
+      background: var(--card-bg);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+      border: 1px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    }
+
+    .app-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--accent-color);
+    }
+
+    .app-card.beta::after {
+      content: 'BETA';
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: var(--warning-color);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+    }
+
+    .app-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .app-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .app-description {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      line-height: 1.5;
+      margin-bottom: 1rem;
+    }
+
+    .app-features {
+      list-style: none;
+      margin-bottom: 1.5rem;
+    }
+
+    .app-features li {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.25rem;
+      position: relative;
+      padding-left: 1rem;
+    }
+
+    .app-features li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--success-color);
       font-weight: 600;
     }
 
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    li {
-      margin: 1rem 0;
-    }
-
-    a {
-      display: inline-block;
-      padding: 1rem 2.5rem;
-      border-radius: 0.75rem;
-      background-color: #374151;
-      color: #f9fafb;
+    .app-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 0.75rem 1.5rem;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white;
       text-decoration: none;
-      font-size: 1.05rem;
       font-weight: 500;
-      border: 1px solid #4b5563;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease;
+      border-radius: 0.5rem;
+      transition: all 0.2s ease;
+      font-size: 0.875rem;
     }
 
-    a:hover {
-      background-color: #1f2937;
-      border-color: #1f2937;
+    .app-link:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
     }
 
-    @media (max-width: 600px) {
-      a {
-        width: 80%;
-        font-size: 1rem;
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+
+      .header h1 {
+        font-size: 2rem;
+      }
+
+      .apps-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
       }
     }
   </style>
 </head>
 <body>
-  <h1>業務用アプリ一覧</h1>
-  <ul>
-    <li><a href="automateclp/">コンテナローディングプランナー</a></li>
-    <li><a href="palletizar/">パレタイズ最適化計算機</a></li>
-    <li><a href="opwhiteboard/">オペレーションホワイトボード</a></li>
-    <li><a href="warehousemap/">販売可能面積可視化マップ</a></li>	
-    <li><a href="logimap/">物流マップ自動生成「ベータ版」</a></li>
-  </ul>
+  <div class="container">
+    <div class="header">
+      <h1>業務用アプリ一覧</h1>
+    </div>
+
+    <div class="apps-grid">
+      <div class="app-card">
+        <span class="app-icon">📦</span>
+        <h2 class="app-title">コンテナローディングプランナー</h2>
+        <p class="app-description">
+          コンテナへのパレット積み込みプランを自動最適化。20ft/40ftコンテナに対応し、効率的な積載計画を瞬時に生成します。
+        </p>
+        <ul class="app-features">
+          <li>自動配置計算とマニュアル調整</li>
+          <li>積載率・床面効率のリアルタイム表示</li>
+          <li>ドラッグ&ドロップによる直感的操作</li>
+          <li>配置図の画像エクスポート機能</li>
+        </ul>
+        <a href="automateclp/" class="app-link">アプリを開く →</a>
+      </div>
+
+      <div class="app-card">
+        <span class="app-icon">📚</span>
+        <h2 class="app-title">パレタイズ最適化計算機</h2>
+        <p class="app-description">
+          複数の貨物サイズに対応した最適なパレット配置を自動計算。層別配置図と側面図で視覚的に確認できます。
+        </p>
+        <ul class="app-features">
+          <li>CSVデータインポート・エクスポート</li>
+          <li>高さ制限設定と制限チェック機能</li>
+          <li>理論配置数との比較分析</li>
+          <li>段階的配置戦略による最適化</li>
+        </ul>
+        <a href="palletizar/" class="app-link">アプリを開く →</a>
+      </div>
+
+      <div class="app-card">
+        <span class="app-icon">👥</span>
+        <h2 class="app-title">オペレーションホワイトボード</h2>
+        <p class="app-description">
+          作業員の配置と進捗をリアルタイムで管理するデジタルホワイトボード。時間管理と作業履歴を自動記録します。
+        </p>
+        <ul class="app-features">
+          <li>ドラッグ&ドロップによる作業員配置</li>
+          <li>自動時間計測とタイマー機能</li>
+          <li>詳細な作業ログ記録・CSV出力</li>
+          <li>カスタマイズ可能な作業エリア</li>
+        </ul>
+        <a href="opwhiteboard/" class="app-link">アプリを開く →</a>
+      </div>
+
+      <div class="app-card">
+        <span class="app-icon">🗺️</span>
+        <h2 class="app-title">販売可能面積可視化マップ</h2>
+        <p class="app-description">
+          世界中の倉庫データを地図上で可視化。面積・使用率・空き状況を一目で把握し、効率的な倉庫選択を支援します。
+        </p>
+        <ul class="app-features">
+          <li>インタラクティブな世界地図表示</li>
+          <li>面積・使用率によるカラーコード表示</li>
+          <li>国・州別フィルタリング機能</li>
+          <li>統計サマリーと空き順リスト表示</li>
+        </ul>
+        <a href="warehousemap/" class="app-link">アプリを開く →</a>
+      </div>
+
+      <div class="app-card beta">
+        <span class="app-icon">🌐</span>
+        <h2 class="app-title">物流マップ自動生成</h2>
+        <p class="app-description">
+          調達先・倉庫・輸送ルートを含む物流ネットワークを自動で可視化。複雑な物流網を分かりやすいマップで表現します。
+        </p>
+        <ul class="app-features">
+          <li>調達先・倉庫・輸送ルートの統合管理</li>
+          <li>自動マップ生成と編集モード</li>
+          <li>温度管理倉庫の詳細設定対応</li>
+          <li>多言語対応とCSVデータ管理</li>
+        </ul>
+        <a href="logimap/" class="app-link">ベータ版を試す →</a>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
