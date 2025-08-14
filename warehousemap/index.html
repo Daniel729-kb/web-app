@@ -1039,7 +1039,7 @@
         </div>
     </div>
 
-    <script>
+   <script>
         // ダークモード管理
         let isDarkMode = false;
 
@@ -1085,7 +1085,7 @@
     'beijing': [39.9042, 116.4074], 'shanghai': [31.2304, 121.4737], 'guangzhou': [23.1291, 113.2644], 'shenzhen': [22.5431, 114.0579], 'tianjin': [39.3434, 117.3616], 'wuhan': [30.5928, 114.3055], 'chengdu': [30.5728, 104.0668], 'nanjing': [32.0603, 118.7969], 'xi\'an': [34.3416, 108.9398], 'hangzhou': [30.2741, 120.1551],
     'tokyo': [35.6762, 139.6503], 'osaka': [34.6937, 135.5023], 'yokohama': [35.4437, 139.6380], 'nagoya': [35.1815, 136.9066], 'sapporo': [43.0642, 141.3469], 'fukuoka': [33.5904, 130.4017], 'kobe': [34.6901, 135.1956], 'kyoto': [35.0116, 135.7681],
     'seoul': [37.5665, 126.9780], 'busan': [35.1796, 129.0756], 'incheon': [37.4563, 126.7052], 'daegu': [35.8714, 128.6014],
-    'taoyuan city': [24.9936, 121.3010], // Added Taoyuan coordinates
+    'Taoyuan City': [24.9936, 121.3010], // Added Taoyuan coordinates
     'new york': [40.7128, -74.0060], 'los angeles': [34.0522, -118.2437], 'chicago': [41.8781, -87.6298], 'houston': [29.7604, -95.3698], 'phoenix': [33.4484, -112.0740], 'philadelphia': [39.9526, -75.1652], 'san antonio': [29.4241, -98.4936], 'san diego': [32.7157, -117.1611], 'dallas': [32.7767, -96.7970], 'san francisco': [37.7749, -122.4194], 'seattle': [47.6062, -122.3321], 'denver': [39.7392, -104.9903], 'boston': [42.3601, -71.0589], 'atlanta': [33.7490, -84.3880], 'miami': [25.7617, -80.1918],
     'london': [51.5074, -0.1278], 'paris': [48.8566, 2.3522], 'berlin': [52.5200, 13.4050], 'madrid': [40.4168, -3.7038], 'rome': [41.9028, 12.4964], 'amsterdam': [52.3676, 4.9041], 'barcelona': [41.3851, 2.1734], 'vienna': [48.2082, 16.3738], 'prague': [50.0755, 14.4378], 'budapest': [47.4979, 19.0402], 'warsaw': [52.2297, 21.0122], 'stockholm': [59.3293, 18.0686], 'copenhagen': [55.6761, 12.5683], 'oslo': [59.9139, 10.7522], 'helsinki': [60.1699, 24.9384], 'zurich': [47.3769, 8.5417], 'geneva': [46.2044, 6.1432], 'brussels': [50.8503, 4.3517], 'dublin': [53.3498, -6.2603],
     'sydney': [-33.8688, 151.2093], 'melbourne': [-37.8136, 144.9631], 'brisbane': [-27.4698, 153.0251], 'perth': [-31.9505, 115.8605], 'adelaide': [-34.9285, 138.6007], 'auckland': [-36.8485, 174.7633], 'wellington': [-41.2924, 174.7787],
@@ -1422,7 +1422,7 @@
 
                 const popupContent = document.createElement('div');
                 popupContent.className = 'warehouse-popup';
-                const coordinateInfo = isEstimated ? `<div style="color: #f76707; font-size: 12px; margin-bottom: 5px;">📍 都市座標使用</div>` : `<div style="color: #51cf66; font-size: 12px; margin-bottom: 5px;">📍 GPS座標</div>`;
+                const coordinateInfo = isEstimated ? `<div style="color: #f76707; font-size: 12px; margin-bottom: 5px;">📍 経緯度入力されてないため、都市座標使用</div>` : `<div style="color: #51cf66; font-size: 12px; margin-bottom: 5px;">📍 GPS座標</div>`;
                 const usagePercentage = totalArea > 0 ? Math.round(((totalArea - availableArea) / totalArea) * 100) : 0;
                 popupContent.innerHTML = coordinateInfo + `<div class="popup-header">${warehouse["Warehouse name"] || 'Unknown'}</div><div class="popup-detail"><span>🏙️ 場所:</span> <span>${warehouse.City}, ${warehouse.Country}</span></div><div class="popup-detail"><span>🏢 全体面積:</span> <strong>${totalArea.toLocaleString()} m²</strong></div><div class="popup-detail"><span>📦 販売可能:</span> <strong>${availableArea.toLocaleString()} m²</strong></div><div class="popup-detail"><span>📊 使用率:</span> <strong>${usagePercentage}%</strong></div>`;
                 const chartContainer = document.createElement('div');
@@ -1472,30 +1472,47 @@
             document.getElementById('block-select-all').checked = false;
             document.getElementById('block-select-all').indeterminate = false;
         }
+			// Helper function to normalize country names
+			function normalizeCountryName(name) {
+				if (!name) return null;
+				const normalized = name.trim().toLowerCase();
+				const countryNameMap = {
+        "china": "China",
+        "����": "China",
+        "usa": "United States",
+        "republic of korea": "Korea",
+        "taiwan": "Taiwan",
+        "slovakia ": "Slovakia",
+        "hong kong": "Hong Kong" // Ensure Hong Kong is preserved if distinct
+    };
+    return countryNameMap[normalized] || name.trim();
+}
+function populateCountrySelector() {
+    const countriesContainer = document.getElementById('country-options');
+    let currentBlockData = selectedBlocks.length === 0 
+        ? allWarehouseData 
+        : allWarehouseData.filter(row => selectedBlocks.includes(row["Block name"]));
+    
+    // Normalize and deduplicate country names
+    const countries = [...new Set(currentBlockData.map(row => normalizeCountryName(row.Country)))].filter(Boolean).sort();
+    
+    // Clear search
+    clearSearch('country');
+    
+    countriesContainer.innerHTML = '';
+    countries.forEach(country => {
+        // Count warehouses for the normalized country name
+        const count = currentBlockData.filter(row => normalizeCountryName(row.Country) === country).length;
+        const option = document.createElement('div');
+        option.className = 'multi-select-option';
+        option.innerHTML = `<input type="checkbox" value="${country}" onchange="updateSelectedItems('country')"><span class="option-text">${country}</span><span class="option-count">(${count}棟)</span>`;
+        countriesContainer.appendChild(option);
+    });
 
-        function populateCountrySelector() {
-            const countriesContainer = document.getElementById('country-options');
-            let currentBlockData = selectedBlocks.length === 0 
-                ? allWarehouseData 
-                : allWarehouseData.filter(row => selectedBlocks.includes(row["Block name"]));
-            const countries = [...new Set(currentBlockData.map(row => row.Country))].filter(Boolean).sort();
-            
-            // 検索をクリア
-            clearSearch('country');
-            
-            countriesContainer.innerHTML = '';
-            countries.forEach(country => {
-                const count = currentBlockData.filter(row => row.Country === country).length;
-                const option = document.createElement('div');
-                option.className = 'multi-select-option';
-                option.innerHTML = `<input type="checkbox" value="${country}" onchange="updateSelectedItems('country')"><span class="option-text">${country}</span><span class="option-count">(${count}棟)</span>`;
-                countriesContainer.appendChild(option);
-            });
-
-            // 全て選択状態を初期化
-            document.getElementById('country-select-all').checked = false;
-            document.getElementById('country-select-all').indeterminate = false;
-        }
+    // Reset select-all state
+    document.getElementById('country-select-all').checked = false;
+    document.getElementById('country-select-all').indeterminate = false;
+}
 
         function populateStateSelector() {
             const statesContainer = document.getElementById('state-options');
@@ -1785,80 +1802,83 @@
             section.appendChild(div);
         }
 
-        function processCSVFile(file) {
-            if (!file.name.toLowerCase().endsWith('.csv')) {
-                showMessage('CSVファイルを選択してください。', 'error');
-                return;
-            }
+function processCSVFile(file) {
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        showMessage('CSVファイルを選択してください。', 'error');
+        return;
+    }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const csv = e.target.result;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const csv = e.target.result;
 
-                Papa.parse(csv, {
-                    header: true,
-                    dynamicTyping: true,
-                    skipEmptyLines: true,
-                    delimitersToGuess: [',', '\t', '|', ';'],
-                    complete: function(results) {
-                        try {
-                            allWarehouseData = results.data.filter(row =>
-                                row.Country &&
-                                row["Warehouse floor space (m2)"] > 0
-                            );
+        Papa.parse(csv, {
+            header: true,
+            dynamicTyping: true,
+            skipEmptyLines: true,
+            delimitersToGuess: [',', '\t', '|', ';'],
+            complete: function(results) {
+                try {
+                    // Normalize country names in the data
+                    allWarehouseData = results.data
+                        .map(row => ({
+                            ...row,
+                            Country: normalizeCountryName(row.Country)
+                        }))
+                        .filter(row => row.Country && row["Warehouse floor space (m2)"] > 0);
 
-                            if (allWarehouseData.length === 0) {
-                                showMessage('有効な倉庫データが見つかりませんでした。CSVファイルの内容を確認してください。', 'error');
-                                return;
-                            }
-
-                            warehouseData = allWarehouseData;
-                            selectedBlocks = [];
-                            selectedCountries = [];
-                            selectedStates = [];
-                            selectedCities = [];
-
-                            const countriesCount = [...new Set(allWarehouseData.map(row => row.Country))].length;
-                            const hongKongCount = allWarehouseData.filter(row => row.Country === "Hong Kong").length;
-                            const chinaCount = allWarehouseData.filter(row => row.Country === "China").length;
-                            
-                            let message = `${allWarehouseData.length}件の倉庫データを${countriesCount}カ国から読み込みました。`;
-                            if (hongKongCount > 0) {
-                                message += ` 香港: ${hongKongCount}件`;
-                                if (chinaCount > 0) {
-                                    message += `, 中国: ${chinaCount}件`;
-                                }
-                            }
-                            
-                            showMessage(message, 'success');
-
-                            document.getElementById('controls').style.display = 'flex';
-                            document.getElementById('map').style.display = 'block';
-                            document.getElementById('warehouse-list').style.display = 'flex';
-                            document.querySelector('.loading').style.display = 'none';
-
-                            initMap();
-                            populateBlockSelector();
-                            populateCountrySelector();
-                            populateStateSelector();
-                            populateCitySelector();
-                            setupSearchFunctionality(); // 検索機能を初期化
-                            displayWarehouses();
-                            updateStats();
-                            fitMapToData();
-
-                        } catch (error) {
-                            showMessage('データの処理中にエラーが発生しました: ' + error.message, 'error');
-                        }
-                    },
-                    error: function(error) {
-                        showMessage('CSVファイルの読み込みエラー: ' + error.message, 'error');
+                    if (allWarehouseData.length === 0) {
+                        showMessage('有効な倉庫データが見つかりませんでした。CSVファイルの内容を確認してください。', 'error');
+                        return;
                     }
-                });
-            };
-            reader.onerror = () => showMessage('ファイルの読み込みに失敗しました。', 'error');
-            reader.readAsText(file);
-        }
+
+                    warehouseData = allWarehouseData;
+                    selectedBlocks = [];
+                    selectedCountries = [];
+                    selectedStates = [];
+                    selectedCities = [];
+
+                    const countriesCount = [...new Set(allWarehouseData.map(row => row.Country))].length;
+                    const hongKongCount = allWarehouseData.filter(row => row.Country === "Hong Kong").length;
+                    const chinaCount = allWarehouseData.filter(row => row.Country === "China").length;
+                    
+                    let message = `${allWarehouseData.length}件の倉庫データを${countriesCount}カ国から読み込みました。`;
+                    if (hongKongCount > 0) {
+                        message += ` 香港: ${hongKongCount}件`;
+                        if (chinaCount > 0) {
+                            message += `, 中国: ${chinaCount}件`;
+                        }
+                    }
+                    
+                    showMessage(message, 'success');
+
+                    document.getElementById('controls').style.display = 'flex';
+                    document.getElementById('map').style.display = 'block';
+                    document.getElementById('warehouse-list').style.display = 'flex';
+                    document.querySelector('.loading').style.display = 'none';
+
+                    initMap();
+                    populateBlockSelector();
+                    populateCountrySelector();
+                    populateStateSelector();
+                    populateCitySelector();
+                    setupSearchFunctionality();
+                    displayWarehouses();
+                    updateStats();
+                    fitMapToData();
+
+                } catch (error) {
+                    showMessage('データの処理中にエラーが発生しました: ' + error.message, 'error');
+                }
+            },
+            error: function(error) {
+                showMessage('CSVファイルの読み込みエラー: ' + error.message, 'error');
+            }
+        });
+    };
+    reader.onerror = () => showMessage('ファイルの読み込みに失敗しました。', 'error');
+    reader.readAsText(file);
+}
 
         function setupFileUpload() {
             const fileInput = document.getElementById('file-input');
