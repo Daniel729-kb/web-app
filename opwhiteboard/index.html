@@ -15,7 +15,7 @@
             font-family: var(--font-family-base);
             background-color: var(--bg-primary);
             padding: var(--space-5);
-            touch-action: pan-y;
+            touch-action: none; /* スクロール干渉防止 */
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
@@ -250,14 +250,17 @@
             align-items: center;
             transition: all var(--transition-base);
             border: 1px solid var(--border-color);
+            position: relative; /* タッチドラッグ用 */
         }
 
         .worker-card:hover {
             box-shadow: var(--shadow-md);
         }
 
-        .worker-card.dragging {
+        .worker-card.dragging, .worker-card.dragging-touch {
             opacity: 0.5;
+            transform: scale(1.05); /* タッチドラッグ時の視覚的フィードバック */
+            z-index: 1000; /* 前面に表示 */
         }
 
         .worker-name {
@@ -347,7 +350,7 @@
             }
 
             .worker-card {
-                touch-action: none;
+                touch-action: none; /* デフォルトのタッチ動作を無効化 */
             }
 
             .import-buttons {
@@ -491,15 +494,13 @@
             }
         }
 
-        // 初期化時にダークモードを無効化（ライトモードをデフォルトに）
         function initializeDarkMode() {
-            // システムのダークモード設定を無視してライトモードから開始
             document.body.classList.remove('dark-mode');
             isDarkMode = false;
             updateDarkModeIcon();
         }
 
-        // 既存のJavaScriptをそのまま使用（元のコードをここにコピー）
+        // 初期データ
         let workers = [
             { id: 1, name: '田中太郎' },
             { id: 2, name: '山田花子' },
@@ -517,6 +518,13 @@
         let activeTimers = {};
         let timerIntervals = {};
         let elapsedTimes = {};
+
+        // タッチドラッグ用変数
+        let touchItem = null;
+        let touchOffset = { x: 0, y: 0 };
+        let isDragging = false;
+        let touchStartTime = 0;
+        let draggedWorkerId = null;
 
         // 初期化
         function init() {
@@ -618,8 +626,6 @@
             card.draggable = true;
             card.ondragstart = (e) => handleDragStart(e, worker.id);
             card.ondragend = handleDragEnd;
-            
-            // タッチイベント追加
             card.ontouchstart = (e) => handleTouchStart(e, worker.id);
             card.ontouchmove = handleTouchMove;
             card.ontouchend = handleTouchEnd;
@@ -653,16 +659,18 @@
             return card;
         }
 
-        // ドラッグイベント
-        let draggedWorkerId = null;
-
+        // マウスドラッグイベント
         function handleDragStart(e, workerId) {
-            draggedWorkerId = workerId;
-            e.target.classList.add('dragging');
+            if (!isDragging) { // タッチとマウスの競合防止
+                draggedWorkerId = workerId;
+                e.target.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', workerId);
+            }
         }
 
         function handleDragEnd(e) {
             e.target.classList.remove('dragging');
+            draggedWorkerId = null;
         }
 
         function handleDragOver(e) {
@@ -681,34 +689,95 @@
             }
         }
 
-        // タッチイベント（簡略版）
-        let touchItem = null;
-        let touchOffset = { x: 0, y: 0 };
-
+        // タッチイベント
         function handleTouchStart(e, workerId) {
-            // タッチドラッグの実装（既存コードを参照）
-            console.log('Touch start for worker:', workerId);
+            if (e.touches.length !== 1) return; // マルチタッチ無視
+            const touch = e.touches[0];
+            touchItem = e.currentTarget;
+            draggedWorkerId = workerId;
+            touchStartTime = Date.now();
+            isDragging = false;
+
+            // タッチ位置とカードのオフセットを計算
+            const rect = touchItem.getBoundingClientRect();
+            touchOffset.x = touch.clientX - rect.left;
+            touchOffset.y = touch.clientY - rect.top;
+
+            // ドラッグ開始までの遅延（タップとドラッグの区別）
+            setTimeout(() => {
+                if (touchItem && !isDragging) {
+                    isDragging = true;
+                    touchItem.classList.add('dragging-touch');
+                    touchItem.style.position = 'absolute';
+                    touchItem.style.zIndex = '1000';
+                }
+            }, 200); // 200msの遅延
         }
 
         function handleTouchMove(e) {
-            // タッチ移動の実装
+            if (!touchItem || !isDragging) return;
+            e.preventDefault(); // スクロール防止
+            const touch = e.touches[0];
+
+            // カードの位置をタッチ位置に追従
+            touchItem.style.left = `${touch.clientX - touchOffset.x}px`;
+            touchItem.style.top = `${touch.clientY - touchOffset.y}px`;
+
+            // ドロップターゲットのハイライト
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            document.querySelectorAll('.work-area').forEach(area => area.classList.remove('dragover'));
+            if (target && target.closest('.work-area')) {
+                target.closest('.work-area').classList.add('dragover');
+            }
         }
 
         function handleTouchEnd(e) {
-            // タッチ終了の実装
+            if (!touchItem || !isDragging) {
+                touchItem = null;
+                return;
+            }
+
+            isDragging = false;
+            touchItem.classList.remove('dragging-touch');
+            touchItem.style.position = '';
+            touchItem.style.left = '';
+            touchItem.style.top = '';
+            touchItem.style.zIndex = '';
+
+            // ドロップターゲットの特定
+            const touch = e.changedTouches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetArea = target ? target.closest('.work-area') : null;
+
+            document.querySelectorAll('.work-area').forEach(area => area.classList.remove('dragover'));
+
+            if (targetArea) {
+                const targetAreaId = targetArea.id.replace('area-', '');
+                handleDrop({ preventDefault: () => {} }, targetAreaId);
+            }
+
+            touchItem = null;
+            draggedWorkerId = null;
         }
 
+        // ドロップ処理
         function handleDrop(e, targetAreaId) {
             e.preventDefault();
-            e.currentTarget.classList.remove('dragover');
+            if (e.currentTarget) {
+                e.currentTarget.classList.remove('dragover');
+            }
 
             if (!draggedWorkerId) return;
 
             const workerId = draggedWorkerId;
             const worker = workers.find(w => w.id === workerId);
-            const currentArea = workerPositions[workerId];
+            if (!worker) return; // 作業員が存在しない場合
 
+            const currentArea = workerPositions[workerId];
             if (currentArea === targetAreaId) return;
+
+            const targetArea = workAreas.find(a => a.id === targetAreaId);
+            if (!targetArea) return; // ターゲットエリアが存在しない場合
 
             // 待機エリアから作業エリアへ（作業開始）
             if (currentArea === 'waiting' && targetAreaId !== 'waiting') {
@@ -716,41 +785,45 @@
             }
             // 作業エリアから待機エリアへ（作業終了）
             else if (currentArea !== 'waiting' && targetAreaId === 'waiting') {
-                const startTime = activeTimers[workerId];
-                const endTime = Date.now();
-                const duration = Math.floor((endTime - startTime) / 1000);
+                if (activeTimers[workerId]) {
+                    const startTime = activeTimers[workerId];
+                    const endTime = Date.now();
+                    const duration = Math.floor((endTime - startTime) / 1000);
 
-                const log = {
-                    id: Date.now(),
-                    workerName: worker.name,
-                    workArea: workAreas.find(a => a.id === currentArea)?.name,
-                    startTime: new Date(startTime).toLocaleString('ja-JP'),
-                    endTime: new Date(endTime).toLocaleString('ja-JP'),
-                    duration: duration
-                };
+                    const log = {
+                        id: Date.now(),
+                        workerName: worker.name,
+                        workArea: workAreas.find(a => a.id === currentArea)?.name || '不明',
+                        startTime: new Date(startTime).toLocaleString('ja-JP'),
+                        endTime: new Date(endTime).toLocaleString('ja-JP'),
+                        duration: duration
+                    };
 
-                workLogs.push(log);
-                delete activeTimers[workerId];
-                updateLogsTable();
+                    workLogs.push(log);
+                    delete activeTimers[workerId];
+                    updateLogsTable();
+                }
             }
             // 作業エリア間の移動
             else if (currentArea !== 'waiting' && targetAreaId !== 'waiting') {
-                const startTime = activeTimers[workerId];
-                const endTime = Date.now();
-                const duration = Math.floor((endTime - startTime) / 1000);
+                if (activeTimers[workerId]) {
+                    const startTime = activeTimers[workerId];
+                    const endTime = Date.now();
+                    const duration = Math.floor((endTime - startTime) / 1000);
 
-                const log = {
-                    id: Date.now(),
-                    workerName: worker.name,
-                    workArea: workAreas.find(a => a.id === currentArea)?.name,
-                    startTime: new Date(startTime).toLocaleString('ja-JP'),
-                    endTime: new Date(endTime).toLocaleString('ja-JP'),
-                    duration: duration
-                };
+                    const log = {
+                        id: Date.now(),
+                        workerName: worker.name,
+                        workArea: workAreas.find(a => a.id === currentArea)?.name || '不明',
+                        startTime: new Date(startTime).toLocaleString('ja-JP'),
+                        endTime: new Date(endTime).toLocaleString('ja-JP'),
+                        duration: duration
+                    };
 
-                workLogs.push(log);
-                activeTimers[workerId] = Date.now();
-                updateLogsTable();
+                    workLogs.push(log);
+                    activeTimers[workerId] = Date.now();
+                    updateLogsTable();
+                }
             }
 
             workerPositions[workerId] = targetAreaId;
@@ -804,7 +877,6 @@
         function removeWorkArea(areaId) {
             if (areaId === 'waiting') return;
 
-            // 該当エリアの作業員を待機エリアに戻す
             Object.entries(workerPositions).forEach(([workerId, position]) => {
                 if (position === areaId) {
                     workerPositions[workerId] = 'waiting';
@@ -927,7 +999,6 @@
             };
             reader.readAsText(file, 'UTF-8');
             
-            // ファイル選択をリセット
             event.target.value = '';
         }
 
@@ -939,7 +1010,6 @@
 
         // Enterキーで追加
         document.addEventListener('DOMContentLoaded', () => {
-            // ダークモード初期化（ライトモードから開始）
             initializeDarkMode();
             
             document.getElementById('workerNameInput').addEventListener('keypress', (e) => {
