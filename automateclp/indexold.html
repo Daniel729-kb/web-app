@@ -14,15 +14,116 @@
 
     body {
     font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
-    background: #f8f9fa; /* light mode default */
-    color: #2c3e50;
+    background: #f8f9fa; /* light background */
     min-height: 100vh;
     padding: 20px;
+    color: #333;
+    transition: background-color 0.3s ease, color 0.3s ease;
+	}
+
+    /* Dark mode styles */
+    body[data-theme="dark"] {
+        background: #1a2238;
+        color: #e9ecef;
     }
 
-    body.dark-mode {
-        background: #1a2238; /* dark navy */
-        color: #f8f9fa;
+    body[data-theme="dark"] .header {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+    }
+
+    body[data-theme="dark"] .sidebar {
+        background: #2c3e50;
+        color: #e9ecef;
+    }
+
+    body[data-theme="dark"] .visualization {
+        background: #2c3e50;
+        color: #e9ecef;
+    }
+
+    body[data-theme="dark"] .form-group label {
+        color: #e9ecef;
+    }
+
+    body[data-theme="dark"] .form-group input,
+    body[data-theme="dark"] .form-group select {
+        background: #34495e;
+        border-color: #4a5568;
+        color: #e9ecef;
+    }
+
+    body[data-theme="dark"] .form-group input:focus,
+    body[data-theme="dark"] .form-group select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    body[data-theme="dark"] .preset-btn {
+        background: #4a5568;
+        border-color: #5a6c7d;
+        color: #e9ecef;
+    }
+
+    body[data-theme="dark"] .preset-btn:hover {
+        background: #667eea;
+        color: white;
+    }
+
+    body[data-theme="dark"] .pallet-list {
+        background: #34495e;
+        border-color: #4a5568;
+    }
+
+    body[data-theme="dark"] .pallet-item {
+        background: #4a5568;
+        border-color: #5a6c7d;
+        color: #e9ecef;
+    }
+
+    body[data-theme="dark"] .container-floor {
+        background: #34495e;
+        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+    }
+
+    body[data-theme="dark"] .container-info {
+        background: #4a5568;
+        border-color: #5a6c7d;
+        color: #e9ecef;
+    }
+
+    body[data-theme="dark"] .legend {
+        background: #34495e;
+        border-color: #4a5568;
+        color: #e9ecef;
+    }
+
+    body[data-theme="dark"] .manual-instructions {
+        background: #7a6b3a;
+        border-color: #8b7739;
+        color: #f4e7a1;
+    }
+
+    body[data-theme="dark"] .unloaded-summary {
+        background: #7a6b3a;
+        border-color: #8b7739;
+        color: #f4e7a1;
+    }
+
+    body[data-theme="dark"] .unloaded-item {
+        background: rgba(255, 193, 7, 0.15);
+        color: #f4e7a1;
+    }
+
+    body[data-theme="dark"] .error-message {
+        background: #5d2e2e;
+        color: #f8d7da;
+        border-color: #6b3a3a;
+    }
+
+    body[data-theme="dark"] .success-message {
+        background: #2e5d3e;
+        color: #d4edda;
+        border-color: #3a6b4a;
     }
 
     .container {
@@ -35,10 +136,13 @@
     }
 
     .header {
-        background: linear-gradient(135deg, #2c3e50, #34495e);
+        background: linear-gradient(135deg, #4a90e2, #5ba3f5);
         color: white;
         padding: 30px;
         text-align: center;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         position: relative;
     }
 
@@ -52,48 +156,47 @@
         font-size: 1.1rem;
     }
 
-    /* === ヘッダーコントロール === */
-    .header-controls {
+    .theme-toggle {
         position: absolute;
         top: 20px;
-        right: 30px;
-        display: flex;
-        gap: 10px;
-        align-items: center;
-    }
-
-    .dark-mode-toggle {
-        background: rgba(255, 255, 255, 0.1);
-        border: none;
-        border-radius: 6px;
-        padding: 6px;
-        color: rgba(255, 255, 255, 0.8);
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-size: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-    }
-
-    .dark-mode-toggle:hover {
+        right: 20px;
         background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50px;
+        padding: 8px 16px;
         color: white;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        backdrop-filter: blur(10px);
+    }
+
+    .theme-toggle:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-1px);
+    }
+
+    .theme-icon {
+        font-size: 16px;
+        transition: transform 0.3s ease;
     }
 
     .main-content {
         display: grid;
         grid-template-columns: 320px 1fr;
-        gap: 0;
+        gap: 20px;
         min-height: 700px;
     }
 
     .sidebar {
-        background: none;
+        background: white;
         padding: 30px;
-        border-right: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        height: fit-content;
     }
 
     .form-group {
@@ -107,10 +210,6 @@
         color: #2c3e50;
     }
 
-    body.dark-mode .form-group label {
-        color: #f8f9fa;
-    }
-
     .form-group input,
     .form-group select {
         width: 100%;
@@ -120,21 +219,13 @@
         font-size: 14px;
         transition: all 0.3s ease;
         background: white;
-        color: #2c3e50;
-    }
-
-    body.dark-mode .form-group input,
-    body.dark-mode .form-group select {
-        background: #34495e;
-        color: #f8f9fa;
-        border-color: #495057;
     }
 
     .form-group input:focus,
     .form-group select:focus {
         outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
     }
 
     .dimensions-grid {
@@ -153,7 +244,7 @@
     .preset-btn {
         padding: 8px 6px;
         background: #e9ecef;
-        border: none;
+        border: 1px solid #dee2e6;
         border-radius: 6px;
         cursor: pointer;
         font-size: 11px;
@@ -165,12 +256,6 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #2c3e50;
-    }
-
-    body.dark-mode .preset-btn {
-        background: #495057;
-        color: #f8f9fa;
     }
 
     .preset-btn:nth-child(5) {
@@ -180,7 +265,7 @@
     }
 
     .preset-btn:hover {
-        background: #667eea;
+        background: #4a90e2;
         color: white;
     }
 
@@ -190,7 +275,7 @@
     .export-btn {
         width: 100%;
         padding: 15px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        background: linear-gradient(135deg, #4a90e2, #5ba3f5);
         color: white;
         border: none;
         border-radius: 10px;
@@ -200,6 +285,7 @@
         transition: all 0.3s ease;
         margin-bottom: 15px;
         font-family: inherit;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .test-btn {
@@ -207,7 +293,7 @@
     }
 
     .export-btn {
-        background: linear-gradient(135deg, #5bc0de, #337ab7);
+        background: linear-gradient(135deg, #17a2b8, #138496);
     }
 
     .add-pallet-btn:hover,
@@ -215,21 +301,16 @@
     .test-btn:hover,
     .export-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
 
     .pallet-list {
         max-height: 200px;
         overflow-y: auto;
-        background: white;
+        background: #f8f9fa;
         border-radius: 8px;
         padding: 15px;
         border: 1px solid #e9ecef;
-    }
-
-    body.dark-mode .pallet-list {
-        background: #34495e;
-        border-color: #495057;
     }
 
     .pallet-item {
@@ -238,15 +319,10 @@
         align-items: center;
         padding: 10px;
         margin-bottom: 8px;
-        background: #f8f9fa;
+        background: white;
         border-radius: 6px;
         font-size: 14px;
-        color: #2c3e50;
-    }
-
-    body.dark-mode .pallet-item {
-        background: #495057;
-        color: #f8f9fa;
+        border: 1px solid #e9ecef;
     }
 
     .pallet-item .remove-btn {
@@ -261,7 +337,9 @@
 
     .visualization {
         padding: 30px;
-        background: none;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 
     .container-view {
@@ -282,19 +360,15 @@
     }
 
     .container-floor {
-        background: #e9ecef;
+        background: #f8f9fa;
         border: 3px solid #e74c3c;
         border-radius: 8px;
         position: absolute;
         left: 0;
         top: 0;
-        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
         width: 600px;
         height: 300px;
-    }
-
-    body.dark-mode .container-floor {
-        background: #34495e;
     }
 
     .container-floor::before {
@@ -310,28 +384,29 @@
 
     .pallet-2d {
         position: absolute;
-        border: 2px solid rgba(255, 255, 255, 0.3);
+        border: 2px solid rgba(0, 0, 0, 0.2);
         border-radius: 4px;
         cursor: grab;
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         touch-action: none;
         transition: box-shadow 0.2s ease, background 0.2s ease;
     }
 
     .pallet-2d:hover {
-        filter: brightness(1.2);
+        filter: brightness(1.1);
         z-index: 10;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
     .pallet-2d.dragging {
         cursor: grabbing;
         z-index: 1000;
         opacity: 0.8;
-        box-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
     }
 
     .pallet-2d.colliding {
@@ -345,7 +420,7 @@
     }
 
     .pallet-2d.bottom-placed {
-        opacity: 0.9;
+        opacity: 0.8;
         border-color: rgba(108, 117, 125, 0.8);
         box-shadow: 0 0 0 2px rgba(108, 117, 125, 0.4);
     }
@@ -395,7 +470,7 @@
     }
 
     .rotate-btn:hover {
-        background: rgba(0, 100, 200, 0.8);
+        background: rgba(74, 144, 226, 0.8);
     }
 
     .delete-btn:hover {
@@ -410,7 +485,7 @@
     }
 
     .stat-card {
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        background: linear-gradient(135deg, #4a90e2, #5ba3f5);
         color: white;
         padding: 18px;
         border-radius: 12px;
@@ -419,6 +494,7 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .stat-value {
@@ -442,7 +518,7 @@
         width: 40px;
         height: 40px;
         border: 4px solid #f3f3f3;
-        border-top: 4px solid #667eea;
+        border-top: 4px solid #4a90e2;
         border-radius: 50%;
         animation: spin 1s linear infinite;
         margin: 0 auto 20px;
@@ -465,25 +541,17 @@
         border-radius: 8px;
         margin-bottom: 20px;
         display: none;
-    }
-
-    body.dark-mode .error-message {
-        background: #721c24;
-        color: #f8d7da;
+        border: 1px solid #f5c6cb;
     }
 
     .success-message {
-        background: #d1edff;
-        color: #0c5460;
+        background: #d4edda;
+        color: #155724;
         padding: 15px;
         border-radius: 8px;
         margin-bottom: 20px;
         display: none;
-    }
-
-    body.dark-mode .success-message {
-        background: #0c5460;
-        color: #d1edff;
+        border: 1px solid #c3e6cb;
     }
 
     .container-info {
@@ -493,12 +561,7 @@
         margin-bottom: 20px;
         text-align: center;
         font-weight: 500;
-        color: #2c3e50;
-    }
-
-    body.dark-mode .container-info {
-        background: #34495e;
-        color: #f8f9fa;
+        border: 1px solid #dee2e6;
     }
 
     .legend {
@@ -509,10 +572,7 @@
         padding: 15px;
         background: #f8f9fa;
         border-radius: 8px;
-    }
-
-    body.dark-mode .legend {
-        background: #34495e;
+        border: 1px solid #e9ecef;
     }
 
     .legend-item {
@@ -520,18 +580,13 @@
         align-items: center;
         gap: 8px;
         font-size: 14px;
-        color: #2c3e50;
-    }
-
-    body.dark-mode .legend-item {
-        color: #f8f9fa;
     }
 
     .legend-color {
         width: 20px;
         height: 20px;
         border-radius: 4px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
+        border: 2px solid rgba(0, 0, 0, 0.2);
     }
 
     .manual-instructions {
@@ -544,19 +599,9 @@
         color: #856404;
     }
 
-    body.dark-mode .manual-instructions {
-        background: #4a3b1a;
-        border-color: #856404;
-        color: #fff3cd;
-    }
-
     .manual-instructions h4 {
         margin-bottom: 8px;
         color: #856404;
-    }
-
-    body.dark-mode .manual-instructions h4 {
-        color: #fff3cd;
     }
 
     .manual-instructions ul {
@@ -571,19 +616,10 @@
         margin-bottom: 20px;
     }
 
-    body.dark-mode .unloaded-summary {
-        background: #4a3b1a;
-        border-color: #856404;
-    }
-
     .unloaded-summary h4 {
         color: #856404;
         margin-bottom: 10px;
         font-size: 14px;
-    }
-
-    body.dark-mode .unloaded-summary h4 {
-        color: #fff3cd;
     }
 
     .unloaded-item {
@@ -597,22 +633,16 @@
         font-size: 13px;
         color: #856404;
     }
-
-    body.dark-mode .unloaded-item {
-        background: rgba(255, 193, 7, 0.2);
-        color: #fff3cd;
-    }
 </style>
 
 </head>
 <body>
 <div class="container">
 <div class="header">
-<div class="header-controls">
-<button class="dark-mode-toggle" id="darkModeToggle" title="ダークモード切り替え">
-🌙
+<button class="theme-toggle" id="themeToggle">
+<span class="theme-icon">🌙</span>
+<span class="theme-text">ダーク</span>
 </button>
-</div>
 <h1>コンテナローディングプランナー</h1>
 <p>パレット情報と枚数を入力→ワンクリックで自動配置</p>
 </div>
@@ -657,7 +687,7 @@
 <label for="clearanceValue">クリアランス (cm)</label>
 <input id="clearanceValue" max="15" min="1" placeholder="クリアランス" step="0.5" type="number" value="1"/>
 <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
-パレット間の最小間隔を設定（0.5cm刻み調整可能）<br/>
+                        パレット間の最小間隔を設定（0.5cm刻み調整可能）<br/>
 <strong>※計算時に適用されます（0=隙間なし配置で最大積載）</strong>
 </small>
 </div>
@@ -669,7 +699,7 @@
 </div>
 </div>
 <button class="test-btn" id="testBtn" type="button">🧪 テストケース実行</button>
-<button class="calculate-btn" id="calculateBtn" type="button">🔄 積載プランを計算</button>
+<button class="calculate-btn" id="calculateBtn" type="button">📄 積載プランを計算</button>
 <button class="export-btn" id="exportBtn" style="display: none;" type="button">🖼️ 配置図を画像で保存</button>
 </div>
 <div class="visualization">
@@ -690,7 +720,7 @@
 <li>🗑️ 削除ボタンで不要なパレットを除去</li>
 <li>🔴 赤い枠線はコンテナ枠外配置を示します</li>
 <li>📦 グレー枠線は下側配置（自動で配置されたもの）</li>
-<li>🔄 同じサイズでも個別に向きを変更可能</li>
+<li>📄 同じサイズでも個別に向きを変更可能</li>
 <li>✨ 境界制限なし：コンテナ枠線ぴったりまで配置可能</li>
 </ul>
 </div>
@@ -735,8 +765,8 @@
 <script>
         // 定数の一元管理
         const CONSTANTS = {
-            CONTAINER_OFFSET_X: 25,
-            CONTAINER_OFFSET_Y: 35,
+            CONTAINER_OFFSET_X: 30,
+            CONTAINER_OFFSET_Y: 30,
             CONTAINER_DISPLAY_WIDTH: 800,
             CONTAINER_DISPLAY_HEIGHT: 300,
             MIN_DRAG_MARGIN: 10,
@@ -747,6 +777,7 @@
         // グローバル変数
         let pallets = [];
         let allPalletsGenerated = [];
+        let currentTheme = 'light'; // テーマ状態管理
         let renderConfig = {
             scale: 1,
             containerOffset: { x: CONSTANTS.CONTAINER_OFFSET_X, y: CONSTANTS.CONTAINER_OFFSET_Y },
@@ -779,26 +810,8 @@
             stats: document.getElementById('stats'),
             errorMessage: document.getElementById('errorMessage'),
             successMessage: document.getElementById('successMessage'),
-            darkModeToggle: document.getElementById('darkModeToggle')
+            themeToggle: document.getElementById('themeToggle')
         };
-
-        // ダークモード初期化
-        function initDarkMode() {
-            const isDarkMode = localStorage.getItem('darkMode') === 'true';
-            if (isDarkMode) {
-                document.body.classList.add('dark-mode');
-                elements.darkModeToggle.textContent = '☀️';
-            } else {
-                elements.darkModeToggle.textContent = '🌙';
-            }
-
-            elements.darkModeToggle.addEventListener('click', () => {
-                document.body.classList.toggle('dark-mode');
-                const isDark = document.body.classList.contains('dark-mode');
-                localStorage.setItem('darkMode', isDark);
-                elements.darkModeToggle.textContent = isDark ? '☀️' : '🌙';
-            });
-        }
 
         // ユーティリティ関数
         const utils = {
@@ -826,6 +839,32 @@
                 const scaleX = CONSTANTS.CONTAINER_DISPLAY_WIDTH / container.length;
                 const scaleY = CONSTANTS.CONTAINER_DISPLAY_HEIGHT / container.width;
                 return Math.min(scaleX, scaleY);
+            }
+        };
+
+        // テーマ管理
+        const themeManager = {
+            toggle: function() {
+                currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+                this.apply();
+                this.updateButton();
+            },
+            
+            apply: function() {
+                document.body.setAttribute('data-theme', currentTheme);
+            },
+            
+            updateButton: function() {
+                const icon = elements.themeToggle.querySelector('.theme-icon');
+                const text = elements.themeToggle.querySelector('.theme-text');
+                
+                if (currentTheme === 'dark') {
+                    icon.textContent = '☀️';
+                    text.textContent = 'ライト';
+                } else {
+                    icon.textContent = '🌙';
+                    text.textContent = 'ダーク';
+                }
             }
         };
 
@@ -1012,35 +1051,12 @@
                 // 自動配置
                 packPallets2D(allPalletsGenerated.filter(p => !p.deleted), container, clearance);
                 
-                // 配置済みパレットを中央に移動
-                const placedPallets = allPalletsGenerated.filter(p => p.placed);
-                if (placedPallets.length > 0) {
-                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-                    placedPallets.forEach(p => {
-                        minX = Math.min(minX, p.x);
-                        minY = Math.min(minY, p.y);
-                        maxX = Math.max(maxX, p.x + p.finalLength);
-                        maxY = Math.max(maxY, p.y + p.finalWidth);
-                    });
-
-                    const placementWidth = maxX - minX;
-                    const placementHeight = maxY - minY;
-
-                    const offsetX = (container.length - placementWidth) / 2 - minX;
-                    const offsetY = (container.width - placementHeight) / 2 - minY;
-
-                    placedPallets.forEach(p => {
-                        p.x += offsetX;
-                        p.y += offsetY;
-                    });
-                }
-                
                 const placedCount = allPalletsGenerated.filter(p => p.placed).length;
                 const rotatedCount = allPalletsGenerated.filter(p => p.placed && p.rotated).length;
                 
                 elements.loadingAnimation.style.display = 'none';
-                elements.manualInstructions.style.display = 'block';
                 elements.exportBtn.style.display = 'block';
+                elements.manualInstructions.style.display = 'block';
                 
                 renderAllPallets(container);
                 updateStats(container);
@@ -1073,9 +1089,7 @@
                 console.log(`  ${key}: ${pallets.length}個`);
             });
             
-            let specialMaxX = 0;
-            
-            // 100×125パレットの特殊配置パターン
+            // 100×125パレットの特殊配置パターンを試行
             if (groups['100x125'] && groups['100x125'].length >= 8) {
                 const specialPlaced = trySpecialPattern100x125(groups['100x125'], container, clearance);
                 if (specialPlaced.length > 0) {
@@ -1099,15 +1113,13 @@
                             length: p.finalLength,
                             width: p.finalWidth
                         });
-                        specialMaxX = Math.max(specialMaxX, p.x + p.finalLength);
                     });
                 }
             }
             
             // 110×110パレットをグリッド配置
             if (groups['110x110']) {
-                const startX = specialMaxX + clearance;
-                const gridPlaced = placeGridPattern(groups['110x110'], container, clearance, placed, startX);
+                const gridPlaced = placeGridPattern(groups['110x110'], container, clearance, placed);
                 gridPlaced.forEach(p => {
                     const original = allPalletsGenerated.find(pallet => 
                         pallet.id === p.id && pallet.instance === p.instance
@@ -1217,66 +1229,95 @@
             const placedPallets = [];
             const areaPlaced = [];
             
-            const topPattern = [true, false, true, false]; // rotated for top row
-            const bottomPattern = [false, true, false, true]; // rotated for bottom row
+            // 配置パターン定義（横向き=true, 縦向き=false）
+            const pattern = [
+                // 上段: 横、縦、横、縦
+                { row: 0, col: 0, rotated: true },   // 125×100
+                { row: 0, col: 1, rotated: false },  // 100×125
+                { row: 0, col: 2, rotated: true },   // 125×100
+                { row: 0, col: 3, rotated: false },  // 100×125
+                // 下段: 縦、横、縦、横
+                { row: 1, col: 0, rotated: false },  // 100×125
+                { row: 1, col: 1, rotated: true },   // 125×100
+                { row: 1, col: 2, rotated: false },  // 100×125
+                { row: 1, col: 3, rotated: true }    // 125×100
+            ];
             
+            let palletIndex = 0;
             const startX = 0;
             const startY = 0;
             
-            let topX = startX;
-            let colHeights = [];
-            
-            // Place top row
-            topPattern.forEach((rotated, col) => {
-                if (placedPallets.length >= pallets.length) return;
+            pattern.forEach((pos, index) => {
+                if (palletIndex >= pallets.length) return;
                 
-                const pallet = pallets[placedPallets.length];
-                const length = rotated ? 125 : 100;
-                const width = rotated ? 100 : 125;
-                const x = topX;
-                const y = startY;
+                const pallet = pallets[palletIndex];
+                let x, y, length, width;
                 
-                if (canPlace2D(x, y, length, width, areaPlaced, clearance, container)) {
-                    placedPallets.push({
-                        ...pallet,
-                        x,
-                        y,
-                        finalLength: length,
-                        finalWidth: width,
-                        rotated,
-                        placed: true
-                    });
-                    
-                    areaPlaced.push({ x, y, length, width });
-                    colHeights[col] = width;
-                    topX += length + clearance;
+                if (pos.row === 0) {
+                    // 上段の配置
+                    if (pos.col === 0) {
+                        x = startX;
+                        length = pos.rotated ? 125 : 100;
+                        width = pos.rotated ? 100 : 125;
+                    } else if (pos.col === 1) {
+                        x = startX + 125 + clearance;
+                        length = pos.rotated ? 125 : 100;
+                        width = pos.rotated ? 100 : 125;
+                    } else if (pos.col === 2) {
+                        x = startX + 125 + 100 + clearance * 2;
+                        length = pos.rotated ? 125 : 100;
+                        width = pos.rotated ? 100 : 125;
+                    } else {
+                        x = startX + 125 + 100 + 125 + clearance * 3;
+                        length = pos.rotated ? 125 : 100;
+                        width = pos.rotated ? 100 : 125;
+                    }
+                    y = startY;
+                } else {
+                    // 下段の配置
+                    if (pos.col === 0) {
+                        x = startX;
+                        length = pos.rotated ? 125 : 100;
+                        width = pos.rotated ? 100 : 125;
+                    } else if (pos.col === 1) {
+                        x = startX + 100 + clearance;
+                        length = pos.rotated ? 125 : 100;
+                        width = pos.rotated ? 100 : 125;
+                    } else if (pos.col === 2) {
+                        x = startX + 100 + 125 + clearance * 2;
+                        length = pos.rotated ? 125 : 100;
+                        width = pos.rotated ? 100 : 125;
+                    } else {
+                        x = startX + 100 + 125 + 100 + clearance * 3;
+                        length = pos.rotated ? 125 : 100;
+                        width = pos.rotated ? 100 : 125;
+                    }
+                    y = startY + 125 + clearance;  // 下段は125cm下（上段の高さは100と125の最大値）
                 }
-            });
-            
-            // Place bottom row
-            let bottomX = startX;
-            bottomPattern.forEach((rotated, col) => {
-                if (placedPallets.length >= pallets.length) return;
                 
-                const pallet = pallets[placedPallets.length];
-                const length = rotated ? 125 : 100;
-                const width = rotated ? 100 : 125;
-                const x = bottomX;
-                const y = startY + (colHeights[col] || 0) + clearance;
-                
-                if (y + width <= container.width && canPlace2D(x, y, length, width, areaPlaced, clearance, container)) {
+                // 配置可能かチェック
+                if (x + length <= container.length && y + width <= container.width &&
+                    canPlace2D(x, y, length, width, areaPlaced, 0)) {
+                    
                     placedPallets.push({
                         ...pallet,
-                        x,
-                        y,
+                        x: x,
+                        y: y,
                         finalLength: length,
                         finalWidth: width,
-                        rotated,
+                        rotated: pos.rotated,
                         placed: true
                     });
                     
-                    areaPlaced.push({ x, y, length, width });
-                    bottomX += length + clearance;
+                    areaPlaced.push({
+                        x: x,
+                        y: y,
+                        length: length,
+                        width: width
+                    });
+                    
+                    palletIndex++;
+                    console.log(`100×125 配置: ${pos.rotated ? '横' : '縦'}向き at (${x}, ${y})`);
                 }
             });
             
@@ -1284,10 +1325,14 @@
         }
         
         // グリッドパターン配置（110×110用）
-        function placeGridPattern(pallets, container, clearance, alreadyPlaced, startX) {
+        function placeGridPattern(pallets, container, clearance, alreadyPlaced) {
             const placedPallets = [];
             const length = 110;
             const width = 110;
+            
+            // 100×125の配置エリアを避けて右側に配置
+            const startX = 500 + clearance;  // 100×125エリアの右側
+            const startY = 0;
             
             const cols = Math.floor((container.length - startX) / (length + clearance));
             const rows = Math.floor(container.width / (width + clearance));
@@ -1297,7 +1342,7 @@
             for (let row = 0; row < rows && palletIndex < pallets.length; row++) {
                 for (let col = 0; col < cols && palletIndex < pallets.length; col++) {
                     const x = startX + col * (length + clearance);
-                    const y = row * (width + clearance);
+                    const y = startY + row * (width + clearance);
                     
                     if (canPlace2D(x, y, length, width, alreadyPlaced, clearance)) {
                         const pallet = pallets[palletIndex++];
@@ -1318,7 +1363,7 @@
             
             return placedPallets;
         }
-
+        
         // エリア分割配置戦略
         function tryAreaDivisionPlacement(groups, container, clearance) {
             const placedPallets = [];
@@ -1344,7 +1389,7 @@
             if ((group1[0].length === 100 && group1[0].width === 125 && group2[0].length === 110) ||
                 (group2[0].length === 100 && group2[0].width === 125 && group1[0].length === 110)) {
                 
-                // 100x125を左,110x110を右に配置
+                // 100x125を左、110x110を右に配置
                 const divX = 500; // 100x125用に約500cm確保
                 const leftArea = { x: 0, y: 0, width: divX, height: container.width };
                 const rightArea = { x: divX, y: 0, width: container.length - divX, height: container.width };
@@ -1976,6 +2021,7 @@
             elements.calculateBtn.addEventListener('click', calculateLoading);
             elements.testBtn.addEventListener('click', runTestCase);
             elements.exportBtn.addEventListener('click', exportLayoutAsImage);
+            elements.themeToggle.addEventListener('click', () => themeManager.toggle());
             elements.containerType.addEventListener('change', () => {
                 updateContainerInfo();
                 clearResults();
@@ -2005,10 +2051,10 @@
 
         // 初期化
         function init() {
-            initDarkMode();
             setupPresetButtons();
             setupEventListeners();
             updateContainerInfo();
+            themeManager.updateButton(); // テーマボタンの初期状態設定
         }
 
         document.addEventListener('DOMContentLoaded', init);
