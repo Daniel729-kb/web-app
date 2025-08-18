@@ -168,7 +168,7 @@
         
         .modal-content {
             background-color: white;
-            margin: 15% auto;
+            margin: 5% auto;
             padding: 20px;
             border-radius: 8px;
             width: 400px;
@@ -285,6 +285,22 @@
         .gantt_scale_line:first-child .gantt_scale_cell {
             color: #495057 !important;
         }
+        
+        /* Priority cell styling */
+        .priority-cell, .department-cell {
+            transition: all 0.2s ease !important;
+            border: 1px solid transparent !important;
+        }
+        
+        .priority-cell:hover, .department-cell:hover {
+            background: #e9ecef !important;
+            border-color: #adb5bd !important;
+            transform: scale(1.05);
+        }
+        
+        .priority-cell:active, .department-cell:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
@@ -309,14 +325,8 @@
         <button class="btn btn-success" onclick="exportData()">
             💾 エクスポート
         </button>
-        <button class="btn" onclick="toggleView()">
-            📅 表示切替
-        </button>
         <button class="btn btn-warning" onclick="createTaskLink()">
             🔗 タスクリンク
-        </button>
-        <button class="btn btn-danger" onclick="clearCompleted()">
-            🗑️ 完了削除
         </button>
         
         <div class="status-info">
@@ -357,9 +367,13 @@
                     <label for="taskProgress">進捗 (%):</label>
                     <input type="number" id="taskProgress" name="progress" min="0" max="100" value="0">
                 </div>
-                <div style="text-align: right; margin-top: 20px;">
-                    <button type="button" class="btn" onclick="closeTaskModal()">キャンセル</button>
+                <div class="form-group">
+                    <label for="taskDepartment">担当箇所:</label>
+                    <input type="text" id="taskDepartment" name="department" placeholder="担当箇所を入力">
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 20px;">
                     <button type="submit" class="btn btn-success">タスク保存</button>
+                    <button type="button" class="btn" onclick="closeTaskModal()">キャンセル</button>
                 </div>
             </form>
         </div>
@@ -528,15 +542,20 @@
             
             // Grid configuration
             gantt.config.columns = [
-                {name: "text", label: "タスク名", width: 200, tree: true},
+                {name: "text", label: "タスク名", width: 180, tree: true},
                 {name: "start_date", label: "開始日", width: 80},
-                {name: "duration", label: "期間", width: 60, align: "center"},
-                {name: "progress", label: "進捗", width: 80, template: function(obj) {
+                {name: "duration", label: "期間", width: 50, align: "center"},
+                {name: "progress", label: "進捗", width: 70, template: function(obj) {
                     return Math.round(obj.progress * 100) + "%";
                 }},
                 {name: "priority", label: "優先度", width: 80, template: function(obj) {
                     const priorities = {high: "🔴 高", medium: "🟡 中", low: "🟢 低"};
-                    return priorities[obj.priority] || "🔵 通常";
+                    const priorityText = priorities[obj.priority] || "🔵 通常";
+                    return `<span class="priority-cell" data-task-id="${obj.id}" style="cursor: pointer; padding: 4px 8px; border-radius: 4px; background: #f8f9fa;">${priorityText}</span>`;
+                }},
+                {name: "department", label: "担当箇所", width: 100, template: function(obj) {
+                    const departmentText = obj.department || "未設定";
+                    return `<span class="department-cell" data-task-id="${obj.id}" style="cursor: pointer; padding: 4px 8px; border-radius: 4px; background: #f8f9fa;">${departmentText}</span>`;
                 }},
                 {name: "add", label: "", width: 44}
             ];
@@ -555,11 +574,13 @@
             
             gantt.templates.tooltip_text = function(start, end, task) {
                 const priority = task.priority ? {high: "高", medium: "中", low: "低"}[task.priority] : "通常";
+                const department = task.department || "未設定";
                 return `<b>タスク:</b> ${task.text}<br/>
                         <b>開始日:</b> ${gantt.templates.tooltip_date_format(start)}<br/>
                         <b>終了日:</b> ${gantt.templates.tooltip_date_format(end)}<br/>
                         <b>進捗:</b> ${Math.round(task.progress * 100)}%<br/>
                         <b>優先度:</b> ${priority}<br/>
+                        <b>担当箇所:</b> ${department}<br/>
                         <b>期間:</b> ${task.duration} 日`;
             };
             
@@ -569,37 +590,37 @@
             // Japanese warehouse operation sample data
             gantt.parse({
                 data: [
-                    {id: 1, text: "倉庫運営システム導入", start_date: null, duration: null, parent: 0, progress: 0, open: true, priority: "high"},
+                    {id: 1, text: "倉庫運営システム導入", start_date: null, duration: null, parent: 0, progress: 0, open: true, priority: "high", department: "本社"},
                     
                     // Phase 1: Planning
-                    {id: 2, text: "計画フェーズ", start_date: null, duration: null, parent: 1, progress: 0.3, open: true, priority: "high"},
-                    {id: 3, text: "要件定義", start_date: "2025-08-01 00:00", duration: 5, parent: 2, progress: 0.8, priority: "high"},
-                    {id: 4, text: "現状分析", start_date: "2025-08-06 00:00", duration: 3, parent: 2, progress: 0.5, priority: "medium"},
-                    {id: 5, text: "システム設計", start_date: "2025-08-09 00:00", duration: 7, parent: 2, progress: 0.2, priority: "high"},
+                    {id: 2, text: "計画フェーズ", start_date: null, duration: null, parent: 1, progress: 0.3, open: true, priority: "high", department: "企画部"},
+                    {id: 3, text: "要件定義", start_date: "2025-08-01 00:00", duration: 5, parent: 2, progress: 0.8, priority: "high", department: "企画部"},
+                    {id: 4, text: "現状分析", start_date: "2025-08-06 00:00", duration: 3, parent: 2, progress: 0.5, priority: "medium", department: "業務部"},
+                    {id: 5, text: "システム設計", start_date: "2025-08-09 00:00", duration: 7, parent: 2, progress: 0.2, priority: "high", department: "IT部"},
                     
                     // Phase 2: Infrastructure
-                    {id: 6, text: "インフラ整備", start_date: null, duration: null, parent: 1, progress: 0.1, open: true, priority: "medium"},
-                    {id: 7, text: "ネットワーク構築", start_date: "2025-08-16 00:00", duration: 5, parent: 6, progress: 0.3, priority: "medium"},
-                    {id: 8, text: "サーバー設置", start_date: "2025-08-21 00:00", duration: 3, parent: 6, progress: 0, priority: "medium"},
-                    {id: 9, text: "セキュリティ設定", start_date: "2025-08-24 00:00", duration: 2, parent: 6, progress: 0, priority: "high"},
+                    {id: 6, text: "インフラ整備", start_date: null, duration: null, parent: 1, progress: 0.1, open: true, priority: "medium", department: "IT部"},
+                    {id: 7, text: "ネットワーク構築", start_date: "2025-08-16 00:00", duration: 5, parent: 6, progress: 0.3, priority: "medium", department: "IT部"},
+                    {id: 8, text: "サーバー設置", start_date: "2025-08-21 00:00", duration: 3, parent: 6, progress: 0, priority: "medium", department: "設備部"},
+                    {id: 9, text: "セキュリティ設定", start_date: "2025-08-24 00:00", duration: 2, parent: 6, progress: 0, priority: "high", department: "IT部"},
                     
                     // Phase 3: Software Development
-                    {id: 10, text: "ソフトウェア開発", start_date: null, duration: null, parent: 1, progress: 0, open: true, priority: "high"},
-                    {id: 11, text: "在庫管理システム", start_date: "2025-08-26 00:00", duration: 10, parent: 10, progress: 0, priority: "high"},
-                    {id: 12, text: "配送管理システム", start_date: "2025-09-05 00:00", duration: 8, parent: 10, progress: 0, priority: "medium"},
-                    {id: 13, text: "レポート機能", start_date: "2025-09-13 00:00", duration: 5, parent: 10, progress: 0, priority: "low"},
+                    {id: 10, text: "ソフトウェア開発", start_date: null, duration: null, parent: 1, progress: 0, open: true, priority: "high", department: "開発部"},
+                    {id: 11, text: "在庫管理システム", start_date: "2025-08-26 00:00", duration: 10, parent: 10, progress: 0, priority: "high", department: "開発部"},
+                    {id: 12, text: "配送管理システム", start_date: "2025-09-05 00:00", duration: 8, parent: 10, progress: 0, priority: "medium", department: "物流部"},
+                    {id: 13, text: "レポート機能", start_date: "2025-09-13 00:00", duration: 5, parent: 10, progress: 0, priority: "low", department: "経営企画"},
                     
                     // Phase 4: Testing
-                    {id: 14, text: "テスト・検証", start_date: null, duration: null, parent: 1, progress: 0, open: true, priority: "high"},
-                    {id: 15, text: "単体テスト", start_date: "2025-09-18 00:00", duration: 5, parent: 14, progress: 0, priority: "medium"},
-                    {id: 16, text: "統合テスト", start_date: "2025-09-23 00:00", duration: 7, parent: 14, progress: 0, priority: "high"},
-                    {id: 17, text: "運用テスト", start_date: "2025-09-30 00:00", duration: 5, parent: 14, progress: 0, priority: "high"},
+                    {id: 14, text: "テスト・検証", start_date: null, duration: null, parent: 1, progress: 0, open: true, priority: "high", department: "品質保証"},
+                    {id: 15, text: "単体テスト", start_date: "2025-09-18 00:00", duration: 5, parent: 14, progress: 0, priority: "medium", department: "品質保証"},
+                    {id: 16, text: "統合テスト", start_date: "2025-09-23 00:00", duration: 7, parent: 14, progress: 0, priority: "high", department: "品質保証"},
+                    {id: 17, text: "運用テスト", start_date: "2025-09-30 00:00", duration: 5, parent: 14, progress: 0, priority: "high", department: "運用部"},
                     
                     // Phase 5: Deployment
-                    {id: 18, text: "本稼働", start_date: null, duration: null, parent: 1, progress: 0, open: true, priority: "high"},
-                    {id: 19, text: "データ移行", start_date: "2025-10-05 00:00", duration: 3, parent: 18, progress: 0, priority: "high"},
-                    {id: 20, text: "スタッフ研修", start_date: "2025-10-08 00:00", duration: 5, parent: 18, progress: 0, priority: "medium"},
-                    {id: 21, text: "本稼働開始", start_date: "2025-10-13 00:00", duration: 1, parent: 18, progress: 0, priority: "high"}
+                    {id: 18, text: "本稼働", start_date: null, duration: null, parent: 1, progress: 0, open: true, priority: "high", department: "運用部"},
+                    {id: 19, text: "データ移行", start_date: "2025-10-05 00:00", duration: 3, parent: 18, progress: 0, priority: "high", department: "IT部"},
+                    {id: 20, text: "スタッフ研修", start_date: "2025-10-08 00:00", duration: 5, parent: 18, progress: 0, priority: "medium", department: "人事部"},
+                    {id: 21, text: "本稼働開始", start_date: "2025-10-13 00:00", duration: 1, parent: 18, progress: 0, priority: "high", department: "全社"}
                 ],
                 links: [
                     {id: 1, source: 3, target: 4, type: "0"},
@@ -650,11 +671,57 @@
                 return true;
             });
             
+            // Priority column click functionality
+            gantt.attachEvent("onGridHeaderClick", function(name, e) {
+                return true;
+            });
+            
+            // Add click event for priority and department cells
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('priority-cell')) {
+                    const taskId = e.target.getAttribute('data-task-id');
+                    cyclePriority(taskId);
+                } else if (e.target.classList.contains('department-cell')) {
+                    const taskId = e.target.getAttribute('data-task-id');
+                    editDepartment(taskId);
+                }
+            });
+            
             // Initialize stats
             updateStats();
             autoLoad();
             
             console.log('ガントチャートが正常に初期化されました！');
+        }
+
+        // Priority cycling function
+        function cyclePriority(taskId) {
+            if (!gantt.isTaskExists(taskId)) return;
+            
+            const task = gantt.getTask(taskId);
+            const priorities = ['low', 'medium', 'high'];
+            const currentIndex = priorities.indexOf(task.priority || 'medium');
+            const nextIndex = (currentIndex + 1) % priorities.length;
+            
+            task.priority = priorities[nextIndex];
+            gantt.updateTask(taskId);
+            updateStats();
+        }
+
+        // Department editing function
+        function editDepartment(taskId) {
+            if (!gantt.isTaskExists(taskId)) return;
+            
+            const task = gantt.getTask(taskId);
+            const currentDepartment = task.department || '未設定';
+            
+            let newDepartment = prompt(`担当箇所を入力してください:`, currentDepartment);
+            
+            if (newDepartment !== null && newDepartment.trim() !== '') {
+                task.department = newDepartment.trim();
+                gantt.updateTask(taskId);
+                updateStats();
+            }
         }
 
         // Enhanced linked task movement functionality
@@ -762,6 +829,7 @@
                 document.getElementById('taskDuration').value = task.duration || 3;
                 document.getElementById('taskPriority').value = task.priority || 'medium';
                 document.getElementById('taskProgress').value = Math.round((task.progress || 0) * 100);
+                document.getElementById('taskDepartment').value = task.department || '';
                 editingTaskId = task.id;
             } else {
                 document.getElementById('taskForm').reset();
@@ -961,18 +1029,6 @@
             gantt.render();
         }
         
-        function clearCompleted() {
-            if (typeof gantt === 'undefined') return;
-            if (confirm('完了したタスクをすべて削除してもよろしいですか？')) {
-                gantt.eachTask(function(task) {
-                    if (task.progress >= 1) {
-                        gantt.deleteTask(task.id);
-                    }
-                });
-                updateStats();
-            }
-        }
-        
         function updateStats() {
             if (typeof gantt === 'undefined') return;
             let totalTasks = 0;
@@ -1037,6 +1093,7 @@
                     duration: parseInt(formData.get('duration')),
                     priority: formData.get('priority'),
                     progress: parseInt(formData.get('progress')) / 100,
+                    department: formData.get('department'),
                     parent: selectedTaskId || 0
                 };
                 
