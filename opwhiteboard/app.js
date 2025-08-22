@@ -1,0 +1,646 @@
+// opwhiteboard/app.js - extracted from inline script
+
+// ダークモード管理
+let isDarkMode = false;
+
+function toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    document.body.classList.toggle('dark-mode', isDarkMode);
+    updateDarkModeIcon();
+}
+
+function updateDarkModeIcon() {
+    const icon = document.querySelector('.dark-mode-icon');
+    if (icon) {
+        icon.textContent = isDarkMode ? '☀️' : '🌙';
+    }
+}
+
+function initializeDarkMode() {
+    document.body.classList.remove('dark-mode');
+    isDarkMode = false;
+    updateDarkModeIcon();
+}
+
+// 初期データ
+let workers = [
+    { id: 1, name: '田中太郎' },
+    { id: 2, name: '山田花子' },
+    { id: 3, name: '鈴木一郎' }
+];
+
+let workAreas = [
+    { id: 'waiting', name: '待機エリア', color: 'waiting' },
+    { id: 'taskA', name: '作業内容A', color: 'blue' },
+    { id: 'taskB', name: '作業内容B', color: 'green' }
+];
+
+let workerPositions = {};
+let workLogs = [];
+let activeTimers = {};
+let timerIntervals = {};
+let elapsedTimes = {};
+
+// タッチドラッグ用変数
+let touchItem = null;
+let touchOffset = { x: 0, y: 0 };
+let isDragging = false;
+let touchStartTime = 0;
+let draggedWorkerId = null;
+
+// 初期化
+function init() {
+    workers.forEach(worker => {
+        workerPositions[worker.id] = 'waiting';
+    });
+    renderWhiteboard();
+    startGlobalTimer();
+}
+
+// グローバルタイマー
+function startGlobalTimer() {
+    setInterval(() => {
+        Object.keys(activeTimers).forEach(workerId => {
+            const elapsed = Math.floor((Date.now() - activeTimers[workerId]) / 1000);
+            updateTimerDisplay(workerId, elapsed);
+        });
+    }, 1000);
+}
+
+// タイマー表示更新
+function updateTimerDisplay(workerId, seconds) {
+    const timerElement = document.getElementById(`timer-${workerId}`);
+    if (timerElement) {
+        timerElement.textContent = formatTime(seconds);
+    }
+}
+
+// 時間フォーマット
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+// ホワイトボード描画
+function renderWhiteboard() {
+    const whiteboard = document.getElementById('whiteboard');
+    whiteboard.innerHTML = '';
+
+    workAreas.forEach(area => {
+        const areaDiv = document.createElement('div');
+        areaDiv.className = `work-area ${area.color}`;
+        areaDiv.id = `area-${area.id}`;
+        areaDiv.ondragover = handleDragOver;
+        areaDiv.ondrop = (e) => handleDrop(e, area.id);
+        areaDiv.ondragenter = handleDragEnter;
+        areaDiv.ondragleave = handleDragLeave;
+
+        const header = document.createElement('div');
+        header.className = 'area-header';
+
+        const title = document.createElement('div');
+        title.className = 'area-title';
+        title.id = `title-${area.id}`;
+        title.textContent = area.name;
+
+        const controls = document.createElement('div');
+        controls.className = 'area-controls';
+
+        if (area.id !== 'waiting') {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'icon-btn';
+            editBtn.textContent = '✏️';
+            editBtn.onclick = () => editAreaName(area.id);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'icon-btn delete';
+            deleteBtn.textContent = '❌';
+            deleteBtn.onclick = () => removeWorkArea(area.id);
+
+            controls.appendChild(editBtn);
+            controls.appendChild(deleteBtn);
+        }
+
+        header.appendChild(title);
+        header.appendChild(controls);
+        areaDiv.appendChild(header);
+
+        const workersContainer = document.createElement('div');
+        workersContainer.className = 'workers-container';
+
+        workers.filter(w => workerPositions[w.id] === area.id).forEach(worker => {
+            const workerCard = createWorkerCard(worker);
+            workersContainer.appendChild(workerCard);
+        });
+
+        areaDiv.appendChild(workersContainer);
+        whiteboard.appendChild(areaDiv);
+    });
+}
+
+// 作業員カード作成
+function createWorkerCard(worker) {
+    const card = document.createElement('div');
+    card.className = 'worker-card';
+    card.id = `worker-${worker.id}`;
+    card.draggable = true;
+    card.ondragstart = (e) => handleDragStart(e, worker.id);
+    card.ondragend = handleDragEnd;
+    card.ontouchstart = (e) => handleTouchStart(e, worker.id);
+    card.ontouchmove = handleTouchMove;
+    card.ontouchend = handleTouchEnd;
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'worker-name';
+    nameSpan.textContent = worker.name;
+
+    const rightSection = document.createElement('div');
+    rightSection.style.display = 'flex';
+    rightSection.style.alignItems = 'center';
+    rightSection.style.gap = '10px';
+
+    if (activeTimers[worker.id]) {
+        const timer = document.createElement('div');
+        timer.className = 'timer';
+        timer.innerHTML = `⏱️ <span id="timer-${worker.id}">00:00:00</span>`;
+        rightSection.appendChild(timer);
+    }
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-worker';
+    deleteBtn.textContent = '×';
+    deleteBtn.onclick = () => removeWorker(worker.id);
+
+    rightSection.appendChild(deleteBtn);
+
+    card.appendChild(nameSpan);
+    card.appendChild(rightSection);
+
+    return card;
+}
+
+// マウスドラッグイベント
+function handleDragStart(e, workerId) {
+    if (isDragging || touchItem) {
+        e.preventDefault();
+        return false;
+    }
+    if (e.type === 'dragstart' && e.pointerType === 'touch') {
+        e.preventDefault();
+        return false;
+    }
+    if (!isDragging) {
+        draggedWorkerId = workerId;
+        e.target.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', workerId);
+    }
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+    draggedWorkerId = null;
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+}
+
+function handleDragEnter(e) {
+    if (e.currentTarget.classList.contains('work-area')) {
+        e.currentTarget.classList.add('dragover');
+    }
+}
+
+function handleDragLeave(e) {
+    if (e.currentTarget.classList.contains('work-area')) {
+        e.currentTarget.classList.remove('dragover');
+    }
+}
+
+// タッチイベント
+function handleTouchStart(e, workerId) {
+    if (e.touches.length !== 1) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    touchItem = e.currentTarget;
+    draggedWorkerId = workerId;
+    touchStartTime = Date.now();
+    isDragging = false;
+
+    const rect = touchItem.getBoundingClientRect();
+    touchOffset.x = touch.clientX - rect.left;
+    touchOffset.y = touch.clientY - rect.top;
+
+    const dragStartTimer = setTimeout(() => {
+        if (touchItem && !isDragging) {
+            isDragging = true;
+            touchItem.classList.add('dragging-touch');
+            touchItem.style.position = 'absolute';
+            touchItem.style.zIndex = '1000';
+            touchItem.style.transform = 'scale(1.05)';
+            touchItem.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+        }
+    }, 200);
+    touchItem.dragStartTimer = dragStartTimer;
+}
+
+function handleTouchMove(e) {
+    if (!touchItem || !isDragging) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const touch = e.touches[0];
+    touchItem.style.left = `${touch.clientX - touchOffset.x}px`;
+    touchItem.style.top = `${touch.clientY - touchOffset.y}px`;
+
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    document.querySelectorAll('.work-area').forEach(area => area.classList.remove('dragover'));
+    if (target && target.closest('.work-area')) {
+        target.closest('.work-area').classList.add('dragover');
+    }
+}
+
+function handleTouchEnd(e) {
+    if (touchItem && touchItem.dragStartTimer) {
+        clearTimeout(touchItem.dragStartTimer);
+        delete touchItem.dragStartTimer;
+    }
+    if (!touchItem || !isDragging) {
+        touchItem = null;
+        draggedWorkerId = null;
+        return;
+    }
+    isDragging = false;
+    touchItem.classList.remove('dragging-touch');
+    touchItem.style.position = '';
+    touchItem.style.left = '';
+    touchItem.style.top = '';
+    touchItem.style.zIndex = '';
+    touchItem.style.transform = '';
+    touchItem.style.boxShadow = '';
+
+    const touch = e.changedTouches[0];
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    const targetArea = target ? target.closest('.work-area') : null;
+
+    document.querySelectorAll('.work-area').forEach(area => area.classList.remove('dragover'));
+
+    if (targetArea) {
+        const targetAreaId = targetArea.id.replace('area-', '');
+        handleDrop({ preventDefault: () => {} }, targetAreaId);
+    }
+
+    touchItem = null;
+    draggedWorkerId = null;
+}
+
+// ドロップ処理
+function handleDrop(e, targetAreaId) {
+    e.preventDefault();
+    if (e.currentTarget) {
+        e.currentTarget.classList.remove('dragover');
+    }
+    if (!draggedWorkerId) return;
+
+    const workerId = draggedWorkerId;
+    const worker = workers.find(w => w.id === workerId);
+    if (!worker) return;
+
+    const currentArea = workerPositions[workerId];
+    if (currentArea === targetAreaId) return;
+
+    const targetArea = workAreas.find(a => a.id === targetAreaId);
+    if (!targetArea) return;
+
+    if (currentArea === 'waiting' && targetAreaId !== 'waiting') {
+        activeTimers[workerId] = Date.now();
+    } else if (currentArea !== 'waiting' && targetAreaId === 'waiting') {
+        if (activeTimers[workerId]) {
+            const startTime = activeTimers[workerId];
+            const endTime = Date.now();
+            const duration = Math.floor((endTime - startTime) / 1000);
+
+            const log = {
+                id: Date.now(),
+                workerName: worker.name,
+                workArea: workAreas.find(a => a.id === currentArea)?.name || '不明',
+                startTime: new Date(startTime).toLocaleString('ja-JP'),
+                endTime: new Date(endTime).toLocaleString('ja-JP'),
+                duration: duration
+            };
+
+            workLogs.push(log);
+            delete activeTimers[workerId];
+            updateLogsTable();
+        }
+    } else if (currentArea !== 'waiting' && targetAreaId !== 'waiting') {
+        if (activeTimers[workerId]) {
+            const startTime = activeTimers[workerId];
+            const endTime = Date.now();
+            const duration = Math.floor((endTime - startTime) / 1000);
+
+            const log = {
+                id: Date.now(),
+                workerName: worker.name,
+                workArea: workAreas.find(a => a.id === currentArea)?.name || '不明',
+                startTime: new Date(startTime).toLocaleString('ja-JP'),
+                endTime: new Date(endTime).toLocaleString('ja-JP'),
+                duration: duration
+            };
+
+            workLogs.push(log);
+            activeTimers[workerId] = Date.now();
+            updateLogsTable();
+        }
+    }
+
+    workerPositions[workerId] = targetAreaId;
+    renderWhiteboard();
+}
+
+// 作業員追加
+function addWorker() {
+    try {
+        const input = document.getElementById('workerNameInput');
+        const name = input.value.trim();
+
+        if (!name) {
+            showAlert('作業員名を入力してください', 'warning');
+            return;
+        }
+        if (name.length > 20) {
+            showAlert('作業員名は20文字以内で入力してください', 'warning');
+            return;
+        }
+        if (workers.some(w => w.name === name)) {
+            showAlert('同じ名前の作業員が既に存在します', 'warning');
+            return;
+        }
+
+        const newWorker = { id: Date.now(), name: name };
+        workers.push(newWorker);
+        workerPositions[newWorker.id] = 'waiting';
+        input.value = '';
+        renderWhiteboard();
+        showAlert(`作業員「${name}」を追加しました`, 'success');
+    } catch (error) {
+        console.error('Error adding worker:', error);
+        showAlert('作業員の追加中にエラーが発生しました', 'error');
+    }
+}
+
+// 作業員削除
+function removeWorker(workerId) {
+    workers = workers.filter(w => w.id !== workerId);
+    delete workerPositions[workerId];
+    delete activeTimers[workerId];
+    renderWhiteboard();
+}
+
+// 作業エリア追加
+function addWorkArea() {
+    try {
+        const input = document.getElementById('workAreaInput');
+        const name = input.value.trim();
+        if (!name) { showAlert('作業内容を入力してください', 'warning'); return; }
+        if (name.length > 30) { showAlert('作業内容は30文字以内で入力してください', 'warning'); return; }
+        if (workAreas.some(a => a.name === name)) { showAlert('同じ名前の作業エリアが既に存在します', 'warning'); return; }
+
+        const colors = ['yellow', 'purple', 'pink', 'blue', 'green'];
+        const newArea = { id: `task_${Date.now()}`, name: name, color: colors[workAreas.length % colors.length] };
+        workAreas.push(newArea);
+        input.value = '';
+        renderWhiteboard();
+        showAlert(`作業エリア「${name}」を追加しました`, 'success');
+    } catch (error) {
+        console.error('Error adding work area:', error);
+        showAlert('作業エリアの追加中にエラーが発生しました', 'error');
+    }
+}
+
+// 作業エリア削除
+function removeWorkArea(areaId) {
+    if (areaId === 'waiting') return;
+    Object.entries(workerPositions).forEach(([workerId, position]) => {
+        if (position === areaId) {
+            workerPositions[workerId] = 'waiting';
+            delete activeTimers[workerId];
+        }
+    });
+    workAreas = workAreas.filter(a => a.id !== areaId);
+    renderWhiteboard();
+}
+
+// エリア名編集
+function editAreaName(areaId) {
+    const titleElement = document.getElementById(`title-${areaId}`);
+    const currentName = titleElement.textContent;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'edit-input';
+    input.value = currentName;
+    input.onblur = () => saveAreaName(areaId, input.value);
+    input.onkeypress = (e) => { if (e.key === 'Enter') { saveAreaName(areaId, input.value); } };
+    titleElement.innerHTML = '';
+    titleElement.appendChild(input);
+    input.focus();
+}
+
+function saveAreaName(areaId, newName) {
+    const area = workAreas.find(a => a.id === areaId);
+    if (area) { area.name = newName.trim() || area.name; }
+    renderWhiteboard();
+}
+
+// ログテーブル更新
+function updateLogsTable() {
+    const tbody = document.getElementById('logsBody');
+    if (workLogs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-logs">まだ作業ログがありません</td></tr>';
+        return;
+    }
+    const recentLogs = workLogs.slice(-10).reverse();
+    tbody.innerHTML = recentLogs.map(log => `
+        <tr>
+            <td>${log.workerName}</td>
+            <td>${log.workArea}</td>
+            <td>${log.startTime}</td>
+            <td>${log.endTime}</td>
+            <td>${formatTime(log.duration)}</td>
+        </tr>
+    `).join('');
+}
+
+// CSV出力
+function exportToCSV() {
+    try {
+        if (workLogs.length === 0) { alert('エクスポートする作業ログがありません'); return; }
+        const headers = ['作業員名', '作業内容', '開始時刻', '終了時刻', '作業時間(秒)'];
+        const rows = workLogs.map(log => [
+            `"${log.workerName}"`, `"${log.workArea}"`, `"${log.startTime}"`, `"${log.endTime}"`, log.duration
+        ]);
+        const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `作業ログ_${new Date().toLocaleDateString('ja-JP').replace(/\//g, '-')}.csv`;
+        link.click();
+        showAlert('作業ログをエクスポートしました', 'success');
+    } catch (error) {
+        console.error('Error exporting CSV:', error);
+        alert('CSVエクスポート中にエラーが発生しました');
+    }
+}
+
+// テンプレートダウンロード
+function downloadTemplate(type) {
+    let csvContent = '';
+    let filename = '';
+    if (type === 'workers') {
+        csvContent = '作業員名\n田中太郎\n山田花子\n鈴木一郎';
+        filename = '作業員テンプレート.csv';
+    } else if (type === 'areas') {
+        csvContent = '作業内容,色\n作業内容A,blue\n作業内容B,green\n作業内容C,yellow';
+        filename = '作業内容テンプレート.csv';
+    }
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+}
+
+// CSVインポート処理
+function handleFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const content = e.target.result;
+        processCSV(content);
+    };
+    reader.readAsText(file, 'UTF-8');
+    event.target.value = '';
+}
+
+// CSV処理（簡略版）
+function processCSV(content) {
+    try {
+        const lines = content.split('\n');
+        if (lines.length < 2) { showAlert('CSVファイルにデータが含まれていません', 'error'); return; }
+        const header = lines[0].toLowerCase();
+        if (header.includes('作業員') || header.includes('worker')) {
+            processWorkerCSV(lines);
+        } else if (header.includes('作業内容') || header.includes('work') || header.includes('area')) {
+            processWorkAreaCSV(lines);
+        } else {
+            showAlert('CSVファイルの形式が認識できません', 'error');
+        }
+    } catch (error) {
+        console.error('Error processing CSV:', error);
+        showAlert('CSVファイルの処理中にエラーが発生しました', 'error');
+    }
+}
+
+function processWorkerCSV(lines) {
+    let imported = 0;
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const name = line.split(',')[0].trim().replace(/"/g, '');
+        if (name && !workers.some(w => w.name === name)) {
+            workers.push({ id: Date.now() + i, name: name });
+            workerPositions[Date.now() + i] = 'waiting';
+            imported++;
+        }
+    }
+    if (imported > 0) { renderWhiteboard(); showAlert(`${imported}名の作業員をインポートしました`, 'success'); }
+    else { showAlert('インポートできる作業員がありませんでした', 'warning'); }
+}
+
+function processWorkAreaCSV(lines) {
+    let imported = 0;
+    const colors = ['yellow', 'purple', 'pink', 'blue', 'green'];
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const parts = line.split(',');
+        const name = parts[0].trim().replace(/"/g, '');
+        const color = parts[1] ? parts[1].trim().replace(/"/g, '') : colors[imported % colors.length];
+        if (name && !workAreas.some(a => a.name === name)) {
+            workAreas.push({ id: `task_${Date.now()}_${i}`, name: name, color: colors.includes(color) ? color : colors[imported % colors.length] });
+            imported++;
+        }
+    }
+    if (imported > 0) { renderWhiteboard(); showAlert(`${imported}個の作業エリアをインポートしました`, 'success'); }
+    else { showAlert('インポートできる作業エリアがありませんでした', 'warning'); }
+}
+
+// Alert function for better user feedback
+function showAlert(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type}`;
+    alertDiv.style.cssText = `
+        position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 6px; font-weight: 500; z-index: 10000; max-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideInRight 0.3s ease;`;
+    const colors = {
+        error: { bg: '#fef2f2', border: '#fecaca', text: '#dc2626' },
+        warning: { bg: '#fffbeb', border: '#fed7aa', text: '#d97706' },
+        success: { bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a' },
+        info: { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb' }
+    };
+    const color = colors[type] || colors.info;
+    alertDiv.style.backgroundColor = color.bg;
+    alertDiv.style.borderLeft = `4px solid ${color.border}`;
+    alertDiv.style.color = color.text;
+    alertDiv.textContent = message;
+    document.body.appendChild(alertDiv);
+    memoryManager.setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.style.animation = 'slideOutRight 0.3s ease';
+            memoryManager.setTimeout(() => {
+                if (alertDiv.parentNode) { alertDiv.parentNode.removeChild(alertDiv); }
+            }, 300);
+        }
+    }, 3000);
+}
+
+// メモリ管理とパフォーマンス最適化
+const memoryManager = {
+    timers: new Set(),
+    setTimeout: (callback, delay) => {
+        const timerId = setTimeout(callback, delay);
+        memoryManager.timers.add(timerId);
+        return timerId;
+    },
+    clearTimeout: (timerId) => {
+        clearTimeout(timerId);
+        memoryManager.timers.delete(timerId);
+    },
+    clearAllTimers: () => {
+        memoryManager.timers.forEach(timerId => { clearTimeout(timerId); });
+        memoryManager.timers.clear();
+    },
+    cleanup: () => {
+        memoryManager.clearAllTimers();
+        if (workers && workers.length > 1000) { workers = workers.slice(-500); }
+        if (workAreas && workAreas.length > 100) { workAreas = workAreas.slice(-100); }
+        const unusedElements = document.querySelectorAll('.temp-element, .calculation-result');
+        if (unusedElements.length > 50) { unusedElements.forEach(el => el.remove()); }
+    }
+};
+
+// Enterキーで追加
+document.addEventListener('DOMContentLoaded', () => {
+    initializeDarkMode();
+    document.getElementById('workerNameInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') addWorker(); });
+    document.getElementById('workAreaInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') addWorkArea(); });
+    init();
+    setInterval(() => { memoryManager.cleanup(); }, 6 * 60 * 1000);
+});
+
+// ページ離脱時のクリーンアップ
+window.addEventListener('beforeunload', () => {
+    console.log('Cleaning up whiteboard before page unload...');
+    memoryManager.cleanup();
+});
