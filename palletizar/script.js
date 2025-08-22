@@ -1,6 +1,22 @@
 // ダークモード管理
 let isDarkMode = false;
 
+// DOM要素のキャッシュ（パフォーマンス向上のため）
+const domElements = {
+    heightLimitInput: null,
+    heightLimitDisplay: null,
+    heightWarning: null,
+    darkModeIcon: null
+};
+
+// DOM要素の初期化（DOMContentLoaded後に実行）
+function initializeDOMElements() {
+    domElements.heightLimitInput = document.getElementById('heightLimitInput');
+    domElements.heightLimitDisplay = document.getElementById('heightLimitDisplay');
+    domElements.heightWarning = document.getElementById('heightWarning');
+    domElements.darkModeIcon = document.querySelector('.dark-mode-icon');
+}
+
 function toggleDarkMode() {
     isDarkMode = !isDarkMode;
     document.body.classList.toggle('dark-mode', isDarkMode);
@@ -8,9 +24,8 @@ function toggleDarkMode() {
 }
 
 function updateDarkModeIcon() {
-    const icon = document.querySelector('.dark-mode-icon');
-    if (icon) {
-        icon.textContent = isDarkMode ? '☀️' : '🌙';
+    if (domElements.darkModeIcon) {
+        domElements.darkModeIcon.textContent = isDarkMode ? '☀️' : '🌙';
     }
 }
 
@@ -26,6 +41,22 @@ window.currentPallets = [];
 
 // 高さ制限のグローバル変数
 let maxHeightLimit = 158; // デフォルトは158cm（パレット台座14cm含む）
+
+// メモリ管理のためのクリーンアップ関数
+function cleanupMemory() {
+    // 大きなデータセットのクリア
+    if (window.currentPallets && window.currentPallets.length > 1000) {
+        console.log('Large dataset detected, clearing old data...');
+        window.currentPallets = window.currentPallets.slice(-500); // 最新500件のみ保持
+    }
+    
+    // 未使用のDOM要素のクリア
+    const unusedElements = document.querySelectorAll('.temp-element, .calculation-result');
+    if (unusedElements.length > 50) {
+        console.log('Clearing unused DOM elements...');
+        unusedElements.forEach(el => el.remove());
+    }
+}
 
 // 初期データ（拡張サンプル）
 let cartonData = [
@@ -47,14 +78,16 @@ let nextId = 7;
 
 // === 高さ制限設定機能 ===
 function setHeightLimit(height) {
-    const input = document.getElementById('heightLimitInput');
-    const display = document.getElementById('heightLimitDisplay');
-    const warning = document.getElementById('heightWarning');
+    // キャッシュされたDOM要素を使用
+    if (!domElements.heightLimitInput || !domElements.heightLimitDisplay || !domElements.heightWarning) {
+        console.warn('DOM elements not initialized yet');
+        return;
+    }
     
     // 値を更新
-    input.value = height;
+    domElements.heightLimitInput.value = height;
     maxHeightLimit = height;
-    display.textContent = height;
+    domElements.heightLimitDisplay.textContent = height;
     
     // プリセットボタンの状態更新
     document.querySelectorAll('.height-preset-btn').forEach(btn => {
@@ -67,9 +100,9 @@ function setHeightLimit(height) {
     
     // 警告表示の判定
     if (height > 180) {
-        warning.classList.remove('hidden');
+        domElements.heightWarning.classList.remove('hidden');
     } else {
-        warning.classList.add('hidden');
+        domElements.heightWarning.classList.add('hidden');
     }
     
     console.log(`高さ制限を${height}cmに設定しました`);
@@ -84,19 +117,21 @@ function setHeightLimit(height) {
 }
 
 function updateHeightLimitFromInput() {
-    const input = document.getElementById('heightLimitInput');
-    const display = document.getElementById('heightLimitDisplay');
-    const warning = document.getElementById('heightWarning');
+    // キャッシュされたDOM要素を使用
+    if (!domElements.heightLimitInput || !domElements.heightLimitDisplay || !domElements.heightWarning) {
+        console.warn('DOM elements not initialized yet');
+        return;
+    }
     
-    let height = parseInt(input.value);
+    let height = parseInt(domElements.heightLimitInput.value);
     
     // バリデーション
     if (isNaN(height) || height < 50) {
         height = 50;
-        input.value = 50;
+        domElements.heightLimitInput.value = 50;
     } else if (height > 300) {
         height = 300;
-        input.value = 300;
+        domElements.heightLimitInput.value = 300;
     }
     
     maxHeightLimit = height;
@@ -140,6 +175,10 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     initializePalletSelection();
     initializeHeightLimit();
+    initializeDOMElements(); // DOM要素の初期化を追加
+    
+    // 定期的なメモリクリーンアップ（5分ごと）
+    window.memoryCleanupTimer = setInterval(cleanupMemory, 5 * 60 * 1000);
 });
 
 function initializeHeightLimit() {
@@ -1285,3 +1324,20 @@ window.scrollToPallet = scrollToPallet;
 window.setHeightLimit = setHeightLimit;
 window.editCarton = editCarton;
 window.removeCarton = removeCarton;
+
+// ページ離脱時のクリーンアップ
+window.addEventListener('beforeunload', function() {
+    // タイマーのクリア
+    if (window.memoryCleanupTimer) {
+        clearInterval(window.memoryCleanupTimer);
+    }
+    
+    // 大きなデータセットのクリア
+    if (window.currentPallets && window.currentPallets.length > 0) {
+        console.log('Cleaning up pallet data before page unload...');
+        window.currentPallets = [];
+    }
+    
+    // 未使用のDOM要素のクリア
+    cleanupMemory();
+});

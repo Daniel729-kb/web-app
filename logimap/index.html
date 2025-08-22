@@ -2426,8 +2426,54 @@ border-bottom: 4px solid transparent;
          
             showDebugMessage('Logistics Map Generator initialized successfully');
         }
+        // メモリ管理とパフォーマンス最適化
+        const memoryManager = {
+            // タイマーの追跡
+            timers: new Set(),
+            
+            // 安全なタイマー設定
+            setTimeout: (callback, delay) => {
+                const timerId = setTimeout(callback, delay);
+                memoryManager.timers.add(timerId);
+                return timerId;
+            },
+            
+            // タイマーのクリア
+            clearTimeout: (timerId) => {
+                clearTimeout(timerId);
+                memoryManager.timers.delete(timerId);
+            },
+            
+            // 全タイマーのクリア
+            clearAllTimers: () => {
+                memoryManager.timers.forEach(timerId => {
+                    clearTimeout(timerId);
+                });
+                memoryManager.timers.clear();
+            },
+            
+            // メモリクリーンアップ
+            cleanup: () => {
+                memoryManager.clearAllTimers();
+                
+                // 大きなデータセットのクリア
+                if (window.facilityData && window.facilityData.length > 1000) {
+                    console.log('Large dataset detected, clearing old data...');
+                    window.facilityData = window.facilityData.slice(-500);
+                }
+                
+                // 未使用のDOM要素のクリア
+                const unusedElements = document.querySelectorAll('.temp-element, .calculation-result');
+                if (unusedElements.length > 50) {
+                    console.log('Clearing unused DOM elements...');
+                    unusedElements.forEach(el => el.remove());
+                }
+            }
+        };
+
         // Start the application when DOM is loaded
         document.addEventListener('DOMContentLoaded', initializeApp);
+        
         // Handle page visibility changes
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {
@@ -2435,10 +2481,22 @@ border-bottom: 4px solid transparent;
                 generateMap();
             }
         });
-        // Handle window resize
+        
+        // Handle window resize (safe timer usage)
         window.addEventListener('resize', function() {
-            setTimeout(generateMap, 100);
+            memoryManager.setTimeout(generateMap, 100);
         });
+        
+        // ページ離脱時のクリーンアップ
+        window.addEventListener('beforeunload', () => {
+            console.log('Cleaning up before page unload...');
+            memoryManager.cleanup();
+        });
+        
+        // 定期的なメモリクリーンアップ（4分ごと）
+        setInterval(() => {
+            memoryManager.cleanup();
+        }, 4 * 60 * 1000);
     </script>
 </body>
 </html>
