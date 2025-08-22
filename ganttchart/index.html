@@ -85,6 +85,18 @@
         .btn-info { background: #17a2b8; }
         .btn-info:hover { background: #138496; }
         
+        .btn-disabled {
+            background: #6c757d !important;
+            cursor: not-allowed !important;
+            opacity: 0.6;
+        }
+        
+        .btn-disabled:hover {
+            background: #6c757d !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
         .gantt-container {
             height: calc(100vh - 140px);
             margin: 20px;
@@ -149,9 +161,37 @@
             border: 2px solid #388e3c !important;
         }
         
+        /* Completed tasks (100% progress) - Dark Gray */
         .gantt_task_line.completed {
-            background: #9e9e9e !important;
-            border: 2px solid #616161 !important;
+            background: #424242 !important;
+            border: 2px solid #212121 !important;
+            opacity: 0.9;
+        }
+        
+        .gantt_row.completed_row {
+            background-color: #eeeeee !important;
+            color: #424242 !important;
+        }
+        
+        .gantt_row.completed_row .gantt_cell {
+            color: #424242 !important;
+        }
+        
+        /* Parent tasks (大項目) - Blue color */
+        .gantt_task_line.parent_task {
+            background: #2196f3 !important;
+            border: 2px solid #1976d2 !important;
+            font-weight: bold;
+        }
+        
+        .gantt_row.parent_row {
+            background-color: #e3f2fd !important;
+            font-weight: bold;
+        }
+        
+        .gantt_row.parent_row .gantt_cell {
+            font-weight: bold;
+            color: #1976d2;
         }
         
         /* Modal styles */
@@ -168,11 +208,13 @@
         
         .modal-content {
             background-color: white;
-            margin: 5% auto;
+            margin: 3% auto;
             padding: 20px;
             border-radius: 8px;
-            width: 400px;
+            width: 450px;
             max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         
         .modal-header {
@@ -301,11 +343,48 @@
         .priority-cell:active, .department-cell:active {
             transform: scale(0.95);
         }
+        
+        /* Custom column resize handle styling */
+        .custom-resize-handle {
+            transition: background-color 0.2s ease;
+        }
+        
+        .custom-resize-handle:hover {
+            background: #007bff !important;
+        }
+        
+        /* Modal improvements for better visibility */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+            max-height: 120px;
+        }
+        
+        .modal-buttons {
+            position: sticky;
+            bottom: 0;
+            background: white;
+            padding: 15px 0 0 0;
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+        }
     </style>
 </head>
 <body>
     <div class="app-header">
-        <input type="text" class="project-title" id="projectTitle" value="📊 倉庫運営プロジェクト" 
+        <input type="text" class="project-title" id="projectTitle" value="プロジェクト管理表" 
                placeholder="プロジェクト名を入力">
     </div>
     
@@ -328,6 +407,12 @@
         <button class="btn" onclick="toggleView()">
             📅 表示切替
         </button>
+        <button class="btn" onclick="undoAction()" title="元に戻す (Ctrl+Z)">
+            ↩️ 元に戻す
+        </button>
+        <button class="btn" onclick="redoAction()" title="やり直し (Ctrl+Y)">
+            ↪️ やり直し
+        </button>
         
         <div class="status-info">
             <span>総タスク数: <span class="status-badge" id="task-count">0</span></span>
@@ -349,11 +434,19 @@
             <form id="taskForm">
                 <div class="form-group">
                     <label for="taskText">タスク名:</label>
-                    <input type="text" id="taskText" name="text" required>
+                    <input type="text" id="taskText" name="text" required placeholder="短いタスク名を入力">
                 </div>
                 <div class="form-group">
-                    <label for="taskDuration">期間 (日数):</label>
-                    <input type="number" id="taskDuration" name="duration" min="1" value="3">
+                    <label for="taskDescription">タスク内容:</label>
+                    <textarea id="taskDescription" name="description" rows="3" placeholder="詳細な内容・説明を入力" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="taskStartDate">開始日:</label>
+                    <input type="date" id="taskStartDate" name="start_date" required>
+                </div>
+                <div class="form-group">
+                    <label for="taskEndDate">終了日:</label>
+                    <input type="date" id="taskEndDate" name="end_date" required>
                 </div>
                 <div class="form-group">
                     <label for="taskPriority">優先度:</label>
@@ -371,7 +464,7 @@
                     <label for="taskDepartment">担当箇所:</label>
                     <input type="text" id="taskDepartment" name="department" placeholder="担当箇所を入力">
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                <div class="modal-buttons" style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; background: white; position: sticky; bottom: 0;">
                     <button type="submit" class="btn btn-success">タスク保存</button>
                     <button type="button" class="btn" onclick="closeTaskModal()">キャンセル</button>
                 </div>
@@ -450,6 +543,11 @@
         let editingTaskId = null;
         let viewMode = 'day';
         let linkSourceTask = null;
+        
+        // Custom UNDO/REDO implementation
+        let undoStack = [];
+        let redoStack = [];
+        const maxUndoSteps = 20;
 
         loadGanttScript().then(() => {
             initializeGantt();
@@ -531,29 +629,36 @@
             gantt.config.order_branch = true;
             gantt.config.order_branch_free = true;
             
+            // Enable column resizing
+            gantt.config.grid_resize = true;
+            gantt.config.grid_resizer_column_attribute = "data-column-name";
+            
             // Enable plugins if available
             if (gantt.plugins) {
                 gantt.plugins({
                     click_drag: true,
-                    tooltip: true,
-                    undo: true
+                    tooltip: true
+                    // undo plugin removed - using custom implementation
                 });
             }
             
+            // Enable column resizing after initialization
+            gantt.config.grid_resize = true;
+            
             // Grid configuration
             gantt.config.columns = [
-                {name: "text", label: "タスク名", width: 180, tree: true},
-                {name: "start_date", label: "開始日", width: 80},
-                {name: "duration", label: "期間", width: 50, align: "center"},
-                {name: "progress", label: "進捗", width: 70, template: function(obj) {
-                    return Math.round(obj.progress * 100) + "%";
-                }},
-                {name: "priority", label: "優先度", width: 80, template: function(obj) {
+                {name: "text", label: "タスク名", width: 220, tree: true, resize: true},
+                {name: "start_date", label: "開始日", width: 80, resize: true},
+                {name: "duration", label: "期間", width: 50, align: "center", resize: true},
+                {name: "progress", label: "進捗率", width: 60, resize: true, template: function(obj) {
+					return `<span class="progress-cell" data-task-id="${obj.id}" style="cursor: pointer; padding: 4px 8px; border-radius: 4px; background: #f8f9fa;">${Math.round(obj.progress * 100)}%</span>`;}},
+                
+                {name: "priority", label: "優先度", width: 80, resize: true, template: function(obj) {
                     const priorities = {high: "🔴 高", medium: "🟡 中", low: "🟢 低"};
                     const priorityText = priorities[obj.priority] || "🔵 通常";
                     return `<span class="priority-cell" data-task-id="${obj.id}" style="cursor: pointer; padding: 4px 8px; border-radius: 4px; background: #f8f9fa;">${priorityText}</span>`;
                 }},
-                {name: "department", label: "担当箇所", width: 100, template: function(obj) {
+                {name: "department", label: "担当箇所", width: 100, resize: true, template: function(obj) {
                     const departmentText = obj.department || "未設定";
                     return `<span class="department-cell" data-task-id="${obj.id}" style="cursor: pointer; padding: 4px 8px; border-radius: 4px; background: #f8f9fa;">${departmentText}</span>`;
                 }},
@@ -563,19 +668,45 @@
             // Custom templates
             gantt.templates.task_class = function(start, end, task) {
                 let classes = [];
+                
+                // Priority-based classes
                 if (task.priority) classes.push(task.priority + "_priority");
+                
+                // Completed tasks (100% progress)
                 if (task.progress >= 1) classes.push("completed");
+                
+                // Parent tasks (大項目) - different color
+                if (gantt.hasChild(task.id)) {
+                    classes.push("parent_task");
+                }
+                
+                return classes.join(" ");
+            };
+            
+            gantt.templates.grid_row_class = function(start, end, task) {
+                let classes = [];
+                
+                // Completed tasks styling for grid rows
+                if (task.progress >= 1) classes.push("completed_row");
+                
+                // Parent tasks styling for grid rows
+                if (gantt.hasChild(task.id)) {
+                    classes.push("parent_row");
+                }
+                
                 return classes.join(" ");
             };
             
             gantt.templates.task_text = function(start, end, task) {
-                return task.text + " (" + Math.round(task.progress * 100) + "%)";
+                return task.text; // タスク名のみ表示
             };
             
             gantt.templates.tooltip_text = function(start, end, task) {
                 const priority = task.priority ? {high: "高", medium: "中", low: "低"}[task.priority] : "通常";
                 const department = task.department || "未設定";
-                return `<b>タスク:</b> ${task.text}<br/>
+                const description = task.description || "内容なし";
+                return `<b>タスク名:</b> ${task.text}<br/>
+                        <b>タスク内容:</b> ${description}<br/>
                         <b>開始日:</b> ${gantt.templates.tooltip_date_format(start)}<br/>
                         <b>終了日:</b> ${gantt.templates.tooltip_date_format(end)}<br/>
                         <b>進捗:</b> ${Math.round(task.progress * 100)}%<br/>
@@ -590,37 +721,37 @@
             // Japanese warehouse operation sample data
             gantt.parse({
                 data: [
-                    {id: 1, text: "倉庫運営システム導入", start_date: null, duration: null, parent: 0, progress: 0, open: true, priority: "high", department: "本社"},
+                    {id: 1, text: "倉庫運営システム導入", description: "新しい倉庫管理システムの導入プロジェクト全体", start_date: null, duration: null, parent: 0, progress: 0, open: true, priority: "high", department: "本社"},
                     
                     // Phase 1: Planning
-                    {id: 2, text: "計画フェーズ", start_date: null, duration: null, parent: 1, progress: 0.3, open: true, priority: "high", department: "企画部"},
-                    {id: 3, text: "要件定義", start_date: "2025-08-01 00:00", duration: 5, parent: 2, progress: 0.8, priority: "high", department: "企画部"},
-                    {id: 4, text: "現状分析", start_date: "2025-08-06 00:00", duration: 3, parent: 2, progress: 0.5, priority: "medium", department: "業務部"},
-                    {id: 5, text: "システム設計", start_date: "2025-08-09 00:00", duration: 7, parent: 2, progress: 0.2, priority: "high", department: "IT部"},
+                    {id: 2, text: "計画フェーズ", description: "プロジェクトの計画立案と要件定義", start_date: null, duration: null, parent: 1, progress: 0.3, open: true, priority: "high", department: "企画部"},
+                    {id: 3, text: "要件定義", description: "システムの機能要件と非機能要件の定義", start_date: "2025-08-01 00:00", duration: 5, parent: 2, progress: 0.8, priority: "high", department: "企画部"},
+                    {id: 4, text: "現状分析", description: "現在の倉庫運営プロセスの調査と分析", start_date: "2025-08-06 00:00", duration: 3, parent: 2, progress: 0.5, priority: "medium", department: "業務部"},
+                    {id: 5, text: "システム設計", description: "要件に基づいたシステムアーキテクチャの設計", start_date: "2025-08-09 00:00", duration: 7, parent: 2, progress: 0.2, priority: "high", department: "IT部"},
                     
                     // Phase 2: Infrastructure
-                    {id: 6, text: "インフラ整備", start_date: null, duration: null, parent: 1, progress: 0.1, open: true, priority: "medium", department: "IT部"},
-                    {id: 7, text: "ネットワーク構築", start_date: "2025-08-16 00:00", duration: 5, parent: 6, progress: 0.3, priority: "medium", department: "IT部"},
-                    {id: 8, text: "サーバー設置", start_date: "2025-08-21 00:00", duration: 3, parent: 6, progress: 0, priority: "medium", department: "設備部"},
-                    {id: 9, text: "セキュリティ設定", start_date: "2025-08-24 00:00", duration: 2, parent: 6, progress: 0, priority: "high", department: "IT部"},
+                    {id: 6, text: "インフラ整備", description: "システム稼働のためのインフラ環境構築", start_date: null, duration: null, parent: 1, progress: 0.1, open: true, priority: "medium", department: "IT部"},
+                    {id: 7, text: "ネットワーク構築", description: "倉庫内ネットワークの設計と構築", start_date: "2025-08-16 00:00", duration: 5, parent: 6, progress: 0.3, priority: "medium", department: "IT部"},
+                    {id: 8, text: "サーバー設置", description: "システム用サーバーの設置と環境設定", start_date: "2025-08-21 00:00", duration: 3, parent: 6, progress: 0, priority: "medium", department: "設備部"},
+                    {id: 9, text: "セキュリティ設定", description: "アクセス制御とセキュリティポリシーの設定", start_date: "2025-08-24 00:00", duration: 2, parent: 6, progress: 0, priority: "high", department: "IT部"},
                     
                     // Phase 3: Software Development
-                    {id: 10, text: "ソフトウェア開発", start_date: null, duration: null, parent: 1, progress: 0, open: true, priority: "high", department: "開発部"},
-                    {id: 11, text: "在庫管理システム", start_date: "2025-08-26 00:00", duration: 10, parent: 10, progress: 0, priority: "high", department: "開発部"},
-                    {id: 12, text: "配送管理システム", start_date: "2025-09-05 00:00", duration: 8, parent: 10, progress: 0, priority: "medium", department: "物流部"},
-                    {id: 13, text: "レポート機能", start_date: "2025-09-13 00:00", duration: 5, parent: 10, progress: 0, priority: "low", department: "経営企画"},
+                    {id: 10, text: "ソフトウェア開発", description: "倉庫管理システムの開発フェーズ", start_date: null, duration: null, parent: 1, progress: 0, open: true, priority: "high", department: "開発部"},
+                    {id: 11, text: "在庫管理システム", description: "商品の入出庫と在庫状況を管理するシステム", start_date: "2025-08-26 00:00", duration: 10, parent: 10, progress: 0, priority: "high", department: "開発部"},
+                    {id: 12, text: "配送管理システム", description: "配送計画と配送状況を管理するシステム", start_date: "2025-09-05 00:00", duration: 8, parent: 10, progress: 0, priority: "medium", department: "物流部"},
+                    {id: 13, text: "レポート機能", description: "各種運営データのレポート出力機能", start_date: "2025-09-13 00:00", duration: 5, parent: 10, progress: 0, priority: "low", department: "経営企画"},
                     
                     // Phase 4: Testing
-                    {id: 14, text: "テスト・検証", start_date: null, duration: null, parent: 1, progress: 0, open: true, priority: "high", department: "品質保証"},
-                    {id: 15, text: "単体テスト", start_date: "2025-09-18 00:00", duration: 5, parent: 14, progress: 0, priority: "medium", department: "品質保証"},
-                    {id: 16, text: "統合テスト", start_date: "2025-09-23 00:00", duration: 7, parent: 14, progress: 0, priority: "high", department: "品質保証"},
-                    {id: 17, text: "運用テスト", start_date: "2025-09-30 00:00", duration: 5, parent: 14, progress: 0, priority: "high", department: "運用部"},
+                    {id: 14, text: "テスト・検証", description: "システムの品質保証とテスト実施", start_date: null, duration: null, parent: 1, progress: 0, open: true, priority: "high", department: "品質保証"},
+                    {id: 15, text: "単体テスト", description: "個別機能の動作確認テスト", start_date: "2025-09-18 00:00", duration: 5, parent: 14, progress: 0, priority: "medium", department: "品質保証"},
+                    {id: 16, text: "統合テスト", description: "システム全体の連携動作テスト", start_date: "2025-09-23 00:00", duration: 7, parent: 14, progress: 0, priority: "high", department: "品質保証"},
+                    {id: 17, text: "運用テスト", description: "実際の運用環境での動作確認テスト", start_date: "2025-09-30 00:00", duration: 5, parent: 14, progress: 0, priority: "high", department: "運用部"},
                     
                     // Phase 5: Deployment
-                    {id: 18, text: "本稼働", start_date: null, duration: null, parent: 1, progress: 0, open: true, priority: "high", department: "運用部"},
-                    {id: 19, text: "データ移行", start_date: "2025-10-05 00:00", duration: 3, parent: 18, progress: 0, priority: "high", department: "IT部"},
-                    {id: 20, text: "スタッフ研修", start_date: "2025-10-08 00:00", duration: 5, parent: 18, progress: 0, priority: "medium", department: "人事部"},
-                    {id: 21, text: "本稼働開始", start_date: "2025-10-13 00:00", duration: 1, parent: 18, progress: 0, priority: "high", department: "全社"}
+                    {id: 18, text: "本稼働", description: "システムの本格運用開始", start_date: null, duration: null, parent: 1, progress: 0, open: true, priority: "high", department: "運用部"},
+                    {id: 19, text: "データ移行", description: "既存データの新システムへの移行", start_date: "2025-10-05 00:00", duration: 3, parent: 18, progress: 0, priority: "high", department: "IT部"},
+                    {id: 20, text: "スタッフ研修", description: "新システムの操作方法に関するスタッフ研修", start_date: "2025-10-08 00:00", duration: 5, parent: 18, progress: 0, priority: "medium", department: "人事部"},
+                    {id: 21, text: "本稼働開始", description: "新システムでの正式運用開始", start_date: "2025-10-13 00:00", duration: 1, parent: 18, progress: 0, priority: "high", department: "全社"}
                 ],
                 links: [
                     {id: 1, source: 3, target: 4, type: "0"},
@@ -649,14 +780,33 @@
                 return true;
             });
             
+            gantt.attachEvent("onAfterTaskAdd", function(id, task) {
+                saveUndoState("add", {id: id, task: gantt.serialize()});
+                updateStats();
+                return true;
+            });
+            
             gantt.attachEvent("onAfterTaskUpdate", function(id, task) {
                 updateLinkedTasks(id);
                 updateStats();
                 return true;
             });
             
-            gantt.attachEvent("onAfterTaskAdd", updateStats);
-            gantt.attachEvent("onAfterTaskDelete", updateStats);
+            gantt.attachEvent("onAfterTaskDelete", function(id, task) {
+                saveUndoState("delete", {id: id, task: task, data: gantt.serialize()});
+                updateStats();
+                return true;
+            });
+            
+            gantt.attachEvent("onBeforeTaskDelete", function(id, task) {
+                // Save state before deletion for undo
+                saveUndoState("delete", {
+                    id: id, 
+                    task: Object.assign({}, task),
+                    beforeState: gantt.serialize()
+                });
+                return true;
+            });
             
             // Context menu functionality
             gantt.attachEvent("onTaskRightClick", function(id, e) {
@@ -670,6 +820,17 @@
                 selectedTaskId = id;
                 return true;
             });
+            
+            // Custom task editing on double click
+            gantt.attachEvent("onTaskDblClick", function(id, e) {
+                const task = gantt.getTask(id);
+                showTaskModal("タスクを編集", task);
+                return false; // Prevent default lightbox
+            });
+            
+            // Disable default lightbox
+            gantt.config.details_on_dblclick = false;
+            gantt.config.details_on_create = false;
             
             // Priority column click functionality
             gantt.attachEvent("onGridHeaderClick", function(name, e) {
@@ -687,16 +848,142 @@
                 }
             });
             
+            // Initialize column resizing functionality
+            setTimeout(function() {
+                initColumnResize();
+            }, 1500);
+            
+// Re-initialize column resize after render
+gantt.attachEvent("onGanttRender", function() {
+    setTimeout(function() {
+        initColumnResize();
+    }, 0);
+});
+
+// Double-click handler for progress cells (onGanttRenderの外に移動)
+gantt.$container.addEventListener('dblclick', function(e) {
+    if (e.target.classList.contains('progress-cell')) {
+        e.preventDefault();
+        const taskId = e.target.dataset.taskId;
+        const task = gantt.getTask(taskId);
+        
+        const currentProgress = Math.round(task.progress * 100);
+        const newProgress = prompt(`進捗率を入力してください (0-100):`, currentProgress);
+        
+        if (newProgress !== null && !isNaN(newProgress)) {
+            const progressValue = Math.max(0, Math.min(100, parseInt(newProgress)));
+            task.progress = progressValue / 100;
+            gantt.updateTask(taskId);
+            autoSave();
+        }
+    }
+});
+            
             // Initialize stats
             updateStats();
             autoLoad();
             
+            // Save initial state for undo
+            saveInitialState();
+            
+            // Initialize button states
+            setTimeout(updateUndoRedoButtons, 100);
+            
             console.log('ガントチャートが正常に初期化されました！');
+        }
+
+        // Custom column resize implementation - Enhanced
+        function initColumnResize() {
+            // Remove existing handles first
+            const existingHandles = document.querySelectorAll('.custom-resize-handle');
+            existingHandles.forEach(handle => handle.remove());
+            
+            const gridHeaders = document.querySelectorAll('.gantt_grid_head_cell');
+            
+            gridHeaders.forEach(function(header, index) {
+                // Skip the last column (add button)
+                if (index >= gantt.config.columns.length - 1) return;
+                
+                // Skip if already has handle
+                if (header.querySelector('.custom-resize-handle')) return;
+                
+                const resizeHandle = document.createElement('div');
+                resizeHandle.className = 'custom-resize-handle';
+                resizeHandle.style.cssText = `
+                    position: absolute;
+                    right: -3px;
+                    top: 0;
+                    bottom: 0;
+                    width: 6px;
+                    cursor: col-resize;
+                    background: transparent;
+                    z-index: 1000;
+                    border-right: 2px solid transparent;
+                `;
+                
+                resizeHandle.addEventListener('mouseenter', function() {
+                    this.style.borderRight = '2px solid #007bff';
+                });
+                
+                resizeHandle.addEventListener('mouseleave', function() {
+                    this.style.borderRight = '2px solid transparent';
+                });
+                
+                let isResizing = false;
+                let startX = 0;
+                let startWidth = 0;
+                
+                resizeHandle.addEventListener('mousedown', function(e) {
+                    isResizing = true;
+                    startX = e.clientX;
+                    startWidth = header.offsetWidth;
+                    
+                    document.body.style.cursor = 'col-resize';
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+                
+                function onMouseMove(e) {
+                    if (!isResizing) return;
+                    
+                    const currentX = e.clientX;
+                    const diffX = currentX - startX;
+                    const newWidth = Math.max(50, startWidth + diffX); // Minimum width of 50px
+                    
+                    // Update the column width in gantt config
+                    gantt.config.columns[index].width = newWidth;
+                    
+                    // Re-render the gantt to apply changes
+                    gantt.render();
+                    
+                    e.preventDefault();
+                }
+                
+                function onMouseUp(e) {
+                    isResizing = false;
+                    document.body.style.cursor = '';
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    
+                    // Re-initialize handles after render
+                    setTimeout(function() {
+                        initColumnResize();
+                    }, 100);
+                }
+                
+                header.style.position = 'relative';
+                header.appendChild(resizeHandle);
+            });
         }
 
         // Priority cycling function
         function cyclePriority(taskId) {
             if (!gantt.isTaskExists(taskId)) return;
+            
+            // Save state before change
+            saveUndoState("priority_change", gantt.serialize());
             
             const task = gantt.getTask(taskId);
             const priorities = ['low', 'medium', 'high'];
@@ -717,7 +1004,10 @@
             
             let newDepartment = prompt(`担当箇所を入力してください:`, currentDepartment);
             
-            if (newDepartment !== null && newDepartment.trim() !== '') {
+            if (newDepartment !== null && newDepartment.trim() !== '' && newDepartment.trim() !== currentDepartment) {
+                // Save state before change
+                saveUndoState("department_change", gantt.serialize());
+                
                 task.department = newDepartment.trim();
                 gantt.updateTask(taskId);
                 updateStats();
@@ -805,15 +1095,15 @@
                         break;
                     case 'z':
                         e.preventDefault();
-                        if (typeof gantt !== 'undefined' && gantt.undo) {
-                            gantt.undo.undo();
+                        if (e.shiftKey) {
+                            redoAction(); // Ctrl+Shift+Z for redo
+                        } else {
+                            undoAction(); // Ctrl+Z for undo
                         }
                         break;
                     case 'y':
                         e.preventDefault();
-                        if (typeof gantt !== 'undefined' && gantt.undo) {
-                            gantt.undo.redo();
-                        }
+                        redoAction(); // Ctrl+Y for redo
                         break;
                 }
             }
@@ -826,13 +1116,33 @@
             
             if (task) {
                 document.getElementById('taskText').value = task.text;
-                document.getElementById('taskDuration').value = task.duration || 3;
+                document.getElementById('taskDescription').value = task.description || '';
+                
+                // Format dates for input fields
+                if (task.start_date) {
+                    const startDate = new Date(task.start_date);
+                    document.getElementById('taskStartDate').value = startDate.toISOString().split('T')[0];
+                }
+                if (task.end_date) {
+                    const endDate = new Date(task.end_date);
+                    document.getElementById('taskEndDate').value = endDate.toISOString().split('T')[0];
+                }
+                
                 document.getElementById('taskPriority').value = task.priority || 'medium';
                 document.getElementById('taskProgress').value = Math.round((task.progress || 0) * 100);
                 document.getElementById('taskDepartment').value = task.department || '';
                 editingTaskId = task.id;
             } else {
                 document.getElementById('taskForm').reset();
+                
+                // Set default dates (today and tomorrow)
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(today.getDate() + 1);
+                
+                document.getElementById('taskStartDate').value = today.toISOString().split('T')[0];
+                document.getElementById('taskEndDate').value = tomorrow.toISOString().split('T')[0];
+                
                 editingTaskId = null;
             }
             
@@ -942,6 +1252,8 @@
         
         function contextDeleteTask() {
             if (contextTaskId && confirm("このタスクを削除してもよろしいですか？") && typeof gantt !== 'undefined') {
+                // Save state before deletion
+                saveUndoState("delete_task", gantt.serialize());
                 gantt.deleteTask(contextTaskId);
                 updateStats();
             }
@@ -957,31 +1269,66 @@
                 try {
                     const content = e.target.result;
                     let data;
+                    let projectName = null;
                     
                     if (file.name.endsWith('.json')) {
-                        data = JSON.parse(content);
+                        const jsonData = JSON.parse(content);
+                        
+                        // 新しい形式（プロジェクト名付き）かチェック
+                        if (jsonData.projectName && jsonData.projectData) {
+                            // 新しい形式
+                            projectName = jsonData.projectName;
+                            data = jsonData.projectData;
+                        } else {
+                            // 旧形式（ガントデータのみ）
+                            data = jsonData;
+                            // ファイル名からプロジェクト名を推測
+                            projectName = file.name.replace('_data.json', '').replace('.json', '');
+                        }
                     } else if (file.name.endsWith('.xml')) {
                         data = gantt.xml.parse(content);
+                        projectName = file.name.replace('.xml', '');
                     } else {
                         throw new Error('サポートされていないファイル形式です');
                     }
                     
+                    // プロジェクト名を復元
+                    if (projectName) {
+                        document.getElementById('projectTitle').value = projectName;
+                        document.title = projectName;
+                        localStorage.setItem('gantt_project_name', projectName);
+                    }
+                    
+                    // ガントデータを読み込み
                     gantt.clearAll();
                     gantt.parse(data);
                     updateStats();
-                    alert('データが正常にインポートされました！');
+                    
+                    alert(`プロジェクト「${projectName || '無名'}」が正常にインポートされました！`);
                 } catch (error) {
                     alert('ファイルのインポートエラー: ' + error.message);
                 }
             };
             reader.readAsText(file);
+            
+            // ファイル選択をリセット（同じファイルを再選択可能にする）
+            event.target.value = '';
         }
         
         function exportData() {
             if (typeof gantt === 'undefined') return;
             const projectName = document.getElementById('projectTitle').value || 'gantt_project';
-            const data = gantt.serialize();
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const ganttData = gantt.serialize();
+            
+            // プロジェクト名を含めたデータ構造
+            const exportData = {
+                projectName: projectName,
+                projectData: ganttData,
+                exportDate: new Date().toISOString(),
+                version: "1.0"
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -1049,9 +1396,17 @@
         function autoSave() {
             if (typeof gantt === 'undefined') return;
             try {
-                const data = gantt.serialize();
                 const projectName = document.getElementById('projectTitle').value;
-                localStorage.setItem('gantt_chart_data', JSON.stringify(data));
+                const ganttData = gantt.serialize();
+                
+                // プロジェクト名を含めたデータ構造でローカル保存
+                const saveData = {
+                    projectName: projectName,
+                    projectData: ganttData,
+                    lastSaved: new Date().toISOString()
+                };
+                
+                localStorage.setItem('gantt_chart_data', JSON.stringify(saveData));
                 localStorage.setItem('gantt_project_name', projectName);
             } catch (e) {
                 console.warn('自動保存に失敗しました:', e);
@@ -1063,6 +1418,7 @@
             const saved = localStorage.getItem('gantt_chart_data');
             const savedName = localStorage.getItem('gantt_project_name');
             
+            // プロジェクト名を復元
             if (savedName) {
                 document.getElementById('projectTitle').value = savedName;
                 document.title = savedName;
@@ -1070,14 +1426,159 @@
             
             if (saved) {
                 try {
-                    const data = JSON.parse(saved);
+                    const savedData = JSON.parse(saved);
+                    let ganttData;
+                    let projectName;
+                    
+                    // 新しい形式（プロジェクト名付き）かチェック
+                    if (savedData.projectName && savedData.projectData) {
+                        // 新しい形式
+                        projectName = savedData.projectName;
+                        ganttData = savedData.projectData;
+                        
+                        // プロジェクト名を復元
+                        document.getElementById('projectTitle').value = projectName;
+                        document.title = projectName;
+                    } else {
+                        // 旧形式（ガントデータのみ）
+                        ganttData = savedData;
+                    }
+                    
                     gantt.clearAll();
-                    gantt.parse(data);
+                    gantt.parse(ganttData);
                     updateStats();
                 } catch (e) {
                     console.warn('保存データの読み込みに失敗しました:', e);
                 }
             }
+        }
+        
+        // Custom UNDO/REDO functions
+        function saveUndoState(action, data) {
+            const currentState = {
+                action: action,
+                projectName: document.getElementById('projectTitle').value,
+                data: gantt.serialize(),
+                timestamp: Date.now()
+            };
+            
+            undoStack.push(currentState);
+            
+            // Limit undo stack size
+            if (undoStack.length > maxUndoSteps) {
+                undoStack.shift();
+            }
+            
+            // Clear redo stack when new action is performed
+            redoStack = [];
+            
+            // Update button states
+            updateUndoRedoButtons();
+        }
+        
+        function undoAction() {
+            if (undoStack.length === 0) {
+                alert('元に戻す操作がありません。');
+                return;
+            }
+            
+            // Save current state to redo stack
+            const currentState = {
+                action: "redo",
+                projectName: document.getElementById('projectTitle').value,
+                data: gantt.serialize(),
+                timestamp: Date.now()
+            };
+            redoStack.push(currentState);
+            
+            // Get previous state
+            const previousState = undoStack.pop();
+            
+            // Restore previous state
+            if (previousState.projectName) {
+                document.getElementById('projectTitle').value = previousState.projectName;
+                document.title = previousState.projectName;
+            }
+            
+            gantt.clearAll();
+            gantt.parse(previousState.data);
+            updateStats();
+            updateUndoRedoButtons();
+            
+            console.log('UNDO実行: ' + previousState.action);
+        }
+        
+        function redoAction() {
+            if (redoStack.length === 0) {
+                alert('やり直す操作がありません。');
+                return;
+            }
+            
+            // Save current state to undo stack
+            const currentState = {
+                action: "undo_redo",
+                projectName: document.getElementById('projectTitle').value,
+                data: gantt.serialize(),
+                timestamp: Date.now()
+            };
+            undoStack.push(currentState);
+            
+            // Get redo state
+            const redoState = redoStack.pop();
+            
+            // Restore redo state
+            if (redoState.projectName) {
+                document.getElementById('projectTitle').value = redoState.projectName;
+                document.title = redoState.projectName;
+            }
+            
+            gantt.clearAll();
+            gantt.parse(redoState.data);
+            updateStats();
+            updateUndoRedoButtons();
+            
+            console.log('REDO実行');
+        }
+        
+        function updateUndoRedoButtons() {
+            // Update UNDO button
+            const undoBtn = document.querySelector('button[onclick="undoAction()"]');
+            const redoBtn = document.querySelector('button[onclick="redoAction()"]');
+            
+            if (undoBtn) {
+                if (undoStack.length === 0) {
+                    undoBtn.classList.add('btn-disabled');
+                    undoBtn.disabled = true;
+                } else {
+                    undoBtn.classList.remove('btn-disabled');
+                    undoBtn.disabled = false;
+                }
+            }
+            
+            if (redoBtn) {
+                if (redoStack.length === 0) {
+                    redoBtn.classList.add('btn-disabled');
+                    redoBtn.disabled = true;
+                } else {
+                    redoBtn.classList.remove('btn-disabled');
+                    redoBtn.disabled = false;
+                }
+            }
+            
+            console.log('UNDO stack:', undoStack.length, 'REDO stack:', redoStack.length);
+        }
+        
+        // Save initial state for undo
+        function saveInitialState() {
+            setTimeout(function() {
+                if (typeof gantt !== 'undefined') {
+                    saveUndoState("initial", {
+                        projectName: document.getElementById('projectTitle').value,
+                        data: gantt.serialize()
+                    });
+                    updateUndoRedoButtons();
+                }
+            }, 2000);
         }
         
         // Form submission setup
@@ -1087,10 +1588,28 @@
                 
                 if (typeof gantt === 'undefined') return;
                 
+                // Save state before modification
+                saveUndoState("task_modify", gantt.serialize());
+                
                 const formData = new FormData(e.target);
+                const startDate = new Date(formData.get('start_date'));
+                const endDate = new Date(formData.get('end_date'));
+                
+                // Validate dates
+                if (endDate <= startDate) {
+                    alert('終了日は開始日より後の日付を選択してください。');
+                    return;
+                }
+                
+                // Calculate duration in days
+                const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                
                 const taskData = {
                     text: formData.get('text'),
-                    duration: parseInt(formData.get('duration')),
+                    description: formData.get('description'),
+                    start_date: startDate,
+                    end_date: endDate,
+                    duration: duration,
                     priority: formData.get('priority'),
                     progress: parseInt(formData.get('progress')) / 100,
                     department: formData.get('department'),
@@ -1102,7 +1621,6 @@
                     Object.assign(task, taskData);
                     gantt.updateTask(editingTaskId);
                 } else {
-                    taskData.start_date = new Date();
                     if (selectedTaskId) {
                         taskData.parent = selectedTaskId;
                     }

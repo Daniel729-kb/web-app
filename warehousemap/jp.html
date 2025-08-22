@@ -1,0 +1,2079 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国内倉庫面積可視化マップ - 倉庫床面積と販売可能面積の見える化</title>
+  
+    <!-- 外部ライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  
+    <style>
+        /* 基本変数定義 */
+        :root {
+            --primary-color: #2193b0;
+            --secondary-color: #6dd5ed;
+            --background-light: #f8f9fa;
+            --background-dark: #1e293b;
+            --text-light: #333;
+            --text-dark: #e2e8f0;
+            --border-light: #ddd;
+            --border-dark: #475569;
+            --card-light: #fff;
+            --card-dark: #334155;
+            --hover-light: #f1f5f9;
+            --hover-dark: #475569;
+        }
+        /* 基本レイアウト */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-light);
+            color: var(--text-light);
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 100vh;
+        }
+        /* ヘッダー */
+        .header {
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .header-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .dark-mode-toggle {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: white;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .dark-mode-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        /* アップロードセクション */
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .upload-area {
+            border: 3px dashed var(--border-light);
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--card-light);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: var(--primary-color);
+            background: var(--hover-light);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        .upload-text {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+        }
+        .upload-subtext {
+            color: #666;
+            font-size: 0.95rem;
+        }
+        #file-input {
+            display: none;
+        }
+        /* メッセージ */
+        .message {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-weight: 500;
+            text-align: center;
+            animation: slideIn 0.3s ease;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* コントロール */
+        .controls {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            background: var(--card-light);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        .filter-section {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+        .selector-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 250px;
+            position: relative;
+        }
+        .selector-label {
+            color: var(--text-light);
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        /* マルチセレクトドロップダウン */
+        .multi-select {
+            position: relative;
+            width: 100%;
+        }
+        .multi-select-display {
+            padding: 12px 40px 12px 15px;
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            background: var(--card-light);
+            color: var(--text-light);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .multi-select-display:hover {
+            border-color: var(--primary-color);
+        }
+        .multi-select-display.open {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(33, 147, 176, 0.1);
+        }
+        .multi-select-arrow {
+            position: absolute;
+            right: 15px;
+            transition: transform 0.3s ease;
+            font-size: 12px;
+            color: #666;
+        }
+        .multi-select-display.open .multi-select-arrow {
+            transform: rotate(180deg);
+        }
+        .selected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            width: 100%;
+        }
+        .selected-tag {
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            max-width: 120px;
+        }
+        .tag-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tag-remove {
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        .tag-remove:hover {
+            opacity: 1;
+        }
+        .placeholder-text {
+            color: #999;
+            font-style: italic;
+        }
+        .multi-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card-light);
+            border: 2px solid var(--primary-color);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 320px;
+            z-index: 1000;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+        }
+        .search-container {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-light);
+            background: var(--hover-light);
+            position: relative;
+        }
+        .search-input {
+            width: 100%;
+            padding: 8px 35px 8px 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            background: var(--card-light);
+            color: var(--text-light);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        .search-input:focus {
+            border-color: var(--primary-color);
+        }
+        .search-icon {
+            position: absolute;
+            right: 25px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-size: 14px;
+        }
+        .search-clear {
+            position: absolute;
+            right: 25px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .search-clear:hover {
+            background: var(--border-light);
+        }
+        .select-all-container {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-light);
+            background: var(--hover-light);
+            flex-shrink: 0;
+        }
+        .options-container {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 200px;
+        }
+        .multi-select-option {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+        .multi-select-option:hover {
+            background: var(--hover-light);
+        }
+        .multi-select-option.hidden {
+            display: none;
+        }
+        .multi-select-option input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
+        }
+        .option-text {
+            flex: 1;
+        }
+        .option-text .highlight {
+            background: #ffeb3b;
+            color: #333;
+            font-weight: bold;
+            padding: 1px 2px;
+            border-radius: 2px;
+        }
+        .option-count {
+            color: #666;
+            font-size: 0.85rem;
+        }
+        .no-results {
+            padding: 20px 15px;
+            text-align: center;
+            color: #999;
+            font-style: italic;
+        }
+        /* 機能フィルター */
+        .feature-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 15px;
+            background: var(--hover-light);
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        .feature-filter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        .feature-filter input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
+        }
+        /* 凡例 */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            padding: 15px;
+            background: var(--hover-light);
+            border-radius: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        /* 統計 */
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: space-around;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+        }
+        .stat-item {
+            text-align: center;
+            font-size: 0.95rem;
+        }
+        .stat-item strong {
+            display: block;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+        .stat-item span {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+        /* メインコンテンツ */
+        .main-content {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            min-height: 600px;
+        }
+        /* マップ */
+        #map {
+            flex: 2;
+            min-height: 600px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            display: none;
+            position: relative;
+        }
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            color: var(--primary-color);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+        /* 倉庫リスト */
+        .warehouse-list {
+            flex: 1;
+            background: var(--card-light);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            display: none;
+            overflow: hidden;
+            flex-direction: column;
+            max-height: 800px;
+            min-height: 600px;
+        }
+        .warehouse-list h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border-light);
+            flex-shrink: 0;
+        }
+        .list-info {
+            background: var(--hover-light);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            text-align: center;
+            flex-shrink: 0;
+            border-left: 4px solid var(--primary-color);
+        }
+        .list-info .map-range-info {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        #warehouse-items {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-right: 8px;
+        }
+        /* カスタムスクロールバー */
+        #warehouse-items::-webkit-scrollbar {
+            width: 8px;
+        }
+        #warehouse-items::-webkit-scrollbar-track {
+            background: var(--hover-light);
+            border-radius: 4px;
+        }
+        #warehouse-items::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+            opacity: 0.7;
+        }
+        #warehouse-items::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-color);
+        }
+        .warehouse-item {
+            background: var(--hover-light);
+            border-radius: 12px;
+            padding: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .warehouse-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+        .warehouse-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+        .warehouse-details {
+            color: #666;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+        .warehouse-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+        .warehouse-stats span {
+            display: flex;
+            justify-content: space-between;
+        }
+        .availability-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .availability-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+        /* ポップアップスタイル */
+        .warehouse-popup {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 320px;
+        }
+        .popup-header {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+            text-align: center;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .popup-detail {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        .popup-detail span:first-child {
+            color: #666;
+            min-width: 80px;
+        }
+        .popup-detail span:last-child {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        .chart-container {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+        }
+        /* ダークモード */
+        body.dark-mode {
+            background-color: var(--background-dark);
+            color: var(--text-dark);
+        }
+        body.dark-mode .upload-area {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+            color: var(--text-dark);
+        }
+        body.dark-mode .upload-area:hover,
+        body.dark-mode .upload-area.dragover {
+            background: var(--hover-dark);
+        }
+        body.dark-mode .upload-subtext {
+            color: #94a3b8;
+        }
+        body.dark-mode .encoding-selector {
+            background: var(--hover-dark) !important;
+        }
+        body.dark-mode .encoding-selector label {
+            color: var(--text-dark) !important;
+        }
+        body.dark-mode .encoding-selector select {
+            background: var(--card-dark);
+            color: var(--text-dark);
+            border-color: var(--border-dark);
+        }
+        body.dark-mode .encoding-selector button {
+            background: var(--primary-color);
+        }
+        body.dark-mode .encoding-selector button:hover {
+            background: var(--secondary-color);
+        }
+        body.dark-mode .encoding-selector div {
+            color: #94a3b8 !important;
+        }
+        body.dark-mode .controls {
+            background: var(--card-dark);
+        }
+        body.dark-mode .selector-label {
+            color: var(--text-dark);
+        }
+        body.dark-mode .multi-select-display {
+            background: var(--card-dark);
+            color: var(--text-dark);
+            border-color: var(--border-dark);
+        }
+        body.dark-mode .multi-select-dropdown {
+            background: var(--card-dark);
+            border-color: var(--primary-color);
+        }
+        body.dark-mode .search-container {
+            background: var(--hover-dark);
+            border-bottom-color: var(--border-dark);
+        }
+        body.dark-mode .search-input {
+            background: var(--card-dark);
+            color: var(--text-dark);
+            border-color: var(--border-dark);
+        }
+        body.dark-mode .search-clear:hover {
+            background: var(--border-dark);
+        }
+        body.dark-mode .select-all-container {
+            background: var(--hover-dark);
+            border-bottom-color: var(--border-dark);
+        }
+        body.dark-mode .multi-select-option:hover {
+            background: var(--hover-dark);
+        }
+        body.dark-mode .option-text .highlight {
+            background: #ffc107;
+            color: #000;
+        }
+        body.dark-mode .option-count {
+            color: #94a3b8;
+        }
+        body.dark-mode .feature-filters {
+            background: var(--hover-dark);
+        }
+        body.dark-mode .legend {
+            background: var(--hover-dark);
+        }
+        body.dark-mode .stats {
+            background: linear-gradient(135deg, #2d3748, #4a5568);
+        }
+        body.dark-mode .stat-item span {
+            color: var(--text-dark);
+        }
+        body.dark-mode .warehouse-list {
+            background: var(--card-dark);
+        }
+        body.dark-mode .warehouse-list h3 {
+            border-bottom-color: var(--border-dark);
+        }
+        body.dark-mode .list-info {
+            background: var(--hover-dark);
+        }
+        body.dark-mode #warehouse-items::-webkit-scrollbar-track {
+            background: var(--hover-dark);
+        }
+        body.dark-mode .warehouse-item {
+            background: var(--hover-dark);
+        }
+        body.dark-mode .warehouse-details {
+            color: #94a3b8;
+        }
+        body.dark-mode .popup-detail span:first-child {
+            color: #94a3b8;
+        }
+        body.dark-mode .availability-bar {
+            background: #4a5568;
+        }
+        /* レスポンシブデザイン */
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+          
+            .warehouse-list {
+                max-height: 400px;
+            }
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+          
+            .header h1 {
+                font-size: 2rem;
+            }
+          
+            .filter-section {
+                flex-direction: column;
+                gap: 15px;
+            }
+          
+            .selector-group {
+                min-width: auto;
+            }
+          
+            .legend {
+                justify-content: center;
+                gap: 15px;
+            }
+          
+            .stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+          
+            #map {
+                min-height: 400px;
+            }
+          
+            .warehouse-list {
+                max-height: 300px;
+            }
+        }
+        @media (max-width: 480px) {
+            .header {
+                padding: 20px;
+            }
+          
+            .header h1 {
+                font-size: 1.7rem;
+            }
+          
+            .upload-area {
+                padding: 30px 20px;
+            }
+          
+            .controls {
+                padding: 20px;
+            }
+          
+            .legend {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <!-- ヘッダーコントロール -->
+            <div class="header-controls">
+                <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="ダークモード切り替え">
+                    <span class="dark-mode-icon">🌙</span>
+                </button>
+            </div>
+          
+            <h1>日本国内倉庫面積可視化マップ</h1>
+            <p>倉庫床面積と販売可能面積の可視化</p>
+        </div>
+        <div class="upload-section">
+            <div class="upload-area" onclick="document.getElementById('file-input').click()">
+                <div class="upload-icon">📊</div>
+                <div class="upload-text">日本国内倉庫データCSVファイルをインポート</div>
+                <div class="upload-subtext">クリックしてファイルを選択するか、ここにドラッグ＆ドロップ<br>
+                <small>対応フィールド: 施設名称, 都道府県, 市区町村, 倉庫床面積（坪）, 販売可能面積(坪), 緯度, 経度</small></div>
+            </div>
+            <input type="file" id="file-input" accept=".csv" />
+          
+            <!-- 文字エンコーディング選択 -->
+            <div class="encoding-selector" style="margin-top: 15px; text-align: center; background: var(--hover-light); padding: 15px; border-radius: 10px; transition: background-color 0.3s ease;">
+                <label style="margin-right: 10px; font-weight: 600; color: var(--text-light);">📝 文字エンコーディング:</label>
+                <select id="encoding-select" style="padding: 8px 12px; border: 2px solid var(--border-light); border-radius: 6px; background: var(--card-light); color: var(--text-light); font-size: 0.9rem; margin-right: 10px;">
+                    <option value="UTF-8">UTF-8</option>
+                    <option value="Shift_JIS" selected>Shift_JIS (日本語標準)</option>
+                    <option value="EUC-JP">EUC-JP</option>
+                    <option value="ISO-2022-JP">ISO-2022-JP</option>
+                </select>
+                <button onclick="reprocessFile()" style="padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: background-color 0.3s ease;">🔄 再読み込み</button>
+                <div style="margin-top: 8px; font-size: 0.8rem; color: #666; transition: color 0.3s ease;">💡 文字化けする場合は、エンコーディングを変更して「再読み込み」をクリック</div>
+            </div>
+        </div>
+        <div class="controls" id="controls">
+            <div class="filter-section">
+                <div class="selector-group">
+                    <label class="selector-label"><strong>🗾 地域選択:</strong></label>
+                    <div class="multi-select" id="region-multiselect">
+                        <div class="multi-select-display" onclick="toggleDropdown('region')">
+                            <div class="selected-tags" id="region-tags">
+                                <span class="placeholder-text">地域を選択してください</span>
+                            </div>
+                            <span class="multi-select-arrow">▼</span>
+                        </div>
+                        <div class="multi-select-dropdown" id="region-dropdown" style="display: none;">
+                            <div class="search-container">
+                                <input type="text" class="search-input" id="region-search" placeholder="地域名を検索..." />
+                                <span class="search-icon" id="region-search-icon">🔍</span>
+                                <button class="search-clear" id="region-search-clear" style="display: none;">&times;</button>
+                            </div>
+                            <div class="select-all-container">
+                                <label>
+                                    <input type="checkbox" id="region-select-all" onchange="toggleSelectAll('region')">
+                                    <strong>すべて選択/解除</strong>
+                                </label>
+                            </div>
+                            <div class="options-container">
+                                <div id="region-options"></div>
+                                <div class="no-results" id="region-no-results" style="display: none;">検索結果がありません</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="selector-group">
+                    <label class="selector-label"><strong>🏢 都道府県選択:</strong></label>
+                    <div class="multi-select" id="prefecture-multiselect">
+                        <div class="multi-select-display" onclick="toggleDropdown('prefecture')">
+                            <div class="selected-tags" id="prefecture-tags">
+                                <span class="placeholder-text">都道府県を選択してください</span>
+                            </div>
+                            <span class="multi-select-arrow">▼</span>
+                        </div>
+                        <div class="multi-select-dropdown" id="prefecture-dropdown" style="display: none;">
+                            <div class="search-container">
+                                <input type="text" class="search-input" id="prefecture-search" placeholder="都道府県名を検索..." />
+                                <span class="search-icon" id="prefecture-search-icon">🔍</span>
+                                <button class="search-clear" id="prefecture-search-clear" style="display: none;">&times;</button>
+                            </div>
+                            <div class="select-all-container">
+                                <label>
+                                    <input type="checkbox" id="prefecture-select-all" onchange="toggleSelectAll('prefecture')">
+                                    <strong>すべて選択/解除</strong>
+                                </label>
+                            </div>
+                            <div class="options-container">
+                                <div id="prefecture-options"></div>
+                                <div class="no-results" id="prefecture-no-results" style="display: none;">検索結果がありません</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="selector-group">
+                    <label class="selector-label"><strong>🏘️ 市区町村選択:</strong></label>
+                    <div class="multi-select" id="city-multiselect">
+                        <div class="multi-select-display" onclick="toggleDropdown('city')">
+                            <div class="selected-tags" id="city-tags">
+                                <span class="placeholder-text">市区町村を選択してください</span>
+                            </div>
+                            <span class="multi-select-arrow">▼</span>
+                        </div>
+                        <div class="multi-select-dropdown" id="city-dropdown" style="display: none;">
+                            <div class="search-container">
+                                <input type="text" class="search-input" id="city-search" placeholder="市区町村名を検索..." />
+                                <span class="search-icon" id="city-search-icon">🔍</span>
+                                <button class="search-clear" id="city-search-clear" style="display: none;">&times;</button>
+                            </div>
+                            <div class="select-all-container">
+                                <label>
+                                    <input type="checkbox" id="city-select-all" onchange="toggleSelectAll('city')">
+                                    <strong>すべて選択/解除</strong>
+                                </label>
+                            </div>
+                            <div class="options-container">
+                                <div id="city-options"></div>
+                                <div class="no-results" id="city-no-results" style="display: none;">検索結果がありません</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="selector-group">
+                    <label class="selector-label"><strong>🏠 自社所有/賃借:</strong></label>
+                    <div class="multi-select" id="ownership-multiselect">
+                        <div class="multi-select-display" onclick="toggleDropdown('ownership')">
+                            <div class="selected-tags" id="ownership-tags">
+                                <span class="placeholder-text">自社所有か賃借かを選択してください</span>
+                            </div>
+                            <span class="multi-select-arrow">▼</span>
+                        </div>
+                        <div class="multi-select-dropdown" id="ownership-dropdown" style="display: none;">
+                            <div class="search-container">
+                                <input type="text" class="search-input" id="ownership-search" placeholder="自社所有か賃借かを検索..." />
+                                <span class="search-icon" id="ownership-search-icon">🔍</span>
+                                <button class="search-clear" id="ownership-search-clear" style="display: none;">&times;</button>
+                            </div>
+                            <div class="select-all-container">
+                                <label>
+                                    <input type="checkbox" id="ownership-select-all" onchange="toggleSelectAll('ownership')">
+                                    <strong>すべて選択/解除</strong>
+                                </label>
+                            </div>
+                            <div class="options-container">
+                                <div id="ownership-options"></div>
+                                <div class="no-results" id="ownership-no-results" style="display: none;">検索結果がありません</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="feature-filters">
+                <div class="feature-filter">
+                    <input type="checkbox" id="filter-bonded" onchange="filterByFeatures()">
+                    <label for="filter-bonded">🏭 保税倉庫のみ</label>
+                </div>
+                <div class="feature-filter">
+                    <input type="checkbox" id="filter-temp-controlled" onchange="filterByFeatures()">
+                    <label for="filter-temp-controlled">🌡️ 定温倉庫のみ</label>
+                </div>
+                <div class="feature-filter">
+                    <input type="checkbox" id="filter-refrigerated" onchange="filterByFeatures()">
+                    <label for="filter-refrigerated">❄️ 冷蔵・冷凍倉庫のみ</label>
+                </div>
+                <div class="feature-filter">
+                    <input type="checkbox" id="filter-licensed" onchange="filterByFeatures()">
+                    <label for="filter-licensed">📋 営業倉庫登録のみ</label>
+                </div>
+                <div class="feature-filter">
+                    <input type="checkbox" id="filter-international" onchange="filterByFeatures()">
+                    <label for="filter-international">🌏 国際輸送対応のみ</label>
+                </div>
+                <div class="feature-filter">
+                    <input type="checkbox" id="filter-hazardous" onchange="filterByFeatures()">
+                    <label for="filter-hazardous">⚠️ 危険品倉庫のみ</label>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-color" style="background: #ef4444;"></div><span>空きが多い（稼働率20%未満）</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #f97316;"></div><span>やや空き（稼働率20-40%）</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #eab308;"></div><span>普通（稼働率40-60%）</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #84cc16;"></div><span>順調（稼働率60-80%）</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #22c55e;"></div><span>ほぼ満杯（稼働率80%以上）</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #fff; border: 2px solid #888; border-radius: 50%;"></div><span>GPS座標</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #fff; border: 3px solid #ffd43b; border-radius: 50%;"></div><span>都市座標</span></div>
+            </div>
+          
+            <div class="stats">
+                <div class="stat-item"><strong>倉庫数:</strong> <span id="warehouse-count">-</span></div>
+                <div class="stat-item"><strong>総床面積:</strong> <span id="total-area">-</span> 坪</div>
+                <div class="stat-item"><strong>販売可能:</strong> <span id="available-area">-</span> 坪</div>
+                <div class="stat-item"><strong>平均稼働率:</strong> <span id="avg-usage">-</span>%</div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div id="map">
+                <div class="loading">地図とデータを読み込み中...</div>
+            </div>
+            <div class="warehouse-list" id="warehouse-list">
+                <h3>📦 空きが多い順リスト</h3>
+                <div class="list-info" id="list-info">
+                    <div class="map-range-info">マップの表示範囲内: <span id="visible-count">-</span>件</div>
+                    <div style="font-size: 0.85rem; margin-top: 5px;">🔍 マップを移動するとリストが自動更新されます</div>
+                </div>
+                <div id="warehouse-items"></div>
+            </div>
+        </div>
+    </div>
+   <script>
+        // ダークモード管理
+        let isDarkMode = false;
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            updateDarkModeIcon();
+        }
+        function updateDarkModeIcon() {
+            const icon = document.querySelector('.dark-mode-icon');
+            if (icon) {
+                icon.textContent = isDarkMode ? '☀️' : '🌙';
+            }
+        }
+        function initializeDarkMode() {
+            // デフォルトはライトモード
+            document.body.classList.remove('dark-mode');
+            isDarkMode = false;
+            updateDarkModeIcon();
+        }
+        // 既存のJavaScript機能（完全保持）
+        let map;
+        let warehouseData = [];
+        let allWarehouseData = [];
+        let warehouseMarkers = [];
+        let visibleWarehouseData = []; // マップ表示範囲内の倉庫データ
+        let selectedRegions = [];
+        let selectedPrefectures = [];
+        let selectedCities = [];
+        let selectedOwnerships = [];
+        // 日本の主要都市座標データ
+        const japanCityCoordinates = {
+            // 北海道
+            '札幌': [43.0642, 141.3469], '札幌市': [43.0642, 141.3469],
+            '函館': [41.7687, 140.7290], '函館市': [41.7687, 140.7290],
+            '旭川': [43.7711, 142.3649], '旭川市': [43.7711, 142.3649],
+            '釧路': [42.9849, 144.3818], '釧路市': [42.9849, 144.3818],
+            '帯広': [42.9236, 143.1947], '帯広市': [42.9236, 143.1947],
+          
+            // 東北
+            '青森': [40.8244, 140.7400], '青森市': [40.8244, 140.7400],
+            '盛岡': [39.7036, 141.1527], '盛岡市': [39.7036, 141.1527],
+            '仙台': [38.2682, 140.8694], '仙台市': [38.2682, 140.8694],
+            '秋田': [39.7186, 140.1024], '秋田市': [39.7186, 140.1024],
+            '山形': [38.2404, 140.3633], '山形市': [38.2404, 140.3633],
+            '福島': [37.7608, 140.4747], '福島市': [37.7608, 140.4747],
+            'いわき': [37.0481, 140.8878], 'いわき市': [37.0481, 140.8878],
+          
+            // 関東
+            '東京': [35.6762, 139.6503], '東京都': [35.6762, 139.6503],
+            '横浜': [35.4437, 139.6380], '横浜市': [35.4437, 139.6380],
+            'さいたま': [35.8617, 139.6455], 'さいたま市': [35.8617, 139.6455],
+            '千葉': [35.6074, 140.1065], '千葉市': [35.6074, 140.1065],
+            '水戸': [36.3418, 140.4468], '水戸市': [36.3418, 140.4468],
+            '宇都宮': [36.5658, 139.8836], '宇都宮市': [36.5658, 139.8836],
+            '前橋': [36.3911, 139.0607], '前橋市': [36.3911, 139.0607],
+            '川崎': [35.5308, 139.7029], '川崎市': [35.5308, 139.7029],
+            '船橋': [35.6955, 139.9830], '船橋市': [35.6955, 139.9830],
+            '柏': [35.8647, 139.9669], '柏市': [35.8647, 139.9669],
+            '八王子': [35.6558, 139.3439], '八王子市': [35.6558, 139.3439],
+            '相模原': [35.5722, 139.3694], '相模原市': [35.5722, 139.3694],
+            '高槻': [34.8485, 135.6168], '高槻市': [34.8485, 135.6168],
+          
+            // 中部
+            '新潟': [37.9022, 139.0239], '新潟市': [37.9022, 139.0239],
+            '富山': [36.6959, 137.2139], '富山市': [36.6959, 137.2139],
+            '金沢': [36.5944, 136.6256], '金沢市': [36.5944, 136.6256],
+            '福井': [36.0653, 136.2207], '福井市': [36.0653, 136.2207],
+            '甲府': [35.6642, 138.5681], '甲府市': [35.6642, 138.5681],
+            '長野': [36.6483, 138.1943], '長野市': [36.6483, 138.1943],
+            '岐阜': [35.3912, 136.7223], '岐阜市': [35.3912, 136.7223],
+            '静岡': [34.9756, 138.3831], '静岡市': [34.9756, 138.3831],
+            '浜松': [34.7108, 137.7261], '浜松市': [34.7108, 137.7261],
+            '名古屋': [35.1815, 136.9066], '名古屋市': [35.1815, 136.9066],
+            '豊田': [35.0833, 137.1500], '豊田市': [35.0833, 137.1500],
+            '岡崎': [34.9550, 137.1744], '岡崎市': [34.9550, 137.1744],
+          
+            // 関西
+            '津': [34.7303, 136.5086], '津市': [34.7303, 136.5086],
+            '大津': [35.0045, 135.8684], '大津市': [35.0045, 135.8684],
+            '京都': [35.0116, 135.7681], '京都市': [35.0116, 135.7681],
+            '大阪': [34.6937, 135.5023], '大阪市': [34.6937, 135.5023],
+            '神戸': [34.6901, 135.1956], '神戸市': [34.6901, 135.1956],
+            '奈良': [34.6851, 135.8048], '奈良市': [34.6851, 135.8048],
+            '和歌山': [34.2261, 135.1675], '和歌山市': [34.2261, 135.1675],
+            '堺': [34.5731, 135.4826], '堺市': [34.5731, 135.4826],
+            '東大阪': [34.6780, 135.6006], '東大阪市': [34.6780, 135.6006],
+            '姫路': [34.8161, 134.6851], '姫路市': [34.8161, 134.6851],
+          
+            // 中国
+            '鳥取': [35.5037, 134.2380], '鳥取市': [35.5037, 134.2380],
+            '松江': [35.4722, 133.0506], '松江市': [35.4722, 133.0506],
+            '岡山': [34.6617, 133.9341], '岡山市': [34.6617, 133.9341],
+            '広島': [34.3853, 132.4553], '広島市': [34.3853, 132.4553],
+            '山口': [34.1858, 131.4706], '山口市': [34.1858, 131.4706],
+            '福山': [34.4895, 133.3625], '福山市': [34.4895, 133.3625],
+            '倉敷': [34.5839, 133.7726], '倉敷市': [34.5839, 133.7726],
+          
+            // 四国
+            '徳島': [34.0658, 134.5594], '徳島市': [34.0658, 134.5594],
+            '高松': [34.3401, 134.0431], '高松市': [34.3401, 134.0431],
+            '松山': [33.8416, 132.7658], '松山市': [33.8416, 132.7658],
+            '高知': [33.5597, 133.5311], '高知市': [33.5597, 133.5311],
+          
+            // 九州
+            '福岡': [33.5904, 130.4017], '福岡市': [33.5904, 130.4017],
+            '北九州': [33.8839, 130.8751], '北九州市': [33.8839, 130.8751],
+            '佐賀': [33.2494, 130.2989], '佐賀市': [33.2494, 130.2989],
+            '長崎': [32.7503, 129.8779], '長崎市': [32.7503, 129.8779],
+            '熊本': [32.7898, 130.7417], '熊本市': [32.7898, 130.7417],
+            '大分': [33.2382, 131.6126], '大分市': [33.2382, 131.6126],
+            '宮崎': [31.9077, 131.4202], '宮崎市': [31.9077, 131.4202],
+            '鹿児島': [31.5966, 130.5571], '鹿児島市': [31.5966, 130.5571],
+            '久留米': [33.3197, 130.5089], '久留米市': [33.3197, 130.5089],
+          
+            // 沖縄
+            '那覇': [26.2124, 127.6792], '那覇市': [26.2124, 127.6792]
+        };
+        // 日本の地域区分
+        const japanRegions = {
+            '北海道': ['北海道'],
+            '東北': ['青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県'],
+            '関東': ['茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県'],
+            '中部': ['新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県', '静岡県', '愛知県'],
+            '関西': ['三重県', '滋賀県', '京都府', '大阪府', '兵庫県', '奈良県', '和歌山県'],
+            '中国': ['鳥取県', '島根県', '岡山県', '広島県', '山口県'],
+            '四国': ['徳島県', '香川県', '愛媛県', '高知県'],
+            '九州': ['福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県'],
+            '沖縄': ['沖縄県']
+        };
+        // マルチセレクト機能
+        function toggleDropdown(type) {
+            const dropdown = document.getElementById(`${type}-dropdown`);
+            const display = document.querySelector(`#${type}-multiselect .multi-select-display`);
+          
+            // 他のドロップダウンを閉じる
+            ['region', 'prefecture', 'city', 'ownership'].forEach(t => {
+                if (t !== type) {
+                    document.getElementById(`${t}-dropdown`).style.display = 'none';
+                    document.querySelector(`#${t}-multiselect .multi-select-display`).classList.remove('open');
+                }
+            });
+            const isOpen = dropdown.style.display === 'block';
+            dropdown.style.display = isOpen ? 'none' : 'block';
+            display.classList.toggle('open', !isOpen);
+          
+            // ドロップダウンを開いた時に検索入力にフォーカス
+            if (!isOpen) {
+                setTimeout(() => {
+                    const searchInput = document.getElementById(`${type}-search`);
+                    if (searchInput) {
+                        searchInput.focus();
+                    }
+                }, 100);
+            }
+        }
+        // 検索機能
+        function setupSearchFunctionality() {
+            ['region', 'prefecture', 'city', 'ownership'].forEach(type => {
+                const searchInput = document.getElementById(`${type}-search`);
+                const searchIcon = document.getElementById(`${type}-search-icon`);
+                const searchClear = document.getElementById(`${type}-search-clear`);
+              
+                if (!searchInput) return;
+              
+                // 検索入力イベント
+                searchInput.addEventListener('input', function() {
+                    const query = this.value.toLowerCase().trim();
+                    filterOptions(type, query);
+                  
+                    // クリアボタンの表示/非表示
+                    if (query) {
+                        searchIcon.style.display = 'none';
+                        searchClear.style.display = 'flex';
+                    } else {
+                        searchIcon.style.display = 'block';
+                        searchClear.style.display = 'none';
+                    }
+                });
+              
+                // クリアボタンクリック
+                if (searchClear) {
+                    searchClear.addEventListener('click', function() {
+                        searchInput.value = '';
+                        filterOptions(type, '');
+                        searchIcon.style.display = 'block';
+                        searchClear.style.display = 'none';
+                        searchInput.focus();
+                    });
+                }
+              
+                // Enterキーでの検索防止
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                    }
+                });
+            });
+        }
+        function filterOptions(type, query) {
+            const optionsContainer = document.getElementById(`${type}-options`);
+            const noResults = document.getElementById(`${type}-no-results`);
+            const options = optionsContainer.querySelectorAll('.multi-select-option');
+          
+            let visibleCount = 0;
+          
+            options.forEach(option => {
+                const optionText = option.querySelector('.option-text');
+                const originalText = optionText.dataset.originalText || optionText.textContent;
+              
+                // 初回時は元のテキストを保存
+                if (!optionText.dataset.originalText) {
+                    optionText.dataset.originalText = originalText;
+                }
+              
+                if (!query) {
+                    // 検索クエリがない場合は全て表示
+                    option.classList.remove('hidden');
+                    optionText.innerHTML = originalText;
+                    visibleCount++;
+                } else {
+                    // 検索クエリがある場合はフィルタリング
+                    if (originalText.toLowerCase().includes(query)) {
+                        option.classList.remove('hidden');
+                        optionText.innerHTML = highlightMatch(originalText, query);
+                        visibleCount++;
+                    } else {
+                        option.classList.add('hidden');
+                    }
+                }
+            });
+          
+            // 検索結果がない場合のメッセージ表示
+            if (visibleCount === 0 && query) {
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+            }
+          
+            // 全選択チェックボックスの状態を更新
+            updateSelectAllState(type);
+        }
+        function highlightMatch(text, query) {
+            const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+        function updateSelectAllState(type) {
+            const selectAllCheckbox = document.getElementById(`${type}-select-all`);
+            const visibleOptions = document.querySelectorAll(`#${type}-options .multi-select-option:not(.hidden) input[type="checkbox"]`);
+            const checkedVisibleOptions = document.querySelectorAll(`#${type}-options .multi-select-option:not(.hidden) input[type="checkbox"]:checked`);
+          
+            if (visibleOptions.length === 0) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = false;
+            } else if (checkedVisibleOptions.length === visibleOptions.length) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = true;
+            } else if (checkedVisibleOptions.length > 0) {
+                selectAllCheckbox.indeterminate = true;
+                selectAllCheckbox.checked = false;
+            } else {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = false;
+            }
+        }
+        function toggleSelectAll(type) {
+            const selectAllCheckbox = document.getElementById(`${type}-select-all`);
+            const visibleOptions = document.querySelectorAll(`#${type}-options .multi-select-option:not(.hidden) input[type="checkbox"]`);
+          
+            visibleOptions.forEach(option => {
+                option.checked = selectAllCheckbox.checked;
+            });
+          
+            updateSelectedItems(type);
+        }
+        function updateSelectedItems(type) {
+            const checkedOptions = document.querySelectorAll(`#${type}-options input[type="checkbox"]:checked`);
+            const selectedValues = Array.from(checkedOptions).map(option => option.value);
+          
+            // 選択状態を更新
+            if (type === 'region') {
+                selectedRegions = selectedValues;
+                selectedPrefectures = [];
+                selectedCities = [];
+                selectedOwnerships = [];
+                populatePrefectureSelector();
+                populateCitySelector();
+                populateOwnershipSelector();
+                updateTagsDisplay('prefecture', []);
+                updateTagsDisplay('city', []);
+                updateTagsDisplay('ownership', []);
+            } else if (type === 'prefecture') {
+                selectedCities = [];
+                selectedOwnerships = [];
+                populateCitySelector();
+                populateOwnershipSelector();
+                updateTagsDisplay('city', []);
+                updateTagsDisplay('ownership', []);
+            } else if (type === 'city') {
+                selectedOwnerships = [];
+                populateOwnershipSelector();
+                updateTagsDisplay('ownership', []);
+            } else if (type === 'ownership') {
+                selectedOwnerships = selectedValues;
+            }
+          
+            updateTagsDisplay(type, selectedValues);
+          
+            filterAndDisplayData();
+        }
+        function updateTagsDisplay(type, selectedValues) {
+            const tagsContainer = document.getElementById(`${type}-tags`);
+          
+            if (selectedValues.length === 0) {
+                const placeholderTexts = {
+                    'region': '地域を選択してください',
+                    'prefecture': '都道府県を選択してください',
+                    'city': '市区町村を選択してください',
+                    'ownership': '自社所有か賃借かを選択してください'
+                };
+                tagsContainer.innerHTML = `<span class="placeholder-text">${placeholderTexts[type]}</span>`;
+                return;
+            }
+          
+            tagsContainer.innerHTML = '';
+            selectedValues.forEach(value => {
+                const tag = document.createElement('div');
+                tag.className = 'selected-tag';
+              
+                // カウント情報を取得
+                const optionElement = document.querySelector(`#${type}-options input[value="${value}"]`).parentNode;
+                const optionText = optionElement.textContent.trim();
+              
+                tag.innerHTML = `
+                    <span class="tag-text" title="${optionText}">${value}</span>
+                    <span class="tag-remove" onclick="removeTag('${type}', '${value}')">&times;</span>
+                `;
+                tagsContainer.appendChild(tag);
+            });
+        }
+        function removeTag(type, value) {
+            const checkbox = document.querySelector(`#${type}-options input[value="${value}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+            updateSelectedItems(type);
+        }
+        // 機能フィルター
+        function filterByFeatures() {
+            filterAndDisplayData();
+        }
+        // 実際のCSVフィールドに基づく座標取得
+        function getWarehouseCoordinates(warehouse, index = 0) {
+            // 緯度・経度データがある場合は使用
+            const latitude = parseFloat(warehouse['緯度']) || 0;
+            const longitude = parseFloat(warehouse['経度']) || 0;
+          
+            if (latitude && longitude && latitude !== 0 && longitude !== 0) {
+                return [latitude, longitude];
+            }
+          
+            // 市区町村から座標を検索
+            const cityName = warehouse['市区町村'] ? warehouse['市区町村'].toLowerCase().trim() : '';
+          
+            const coords = japanCityCoordinates[cityName];
+            if (coords) {
+                // 同じ都市内での位置のばらつきを追加
+                const offsetLat = (Math.random() - 0.5) * 0.02;
+                const offsetLng = (Math.random() - 0.5) * 0.02;
+                return [coords[0] + offsetLat, coords[1] + offsetLng];
+            }
+          
+            console.warn(`都市が見つかりません: ${cityName} (倉庫: ${warehouse['施設名称'] || 'Unknown'})`);
+            // 日本の中心付近をデフォルト座標として返す
+            return [36.2048, 138.2529];
+        }
+        function initMap() {
+            if (map) map.remove();
+            // 日本全体が見えるように初期表示を設定
+            map = L.map('map').setView([36.2048, 138.2529], 6);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            // マップ移動・ズーム時のイベントリスナー
+            map.on('moveend zoomend', function() {
+                updateVisibleWarehouses();
+            });
+        }
+        function createWarehouseChart(warehouse) {
+            // 実際のCSVフィールドに基づくデータ取得
+            const totalArea = parseFloat(warehouse['倉庫床面積（坪）']) || 0;
+            const availableArea = parseFloat(warehouse['販売可能面積(坪)']) || 0;
+          
+            const canvas = document.createElement('canvas');
+            canvas.width = 180; canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            const barWidth = 40, barSpacing = 20, chartHeight = 60, chartTop = 20;
+            const maxValue = Math.max(totalArea, 1);
+            const totalHeight = (totalArea / maxValue) * chartHeight;
+            const availableHeight = (availableArea / maxValue) * chartHeight;
+            // ダークモード対応の背景色
+            const bgColor = isDarkMode ? '#1e293b' : '#f8f9fa';
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+            ctx.fillStyle = '#2193b0'; ctx.fillRect(30, chartTop + chartHeight - totalHeight, barWidth, totalHeight);
+            ctx.fillStyle = '#6dd5ed'; ctx.fillRect(30 + barWidth + barSpacing, chartTop + chartHeight - availableHeight, barWidth, availableHeight);
+          
+            // ダークモード対応のテキスト色
+            const textColor = isDarkMode ? '#e2e8f0' : '#333';
+            ctx.fillStyle = textColor;
+            ctx.font = '10px Arial'; ctx.textAlign = 'center';
+            ctx.fillText('床面積', 50, chartTop + chartHeight + 15);
+            ctx.fillText('販売可能', 110, chartTop + chartHeight + 15);
+            ctx.font = '8px Arial';
+            ctx.fillText(`${totalArea.toLocaleString()}`, 50, chartTop + chartHeight + 25);
+            ctx.fillText(`${availableArea.toLocaleString()}`, 110, chartTop + chartHeight + 25);
+            return canvas;
+        }
+        function displayWarehouses() {
+            warehouseMarkers.forEach(marker => map.removeLayer(marker));
+            warehouseMarkers = [];
+            warehouseData.forEach((warehouse, index) => {
+                const [lat, lng] = getWarehouseCoordinates(warehouse, index);
+                const totalArea = parseFloat(warehouse['倉庫床面積（坪）']) || 0;
+                const availableArea = parseFloat(warehouse['販売可能面積(坪)']) || 0;
+              
+                const latitude = parseFloat(warehouse['緯度']) || 0;
+                const longitude = parseFloat(warehouse['経度']) || 0;
+                const isEstimated = !latitude || !longitude || latitude === 0 || longitude === 0;
+              
+                const iconSize = Math.max(8, Math.min(25, Math.sqrt(totalArea) / 12));
+                const usageRate = totalArea > 0 ? (totalArea - availableArea) / totalArea : 0;
+                let fillColor;
+                if (usageRate >= 0.8) fillColor = '#22c55e';
+                else if (usageRate >= 0.6) fillColor = '#84cc16';
+                else if (usageRate >= 0.4) fillColor = '#eab308';
+                else if (usageRate >= 0.2) fillColor = '#f97316';
+                else fillColor = '#ef4444';
+                const marker = L.circleMarker([lat, lng], {
+                    radius: iconSize,
+                    fillColor: fillColor,
+                    color: isEstimated ? '#ffd43b' : '#fff',
+                    weight: isEstimated ? 3 : 2,
+                    opacity: 1,
+                    fillOpacity: isEstimated ? 0.7 : 0.8
+                }).addTo(map);
+                marker.warehouseData = warehouse;
+                marker.coordinates = [lat, lng]; // 座標情報を保存
+                warehouseMarkers.push(marker);
+                const popupContent = document.createElement('div');
+                popupContent.className = 'warehouse-popup';
+                const coordinateInfo = isEstimated ?
+                    `<div style="color: #f76707; font-size: 12px; margin-bottom: 5px;">📍 座標データなし、都市座標使用</div>` :
+                    `<div style="color: #51cf66; font-size: 12px; margin-bottom: 5px;">📍 GPS座標データ</div>`;
+                const usagePercentage = totalArea > 0 ? Math.round(((totalArea - availableArea) / totalArea) * 100) : 0;
+              
+                const facilityName = warehouse['施設名称'] || 'Unknown';
+                const city = warehouse['市区町村'] || '';
+                const prefecture = warehouse['都道府県'] || '';
+                const address = warehouse['住所'] || '';
+              
+                // 特徴情報の取得
+                const features = [];
+                if (warehouse['保税倉庫の有無'] === 'Yes') features.push('🏭保税');
+                if (warehouse['定温倉庫の有無'] === 'Yes') features.push('🌡️定温');
+                if (warehouse['冷蔵・冷凍倉庫の有無'] === 'Yes') features.push('❄️冷蔵冷凍');
+                if (warehouse['営業倉庫登録の有無'] === 'Yes') features.push('📋営業登録');
+                if (warehouse['国際航空輸送への対応実績'] === 'Yes' ||
+                    warehouse['国際海上輸送への対応実績'] === 'Yes') features.push('🌏国際対応');
+                if (warehouse['販促フラグ'] === 'Yes') features.push('📢販促');
+                if ((warehouse['セールスポイントなど特記事項'] || '').includes('危険')) features.push('⚠️危険品');
+              
+                const featuresText = features.length > 0 ? `<div style="margin-top: 8px; font-size: 0.8rem; color: #666;">${features.join(' ')}</div>` : '';
+              
+                popupContent.innerHTML = coordinateInfo + `
+                    <div class="popup-header">${facilityName}</div>
+                    <div class="popup-detail"><span>📍 所在地:</span> <span>${city}${prefecture ? ', ' + prefecture : ''}</span></div>
+                    ${address ? `<div class="popup-detail"><span>🏢 住所:</span> <span style="font-size: 0.8rem;">${address}</span></div>` : ''}
+                    <div class="popup-detail"><span>🏢 床面積:</span> <strong>${totalArea.toLocaleString()} 坪</strong></div>
+                    <div class="popup-detail"><span>📦 販売可能:</span> <strong>${availableArea.toLocaleString()} 坪</strong></div>
+                    <div class="popup-detail"><span>📊 稼働率:</span> <strong>${usagePercentage}%</strong></div>
+                    <div class="popup-detail"><span>☎️ 問合せ先:</span> <span>${(warehouse['問合せ先電話番号'] || 'N/A').replace(/^'/, '')}</span></div>
+                    <div class="popup-detail"><span>📅 最終更新:</span> <span>${warehouse['更新日'] || 'N/A'}</span></div>
+                    ${featuresText}
+                `;
+                marker.bindPopup(popupContent, { maxWidth: 320 });
+            });
+          
+            // 初回表示時は全ての倉庫を表示
+            if (map && map.getBounds) {
+                updateVisibleWarehouses();
+            } else {
+                displayWarehouseList();
+            }
+        }
+        // マップ表示範囲内の倉庫を更新
+        function updateVisibleWarehouses() {
+            if (!map || !map.getBounds) return;
+            const bounds = map.getBounds();
+            visibleWarehouseData = warehouseMarkers
+                .filter(marker => bounds.contains(marker.coordinates))
+                .map(marker => marker.warehouseData);
+            displayWarehouseList(true); // 表示範囲モードでリスト更新
+        }
+        function populateRegionSelector() {
+            const regionsContainer = document.getElementById('region-options');
+            const regions = Object.keys(japanRegions);
+          
+            // 検索をクリア
+            clearSearch('region');
+          
+            regionsContainer.innerHTML = '';
+            regions.forEach(region => {
+                const prefecturesInRegion = japanRegions[region];
+                const count = allWarehouseData.filter(row => {
+                    const prefecture = row['都道府県'] || '';
+                    return prefecturesInRegion.includes(prefecture);
+                }).length;
+              
+                const option = document.createElement('div');
+                option.className = 'multi-select-option';
+                option.innerHTML = `<input type="checkbox" value="${region}" onchange="updateSelectedItems('region')"><span class="option-text">${region}</span><span class="option-count">(${count}棟)</span>`;
+                regionsContainer.appendChild(option);
+            });
+            // 全て選択状態を初期化
+            document.getElementById('region-select-all').checked = false;
+            document.getElementById('region-select-all').indeterminate = false;
+        }
+        function populatePrefectureSelector() {
+            const prefecturesContainer = document.getElementById('prefecture-options');
+          
+            // 検索をクリア
+            clearSearch('prefecture');
+          
+            // 現在選択されている地域のデータを取得
+            let currentData = allWarehouseData;
+          
+            if (selectedRegions.length > 0) {
+                const allowedPrefectures = selectedRegions.flatMap(region => japanRegions[region] || []);
+                currentData = currentData.filter(row => {
+                    const prefecture = row['都道府県'] || '';
+                    return allowedPrefectures.includes(prefecture);
+                });
+            }
+          
+            if (currentData.length === 0) {
+                prefecturesContainer.innerHTML = '<div class="multi-select-option" style="color: #999; font-style: italic;">選択可能な都道府県がありません</div>';
+                document.getElementById('prefecture-select-all').checked = false;
+                document.getElementById('prefecture-select-all').indeterminate = false;
+                return;
+            }
+          
+            const prefectures = [...new Set(currentData.map(row => row['都道府県'] || ''))].filter(Boolean).sort();
+          
+            prefecturesContainer.innerHTML = '';
+            prefectures.forEach(prefecture => {
+                const count = currentData.filter(row => row['都道府県'] === prefecture).length;
+                const option = document.createElement('div');
+                option.className = 'multi-select-option';
+                option.innerHTML = `<input type="checkbox" value="${prefecture}" onchange="updateSelectedItems('prefecture')"><span class="option-text">${prefecture}</span><span class="option-count">(${count}棟)</span>`;
+                prefecturesContainer.appendChild(option);
+            });
+            document.getElementById('prefecture-select-all').checked = false;
+            document.getElementById('prefecture-select-all').indeterminate = false;
+        }
+        function populateCitySelector() {
+            const citiesContainer = document.getElementById('city-options');
+          
+            // 検索をクリア
+            clearSearch('city');
+          
+            // 現在の選択に基づいてデータを絞り込み
+            let currentData = allWarehouseData;
+          
+            if (selectedRegions.length > 0) {
+                const allowedPrefectures = selectedRegions.flatMap(region => japanRegions[region] || []);
+                currentData = currentData.filter(row => {
+                    const prefecture = row['都道府県'] || '';
+                    return allowedPrefectures.includes(prefecture);
+                });
+            }
+          
+            if (selectedPrefectures.length > 0) {
+                currentData = currentData.filter(row => {
+                    const prefecture = row['都道府県'] || '';
+                    return selectedPrefectures.includes(prefecture);
+                });
+            }
+          
+            if (currentData.length === 0) {
+                citiesContainer.innerHTML = '<div class="multi-select-option" style="color: #999; font-style: italic;">選択可能な市区町村がありません</div>';
+                document.getElementById('city-select-all').checked = false;
+                document.getElementById('city-select-all').indeterminate = false;
+                return;
+            }
+          
+            const cities = [...new Set(currentData.map(row => row['市区町村'] || ''))].filter(Boolean).sort();
+          
+            citiesContainer.innerHTML = '';
+            cities.forEach(city => {
+                const count = currentData.filter(row => row['市区町村'] === city).length;
+                const option = document.createElement('div');
+                option.className = 'multi-select-option';
+                option.innerHTML = `<input type="checkbox" value="${city}" onchange="updateSelectedItems('city')"><span class="option-text">${city}</span><span class="option-count">(${count}棟)</span>`;
+                citiesContainer.appendChild(option);
+            });
+            document.getElementById('city-select-all').checked = false;
+            document.getElementById('city-select-all').indeterminate = false;
+        }
+        function populateOwnershipSelector() {
+            const ownershipsContainer = document.getElementById('ownership-options');
+          
+            // 検索をクリア
+            clearSearch('ownership');
+          
+            // 現在の選択に基づいてデータを絞り込み
+            let currentData = allWarehouseData;
+          
+            if (selectedRegions.length > 0) {
+                const allowedPrefectures = selectedRegions.flatMap(region => japanRegions[region] || []);
+                currentData = currentData.filter(row => {
+                    const prefecture = row['都道府県'] || '';
+                    return allowedPrefectures.includes(prefecture);
+                });
+            }
+          
+            if (selectedPrefectures.length > 0) {
+                currentData = currentData.filter(row => {
+                    const prefecture = row['都道府県'] || '';
+                    return selectedPrefectures.includes(prefecture);
+                });
+            }
+          
+            if (selectedCities.length > 0) {
+                currentData = currentData.filter(row => {
+                    const city = row['市区町村'] || '';
+                    return selectedCities.includes(city);
+                });
+            }
+          
+            if (currentData.length === 0) {
+                ownershipsContainer.innerHTML = '<div class="multi-select-option" style="color: #999; font-style: italic;">選択可能な自社所有か賃借かがありません</div>';
+                document.getElementById('ownership-select-all').checked = false;
+                document.getElementById('ownership-select-all').indeterminate = false;
+                return;
+            }
+          
+            const ownerships = [...new Set(currentData.map(row => row['自社所有か賃借か'] || ''))].filter(Boolean).sort();
+          
+            ownershipsContainer.innerHTML = '';
+            ownerships.forEach(ownership => {
+                const count = currentData.filter(row => row['自社所有か賃借か'] === ownership).length;
+                const option = document.createElement('div');
+                option.className = 'multi-select-option';
+                option.innerHTML = `<input type="checkbox" value="${ownership}" onchange="updateSelectedItems('ownership')"><span class="option-text">${ownership}</span><span class="option-count">(${count}棟)</span>`;
+                ownershipsContainer.appendChild(option);
+            });
+            document.getElementById('ownership-select-all').checked = false;
+            document.getElementById('ownership-select-all').indeterminate = false;
+        }
+        function clearSearch(type) {
+            const searchInput = document.getElementById(`${type}-search`);
+            const searchIcon = document.getElementById(`${type}-search-icon`);
+            const searchClear = document.getElementById(`${type}-search-clear`);
+          
+            if (searchInput) {
+                searchInput.value = '';
+                searchIcon.style.display = 'block';
+                searchClear.style.display = 'none';
+            }
+        }
+        function filterAndDisplayData() {
+            // 地域・都道府県・市区町村フィルタリング
+            let filteredData = allWarehouseData;
+          
+            if (selectedRegions.length > 0) {
+                const allowedPrefectures = selectedRegions.flatMap(region => japanRegions[region] || []);
+                filteredData = filteredData.filter(row => {
+                    const prefecture = row['都道府県'] || '';
+                    return allowedPrefectures.includes(prefecture);
+                });
+            }
+          
+            if (selectedPrefectures.length > 0) {
+                filteredData = filteredData.filter(row => {
+                    const prefecture = row['都道府県'] || '';
+                    return selectedPrefectures.includes(prefecture);
+                });
+            }
+          
+            if (selectedCities.length > 0) {
+                filteredData = filteredData.filter(row => {
+                    const city = row['市区町村'] || '';
+                    return selectedCities.includes(city);
+                });
+            }
+          
+            if (selectedOwnerships.length > 0) {
+                filteredData = filteredData.filter(row => {
+                    const ownership = row['自社所有か賃借か'] || '';
+                    return selectedOwnerships.includes(ownership);
+                });
+            }
+            // 機能フィルタリング
+            if (document.getElementById('filter-bonded').checked) {
+                filteredData = filteredData.filter(row => row['保税倉庫の有無'] === 'Yes');
+            }
+            if (document.getElementById('filter-temp-controlled').checked) {
+                filteredData = filteredData.filter(row => row['定温倉庫の有無'] === 'Yes');
+            }
+            if (document.getElementById('filter-refrigerated').checked) {
+                filteredData = filteredData.filter(row => row['冷蔵・冷凍倉庫の有無'] === 'Yes');
+            }
+            if (document.getElementById('filter-licensed').checked) {
+                filteredData = filteredData.filter(row => row['営業倉庫登録の有無'] === 'Yes');
+            }
+            if (document.getElementById('filter-international').checked) {
+                filteredData = filteredData.filter(row =>
+                    row['国際航空輸送への対応実績'] === 'Yes' || row['国際海上輸送への対応実績'] === 'Yes'
+                );
+            }
+            if (document.getElementById('filter-hazardous').checked) {
+                filteredData = filteredData.filter(row => (row['セールスポイントなど特記事項'] || '').includes('危険'));
+            }
+          
+            warehouseData = filteredData;
+            visibleWarehouseData = []; // フィルター変更時にリセット
+          
+            // リストタイトルを更新
+            const listTitle = document.querySelector('.warehouse-list h3');
+            let titleParts = [];
+          
+            if (selectedRegions.length > 0) {
+                if (selectedRegions.length === 1) {
+                    titleParts.push(selectedRegions[0]);
+                } else {
+                    titleParts.push(`${selectedRegions.length}地域`);
+                }
+            }
+          
+            if (selectedPrefectures.length > 0) {
+                if (selectedPrefectures.length === 1) {
+                    titleParts.push(selectedPrefectures[0]);
+                } else {
+                    titleParts.push(`${selectedPrefectures.length}都道府県`);
+                }
+            }
+          
+            if (selectedCities.length > 0) {
+                if (selectedCities.length === 1) {
+                    titleParts.push(selectedCities[0]);
+                } else {
+                    titleParts.push(`${selectedCities.length}市区町村`);
+                }
+            }
+          
+            if (selectedOwnerships.length > 0) {
+                if (selectedOwnerships.length === 1) {
+                    titleParts.push(selectedOwnerships[0]);
+                } else {
+                    titleParts.push(`${selectedOwnerships.length}所有形態`);
+                }
+            }
+          
+            const titleSuffix = titleParts.length > 0 ? `（${titleParts.join(' - ')}）` : '（日本全国）';
+            listTitle.textContent = `📦 空きが多い順リスト ${titleSuffix}`;
+            displayWarehouses();
+            updateStats();
+            if (warehouseData.length > 0) {
+                fitMapToData();
+            }
+        }
+        function fitMapToData() {
+            const validCoords = warehouseData.map((w, i) => getWarehouseCoordinates(w, i));
+            if (validCoords.length > 0) {
+                const group = new L.featureGroup(validCoords.map(coord => L.marker(coord)));
+                if (validCoords.length === 1) {
+                    map.setView(validCoords[0], 10);
+                } else {
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+            }
+        }
+        function displayWarehouseList(mapRangeMode = false) {
+            const container = document.getElementById('warehouse-items');
+            const visibleCountElement = document.getElementById('visible-count');
+          
+            // 表示するデータを決定
+            const dataToDisplay = mapRangeMode ? visibleWarehouseData : warehouseData;
+          
+            // 表示範囲内件数を更新
+            visibleCountElement.textContent = mapRangeMode ? visibleWarehouseData.length : warehouseData.length;
+          
+            container.innerHTML = '';
+            const sorted = [...dataToDisplay].sort((a, b) => {
+                const totalA = parseFloat(a['倉庫床面積（坪）']) || 1;
+                const totalB = parseFloat(b['倉庫床面積（坪）']) || 1;
+                const availA = parseFloat(a['販売可能面積(坪)']) || 0;
+                const availB = parseFloat(b['販売可能面積(坪)']) || 0;
+                const rateA = availA / totalA;
+                const rateB = availB / totalB;
+                return rateB - rateA;
+            });
+            if (sorted.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.style.cssText = 'text-align: center; padding: 40px 20px; color: #999; font-style: italic; white-space: pre-line;';
+                emptyMessage.textContent = mapRangeMode ?
+                    '🔍 この範囲には倉庫がありません\nマップを移動してください' :
+                    '🔍 フィルター条件に該当する倉庫がありません';
+                container.appendChild(emptyMessage);
+                return;
+            }
+            sorted.forEach(w => {
+                const total = parseFloat(w['倉庫床面積（坪）']) || 0;
+                const avail = parseFloat(w['販売可能面積(坪)']) || 0;
+                const availRate = total > 0 ? Math.round((avail / total) * 100) : 0;
+                const usageRate = 100 - availRate;
+                let color;
+                if (usageRate >= 80) color = '#22c55e';
+                else if (usageRate >= 60) color = '#84cc16';
+                else if (usageRate >= 40) color = '#eab308';
+                else if (usageRate >= 20) color = '#f97316';
+                else color = '#ef4444';
+                const facilityName = w['施設名称'] || 'Unknown';
+                const city = w['市区町村'] || '';
+                const prefecture = w['都道府県'] || '';
+                // 特徴タグ
+                const features = [];
+                if (w['保税倉庫の有無'] === 'Yes') features.push('🏭保税');
+                if (w['定温倉庫の有無'] === 'Yes') features.push('🌡️定温');
+                if (w['冷蔵・冷凍倉庫の有無'] === 'Yes') features.push('❄️冷蔵冷凍');
+                if (w['営業倉庫登録の有無'] === 'Yes') features.push('📋営業登録');
+                if (w['国際航空輸送への対応実績'] === 'Yes' || w['国際海上輸送への対応実績'] === 'Yes') features.push('🌏国際対応');
+                if (w['販促フラグ'] === 'Yes') features.push('📢販促');
+                if ((w['セールスポイントなど特記事項'] || '').includes('危険')) features.push('⚠️危険品');
+              
+                const featuresText = features.length > 0 ? `<div style="font-size: 0.8rem; color: #666; margin-top: 5px;">${features.join(' ')}</div>` : '';
+                const item = document.createElement('div');
+                item.className = 'warehouse-item';
+                item.innerHTML = `
+                    <div class="warehouse-name">${facilityName}</div>
+                    <div class="warehouse-details">${city}${prefecture ? ', ' + prefecture : ''}</div>
+                    <div class="warehouse-stats">
+                        <span>床面積: ${total.toLocaleString()}坪</span>
+                        <span>販売可能: ${avail.toLocaleString()}坪</span>
+                        <span style="color: ${color}; font-weight: bold;">${availRate}%空き</span>
+                    </div>
+                    <div class="availability-bar">
+                        <div class="availability-fill" style="width: ${availRate}%; background-color: ${color};"></div>
+                    </div>
+                    ${featuresText}
+                `;
+                item.addEventListener('click', () => focusOnWarehouse(w));
+                container.appendChild(item);
+            });
+        }
+        function focusOnWarehouse(targetWarehouse) {
+            const facilityName = targetWarehouse['施設名称'] || '';
+            const marker = warehouseMarkers.find(m => {
+                const mName = m.warehouseData['施設名称'] || '';
+                return mName === facilityName;
+            });
+            if (marker) {
+                map.setView(marker.getLatLng(), Math.max(map.getZoom(), 10));
+                marker.openPopup();
+                marker.setStyle({ weight: 5, color: '#ff4757', fillOpacity: 1 });
+                setTimeout(() => {
+                    const latitude = parseFloat(targetWarehouse['緯度']) || 0;
+                    const longitude = parseFloat(targetWarehouse['経度']) || 0;
+                    const isEst = !latitude || !longitude || latitude === 0 || longitude === 0;
+                    marker.setStyle({ weight: isEst ? 3 : 2, color: isEst ? '#ffd43b' : '#fff', fillOpacity: isEst ? 0.7 : 0.8 });
+                }, 2000);
+            }
+        }
+        function updateStats() {
+            const totalWarehouses = warehouseData.length;
+            const totalArea = warehouseData.reduce((sum, w) => {
+                return sum + (parseFloat(w['倉庫床面積（坪）']) || 0);
+            }, 0);
+            const availableArea = warehouseData.reduce((sum, w) => {
+                return sum + (parseFloat(w['販売可能面積(坪)']) || 0);
+            }, 0);
+            const usageRates = warehouseData.map(w => {
+                const total = parseFloat(w['倉庫床面積（坪）']) || 0;
+                const available = parseFloat(w['販売可能面積(坪)']) || 0;
+                return total > 0 ? ((total - available) / total) * 100 : 0;
+            });
+            const avgUsage = usageRates.length > 0 ? Math.round(usageRates.reduce((a, b) => a + b, 0) / usageRates.length) : 0;
+            const withGPS = warehouseData.filter(w => {
+                const latitude = parseFloat(w['緯度']) || 0;
+                const longitude = parseFloat(w['経度']) || 0;
+                return latitude && longitude && latitude !== 0 && longitude !== 0;
+            }).length;
+            const withCityCoords = totalWarehouses - withGPS;
+            document.getElementById('warehouse-count').textContent = `${totalWarehouses} (GPS: ${withGPS}, 都市: ${withCityCoords})`;
+            document.getElementById('total-area').textContent = totalArea.toLocaleString();
+            document.getElementById('available-area').textContent = availableArea.toLocaleString();
+            document.getElementById('avg-usage').textContent = avgUsage;
+        }
+        // グローバル変数にアップロードされたファイルを保存
+        let uploadedFile = null;
+        function showMessage(message, type = 'success') {
+            const section = document.querySelector('.upload-section');
+            const existing = section.querySelector('.message');
+            if (existing) existing.remove();
+          
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.textContent = message;
+            section.appendChild(div);
+        }
+        function reprocessFile() {
+            if (uploadedFile) {
+                processCSVFile(uploadedFile);
+            } else {
+                showMessage('先にCSVファイルをインポートしてください。', 'error');
+            }
+        }
+        function processCSVFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showMessage('CSVファイルを選択してください。', 'error');
+                return;
+            }
+            // ファイルを保存
+            uploadedFile = file;
+          
+            // 選択されたエンコーディングを取得
+            const encoding = document.getElementById('encoding-select').value;
+            console.log(`Reading file with encoding: ${encoding}`);
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csv = e.target.result;
+                console.log('CSV content preview:', csv.substring(0, 500));
+                Papa.parse(csv, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
+                    delimitersToGuess: [',', '\t', '|', ';'],
+                    complete: function(results) {
+                        try {
+                            // CSVのヘッダーを確認（デバッグ用）
+                            console.log('CSV Headers:', results.meta.fields);
+                          
+                            // 実際のCSVフィールドを動的に検出
+                            const sampleRow = results.data[0] || {};
+                            console.log('Sample row:', sampleRow);
+                          
+                            allWarehouseData = results.data.filter(row => {
+                                // 施設名称の取得
+                                const facilityName = row['施設名称'] || '';
+                              
+                                // 都道府県の取得
+                                const prefecture = row['都道府県'] || '';
+                              
+                                // 倉庫床面積の取得
+                                const totalArea = parseFloat(row['倉庫床面積（坪）']) || 0;
+                              
+                                console.log(`Row data: 施設=${facilityName}, 都道府県=${prefecture}, 面積=${totalArea}`);
+                              
+                                // 有効なデータかチェック
+                                const isValidArea = totalArea > 0;
+                                const isValidFacility = facilityName && facilityName.length > 0;
+                                const isValidPrefecture = prefecture && (
+                                    prefecture.includes('県') || prefecture.includes('都') || prefecture.includes('府') || prefecture.includes('道') ||
+                                    Object.values(japanRegions).flat().includes(prefecture)
+                                );
+                              
+                                const isValid = isValidArea && isValidFacility && isValidPrefecture;
+                                if (isValid) {
+                                    console.log(`Valid warehouse found: ${facilityName} in ${prefecture} (${totalArea}m²)`);
+                                }
+                              
+                                return isValid;
+                            });
+                            if (allWarehouseData.length === 0) {
+                                showMessage(`有効な日本国内倉庫データが見つかりませんでした。\n文字エンコーディング「${encoding}」で読み込みました。\n別のエンコーディングを試してください。`, 'error');
+                                return;
+                            }
+                            warehouseData = allWarehouseData;
+                            selectedRegions = [];
+                            selectedPrefectures = [];
+                            selectedCities = [];
+                            selectedOwnerships = [];
+                            // 統計情報の計算
+                            const prefectureCount = [...new Set(allWarehouseData.map(row => row['都道府県']))].filter(Boolean).length;
+                            const regionCounts = {};
+                          
+                            allWarehouseData.forEach(row => {
+                                const prefecture = row['都道府県'] || '';
+                                for (const [region, prefectures] of Object.entries(japanRegions)) {
+                                    if (prefectures.includes(prefecture)) {
+                                        regionCounts[region] = (regionCounts[region] || 0) + 1;
+                                    }
+                                }
+                            });
+                          
+                            const topRegions = Object.entries(regionCounts)
+                                .sort((a, b) => b[1] - a[1])
+                                .slice(0, 3)
+                                .map(([region, count]) => `${region}: ${count}棟`)
+                                .join(', ');
+                            // 特殊機能の統計
+                            const bondedCount = allWarehouseData.filter(row => row['保税倉庫の有無'] === 'Yes').length;
+                            const tempControlledCount = allWarehouseData.filter(row => row['定温倉庫の有無'] === 'Yes').length;
+                            const refrigeratedCount = allWarehouseData.filter(row => row['冷蔵・冷凍倉庫の有無'] === 'Yes').length;
+                          
+                            let message = `✅ ${encoding}で正常に読み込み完了！\n${allWarehouseData.length}件の日本国内倉庫データを${prefectureCount}都道府県から読み込みました。`;
+                            if (topRegions) {
+                                message += `\n主要地域: ${topRegions}`;
+                            }
+                            if (bondedCount > 0 || tempControlledCount > 0 || refrigeratedCount > 0) {
+                                message += `\n特殊機能: 保税${bondedCount}棟, 定温${tempControlledCount}棟, 冷蔵冷凍${refrigeratedCount}棟`;
+                            }
+                          
+                            showMessage(message, 'success');
+                            document.getElementById('controls').style.display = 'flex';
+                            document.getElementById('map').style.display = 'block';
+                            document.getElementById('warehouse-list').style.display = 'flex';
+                            document.querySelector('.loading').style.display = 'none';
+                            initMap();
+                            populateRegionSelector();
+                            populatePrefectureSelector();
+                            populateCitySelector();
+                            populateOwnershipSelector();
+                            setupSearchFunctionality();
+                            displayWarehouses();
+                            updateStats();
+                            fitMapToData();
+                        } catch (error) {
+                            showMessage(`データの処理中にエラーが発生しました (${encoding}): ` + error.message, 'error');
+                        }
+                    },
+                    error: function(error) {
+                        showMessage(`CSVファイルの読み込みエラー (${encoding}): ` + error.message, 'error');
+                    }
+                });
+            };
+            reader.onerror = () => showMessage(`ファイルの読み込みに失敗しました (${encoding})。`, 'error');
+          
+            // 選択されたエンコーディングでファイルを読み込み
+            reader.readAsText(file, encoding);
+        }
+        function setupFileUpload() {
+            const fileInput = document.getElementById('file-input');
+            const uploadArea = document.querySelector('.upload-area');
+            fileInput.addEventListener('change', e => e.target.files.length && processCSVFile(e.target.files[0]));
+            ['dragover', 'dragleave', 'drop'].forEach(eventName => uploadArea.addEventListener(eventName, e => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (eventName === 'dragover') uploadArea.classList.add('dragover');
+                if (eventName === 'dragleave' || eventName === 'drop') uploadArea.classList.remove('dragover');
+                if (eventName === 'drop' && e.dataTransfer.files.length) processCSVFile(e.dataTransfer.files[0]);
+            }));
+        }
+        // ドロップダウンの外側クリックで閉じる
+        document.addEventListener('click', function(event) {
+            const multiSelects = document.querySelectorAll('.multi-select');
+            multiSelects.forEach(multiSelect => {
+                if (!multiSelect.contains(event.target)) {
+                    const dropdown = multiSelect.querySelector('.multi-select-dropdown');
+                    const display = multiSelect.querySelector('.multi-select-display');
+                    dropdown.style.display = 'none';
+                    display.classList.remove('open');
+                }
+            });
+        });
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDarkMode();
+            setupFileUpload();
+            setupSearchFunctionality();
+        });
+    </script>
+</body>
+</html>

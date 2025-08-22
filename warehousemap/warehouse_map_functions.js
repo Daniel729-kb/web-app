@@ -1,6 +1,15 @@
 // ダークモード管理
 let isDarkMode = false;
+const warehouseMapManager = new WarehouseMapManager();
 
+function initMap() {
+    warehouseMapManager.initMap();
+}
+
+// Cleanup when done
+function cleanup() {
+    warehouseMapManager.cleanup();
+}
 function toggleDarkMode() {
     isDarkMode = !isDarkMode;
     document.body.classList.toggle('dark-mode', isDarkMode);
