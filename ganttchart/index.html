@@ -537,22 +537,6 @@
 
         loadGanttCSS();
 
-        // Add defer to script loading for better performance
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize after DOM is ready
-            if (typeof gantt !== 'undefined') {
-                initializeGantt();
-            } else {
-                // Wait for script to load
-                const checkGantt = setInterval(() => {
-                    if (typeof gantt !== 'undefined') {
-                        clearInterval(checkGantt);
-                        initializeGantt();
-                    }
-                }, 100);
-            }
-        });
-
         // Global variables
         let selectedTaskId = null;
         let contextTaskId = null;
@@ -565,7 +549,17 @@
         let redoStack = [];
         const maxUndoSteps = 20;
 
-        // Script loading is now handled in DOMContentLoaded
+        loadGanttScript().then(() => {
+            initializeGantt();
+        }).catch(error => {
+            console.error('ガントライブラリの読み込みに失敗しました:', error);
+            document.getElementById('gantt_here').innerHTML = 
+                '<div style="padding: 20px; text-align: center; color: red;">' +
+                '<h3>ガントチャートの読み込みエラー</h3>' +
+                '<p>ガントライブラリの読み込みに失敗しました。gantt.jsが同じディレクトリにあることを確認してください。</p>' +
+                '<p>エラー: ' + error.message + '</p>' +
+                '</div>';
+        });
 
         function initializeGantt() {
             // Japanese localization
@@ -1687,29 +1681,16 @@ gantt.$container.addEventListener('dblclick', function(e) {
                 updateStats();
             });
             
-                    // 定期的なメモリクリーンアップ（5分ごと）
-        const cleanupInterval = setInterval(() => {
-            memoryManager.cleanup();
-        }, 5 * 60 * 1000);
-        
-        // Store interval ID for cleanup
-        window.ganttCleanupInterval = cleanupInterval;
+            // 定期的なメモリクリーンアップ（7分ごと）
+            setInterval(() => {
+                memoryManager.cleanup();
+            }, 7 * 60 * 1000);
         });
         
         // ページ離脱時のクリーンアップ
         window.addEventListener('beforeunload', () => {
             console.log('Cleaning up Gantt chart before page unload...');
             memoryManager.cleanup();
-            
-            // Clear intervals
-            if (window.ganttCleanupInterval) {
-                clearInterval(window.ganttCleanupInterval);
-            }
-            
-            // Clear gantt instance
-            if (typeof gantt !== 'undefined') {
-                gantt.clearAll();
-            }
         });
     </script>
 </body>
