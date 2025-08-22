@@ -55,11 +55,37 @@ function init() {
     });
     renderWhiteboard();
     startGlobalTimer();
+    
+    // Add cleanup on page unload
+    window.addEventListener('beforeunload', cleanup);
+}
+
+// クリーンアップ関数
+function cleanup() {
+    if (globalTimerInterval) {
+        clearInterval(globalTimerInterval);
+    }
+    
+    // Clear all timer intervals
+    Object.values(timerIntervals).forEach(interval => {
+        if (interval) clearInterval(interval);
+    });
+    
+    // Clear active timers
+    activeTimers = {};
+    timerIntervals = {};
 }
 
 // グローバルタイマー
+let globalTimerInterval;
+
 function startGlobalTimer() {
-    setInterval(() => {
+    // Clear existing interval if any
+    if (globalTimerInterval) {
+        clearInterval(globalTimerInterval);
+    }
+    
+    globalTimerInterval = setInterval(() => {
         Object.keys(activeTimers).forEach(workerId => {
             const elapsed = Math.floor((Date.now() - activeTimers[workerId]) / 1000);
             updateTimerDisplay(workerId, elapsed);

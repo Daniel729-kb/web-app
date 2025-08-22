@@ -11,7 +11,10 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-DV9LBPYG0F');
+    gtag('config', 'G-DV9LBPYG0F', {
+      page_title: '業務用アプリ一覧',
+      page_location: window.location.href
+    });
   </script>
 
   <link rel="stylesheet" href="styles/theme.css">
@@ -24,8 +27,8 @@
     </div>
 
     <div class="apps-grid">
-      <div class="app-card">
-        <span class="app-icon">📦</span>
+      <div class="app-card" loading="lazy">
+        <span class="app-icon" aria-label="コンテナアイコン">📦</span>
         <h2 class="app-title">コンテナローディングプランナー</h2>
         <p class="app-description">
           コンテナへのパレット積み込みプランを自動最適化。20ft/40ftコンテナに対応し、効率的な積載計画を瞬時に生成します。
@@ -36,7 +39,7 @@
           <li>ドラッグ&ドロップによる直感的操作</li>
           <li>配置図の画像エクスポート機能</li>
         </ul>
-        <a href="automateclp/index.html" class="app-link">アプリを開く →</a>
+        <a href="automateclp/index.html" class="app-link" aria-label="コンテナローディングプランナーを開く">アプリを開く →</a>
       </div>
 
       <div class="app-card">

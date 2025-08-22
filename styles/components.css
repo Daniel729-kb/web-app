@@ -19,16 +19,7 @@ body {
 }
 
 /* === ダークモード対応 === */
-:root {
-  --bg-primary: var(--gray-50);
-  --bg-secondary: #ffffff;
-  --bg-tertiary: var(--gray-100);
-  --text-primary: var(--gray-900);
-  --text-secondary: var(--gray-600);
-  --text-tertiary: var(--gray-500);
-  --border-color: var(--gray-200);
-  --shadow-color: rgba(0, 0, 0, 0.1);
-}
+/* Note: These variables are defined in variables.css */
 
 /* ダークモード - システム設定ではなく、クラスベースのみ適用 */
 body.dark-mode {

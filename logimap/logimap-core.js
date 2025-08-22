@@ -433,6 +433,8 @@ function addFacility5() { addFacility(5); }
 
 // Map Generation
 function generateMap() {
+    const startTime = performance.now();
+    
     const facility1sColumn = document.getElementById('facility1sColumn');
     const facility2sColumn = document.getElementById('facility2sColumn');
     const facility3sColumn = document.getElementById('facility3sColumn');
@@ -489,6 +491,15 @@ function generateMap() {
     // Update layout manager
     if (window.layoutManager) {
         window.layoutManager.optimizeMapLayout();
+    }
+    
+    const endTime = performance.now();
+    const renderTime = endTime - startTime;
+    console.log(`Map generation took ${renderTime.toFixed(2)}ms`);
+    
+    // Record performance metrics
+    if (window.performanceMonitor) {
+        window.performanceMonitor.recordRender(renderTime);
     }
 }
 
@@ -968,38 +979,54 @@ function createIndividualTransportArrow(route) {
 
 // Data Import/Export Functions
 function exportDataAsCSV() {
-    const data = [];
-    
-    // Add facilities
-    ['1', '2', '3', '4', '5'].forEach(type => {
-        globalState[`facility${type}s`].forEach(facility => {
-            data.push(getFacilityCSVRow(`facility${type}`, facility));
+    try {
+        const startTime = performance.now();
+        
+        const data = [];
+        
+        // Add facilities
+        ['1', '2', '3', '4', '5'].forEach(type => {
+            globalState[`facility${type}s`].forEach(facility => {
+                data.push(getFacilityCSVRow(`facility${type}`, facility));
+            });
         });
-    });
-    
-    // Add transport routes
-    globalState.transportRoutes.forEach(route => {
-        data.push({
-            type: 'transport',
-            id: route.id,
-            fromType: route.fromType,
-            fromId: route.fromId,
-            toType: route.toType,
-            toId: route.toId,
-            mode: route.mode,
-            operatingEntity: route.operatingEntity,
-            customEntityName: route.customEntityName,
-            departure: route.departure,
-            arrival: route.arrival,
-            frequency: route.frequency,
-            packageType: route.packageType,
-            volume: route.volume
+        
+        // Add transport routes
+        globalState.transportRoutes.forEach(route => {
+            data.push({
+                type: 'transport',
+                id: route.id,
+                fromType: route.fromType,
+                fromId: route.fromId,
+                toType: route.toType,
+                toId: route.toId,
+                mode: route.mode,
+                operatingEntity: route.operatingEntity,
+                customEntityName: route.customEntityName,
+                departure: route.departure,
+                arrival: route.arrival,
+                frequency: route.frequency,
+                packageType: route.packageType,
+                volume: route.volume
+            });
         });
-    });
-    
-    const csv = convertToCSV(data);
-    downloadFile(csv, 'logistics-map-data.csv', 'text/csv');
-    showDebugMessage('Data exported to CSV successfully');
+        
+        const csv = convertToCSV(data);
+        
+        // Add timestamp to filename
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        const filename = `logistics-map-data-${timestamp}.csv`;
+        
+        downloadFile(csv, filename, 'text/csv');
+        
+        const endTime = performance.now();
+        const exportTime = endTime - startTime;
+        
+        showDebugMessage(`CSVデータが正常にエクスポートされました！ (${exportTime.toFixed(2)}ms)`);
+    } catch (error) {
+        console.error('CSV export error:', error);
+        showDebugMessage('CSVエクスポートエラー: ' + error.message, true);
+    }
 }
 
 function getFacilityCSVRow(type, facility) {
@@ -1259,22 +1286,24 @@ function exportAsImage() {
     function performExport() {
     
     // Calculate proper dimensions - use mapFlow for full content capture
-    const mapRect = mapFlow.getBoundingClientRect();
-    
-    // Get all child elements to calculate total dimensions
     const allColumns = mapFlow.querySelectorAll('.location-column, .transport-arrows-container');
     let totalWidth = 0;
     let totalHeight = 0;
     
+    // Use more efficient dimension calculation
     allColumns.forEach(column => {
         const rect = column.getBoundingClientRect();
         totalWidth += rect.width;
         totalHeight = Math.max(totalHeight, rect.height);
     });
     
-    // Add some padding for better export
-    totalWidth += 40; // 20px padding on each side
-    totalHeight += 40;
+    // Add padding for better export
+    totalWidth += 60; // 30px padding on each side
+    totalHeight += 60; // 30px padding on each side
+    
+    // Ensure minimum dimensions
+    totalWidth = Math.max(totalWidth, 800);
+    totalHeight = Math.max(totalHeight, 600);
     
     const options = {
         useCORS: true,
@@ -1292,19 +1321,25 @@ function exportAsImage() {
     };
     
     html2canvas(mapFlow, options).then(canvas => {
+        // Add timestamp to filename
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        const filename = `logistics-map-${timestamp}.png`;
+        
         canvas.toBlob(blob => {
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'logistics-map.png';
+            link.download = filename;
+            link.style.display = 'none';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
             
             showDebugMessage('マップが正常に画像として出力されました！');
-        }, 'image/png');
+        }, 'image/png', 0.95); // Higher quality
     }).catch(error => {
+        console.error('Export error:', error);
         showDebugMessage('画像エクスポートエラー: ' + error.message, true);
         // Restore export button on error
         exportBtn.textContent = originalBtnText;
@@ -1353,19 +1388,27 @@ function validateInput(type, id) {
 
 // Debug and User Feedback
 function showDebugMessage(message, isError = false) {
-    // Remove existing debug messages
-    document.querySelectorAll('.debug-message').forEach(msg => msg.remove());
+    // Remove old debug messages (keep only last 3)
+    const existingMessages = document.querySelectorAll('.debug-message');
+    if (existingMessages.length > 2) {
+        existingMessages[0].remove();
+    }
     
     const debugDiv = document.createElement('div');
     debugDiv.className = `debug-message debug-message--${isError ? 'error' : 'success'}`;
     debugDiv.textContent = message;
+    debugDiv.dataset.timestamp = Date.now().toString();
     
+    // Add to body with better positioning
     document.body.appendChild(debugDiv);
     
-    // Auto-remove after 3 seconds
+    // Auto-remove after 5 seconds for errors, 3 seconds for success
+    const timeout = isError ? 5000 : 3000;
     setTimeout(() => {
-        debugDiv.remove();
-    }, 3000);
+        if (debugDiv.parentNode) {
+            debugDiv.remove();
+        }
+    }, timeout);
     
     console.log(`[${isError ? 'ERROR' : 'INFO'}] ${message}`);
 }
@@ -1458,7 +1501,89 @@ function initializeApp() {
     }
     
     showDebugMessage('Logistics Map Generator initialized successfully!');
+    
+    // Initialize memory management
+    initializeMemoryManagement();
+}
+
+// Memory Management System
+function initializeMemoryManagement() {
+    // Performance monitoring
+    let performanceMetrics = {
+        renderCount: 0,
+        lastRenderTime: 0,
+        averageRenderTime: 0
+    };
+    
+    // Cleanup intervals
+    const cleanupInterval = setInterval(() => {
+        cleanupUnusedElements();
+        cleanupEventListeners();
+        
+        // Performance monitoring
+        if (performanceMetrics.renderCount > 0) {
+            console.log(`Performance: ${performanceMetrics.renderCount} renders, avg: ${performanceMetrics.averageRenderTime.toFixed(2)}ms`);
+        }
+    }, 30000); // Every 30 seconds
+    
+    // Store cleanup function for later use
+    window.memoryCleanup = () => {
+        clearInterval(cleanupInterval);
+        cleanupUnusedElements();
+        cleanupEventListeners();
+    };
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', window.memoryCleanup);
+    
+    // Expose performance monitoring
+    window.performanceMonitor = {
+        recordRender: (renderTime) => {
+            performanceMetrics.renderCount++;
+            performanceMetrics.lastRenderTime = renderTime;
+            performanceMetrics.averageRenderTime = 
+                (performanceMetrics.averageRenderTime * (performanceMetrics.renderCount - 1) + renderTime) / performanceMetrics.renderCount;
+        }
+    };
+}
+
+function cleanupUnusedElements() {
+    // Remove temporary elements
+    const tempElements = document.querySelectorAll('.temp-element, .export-temp');
+    tempElements.forEach(el => {
+        if (el.dataset.created && Date.now() - parseInt(el.dataset.created) > 60000) {
+            el.remove();
+        }
+    });
+    
+    // Cleanup old debug messages
+    const oldDebugMessages = document.querySelectorAll('.debug-message');
+    oldDebugMessages.forEach(msg => {
+        if (Date.now() - parseInt(msg.dataset.timestamp) > 10000) {
+            msg.remove();
+        }
+    });
+}
+
+function cleanupEventListeners() {
+    // Cleanup orphaned event listeners
+    const orphanedElements = document.querySelectorAll('[data-orphaned="true"]');
+    orphanedElements.forEach(el => {
+        el.remove();
+    });
 }
 
 // Initialize when DOM is ready - let layout.js handle the timing
 // document.addEventListener('DOMContentLoaded', initializeApp);
+
+// Global error handler
+window.addEventListener('error', function(event) {
+    console.error('Global error caught:', event.error);
+    showDebugMessage(`エラーが発生しました: ${event.error.message}`, true);
+});
+
+// Unhandled promise rejection handler
+window.addEventListener('unhandledrejection', function(event) {
+    console.error('Unhandled promise rejection:', event.reason);
+    showDebugMessage(`非同期処理エラー: ${event.reason}`, true);
+});
