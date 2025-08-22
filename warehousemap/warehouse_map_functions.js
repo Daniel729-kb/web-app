@@ -1,14 +1,21 @@
 // ダークモード管理
 let isDarkMode = false;
-const warehouseMapManager = new WarehouseMapManager();
+let warehouseMapManager = null;
 
 function initMap() {
+    // Initialize manager if not exists
+    if (!warehouseMapManager) {
+        warehouseMapManager = new WarehouseMapManager();
+    }
     warehouseMapManager.initMap();
 }
 
 // Cleanup when done
 function cleanup() {
-    warehouseMapManager.cleanup();
+    if (warehouseMapManager) {
+        warehouseMapManager.cleanup();
+        warehouseMapManager = null;
+    }
 }
 function toggleDarkMode() {
     isDarkMode = !isDarkMode;
@@ -370,73 +377,106 @@ function showMessage(message, type = 'success') {
 }
 
 function processCSVFile(file) {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-        showMessage('CSVファイルを選択してください。', 'error');
-        return;
-    }
+    try {
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            showMessage('CSVファイルを選択してください。', 'error');
+            return;
+        }
+        
+        // File size validation (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            showMessage('ファイルサイズが大きすぎます（10MB以下）', 'error');
+            return;
+        }
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const csv = e.target.result;
-
-        Papa.parse(csv, {
-            header: true,
-            dynamicTyping: true,
-            skipEmptyLines: true,
-            delimitersToGuess: [',', '\t', '|', ';'],
-            complete: function(results) {
-                try {
-                    allWarehouseData = results.data.filter(row =>
-                        row.Country &&
-                        row["Warehouse floor space (m2)"] > 0
-                    );
-
-                    if (allWarehouseData.length === 0) {
-                        showMessage('有効な倉庫データが見つかりませんでした。CSVファイルの内容を確認してください。', 'error');
-                        return;
-                    }
-
-                    warehouseData = allWarehouseData;
-                    selectedCountry = 'all';
-                    selectedState = 'all';
-
-                    const countriesCount = [...new Set(allWarehouseData.map(row => row.Country))].length;
-                    const hongKongCount = allWarehouseData.filter(row => row.Country === "Hong Kong").length;
-                    const chinaCount = allWarehouseData.filter(row => row.Country === "China").length;
-                    
-                    let message = `${allWarehouseData.length}件の倉庫データを${countriesCount}カ国から読み込みました。`;
-                    if (hongKongCount > 0) {
-                        message += ` 香港: ${hongKongCount}件`;
-                        if (chinaCount > 0) {
-                            message += `, 中国: ${chinaCount}件`;
-                        }
-                    }
-                    
-                    showMessage(message, 'success');
-
-                    document.getElementById('controls').style.display = 'flex';
-                    document.getElementById('map').style.display = 'block';
-                    document.getElementById('warehouse-list').style.display = 'flex';
-                    document.querySelector('.loading').style.display = 'none';
-
-                    initMap();
-                    populateCountrySelector();
-                    populateStateSelector();
-                    displayWarehouses();
-                    updateStats();
-                    fitMapToData();
-
-                } catch (error) {
-                    showMessage('データの処理中にエラーが発生しました: ' + error.message, 'error');
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const csv = e.target.result;
+                
+                if (!csv || csv.trim().length === 0) {
+                    showMessage('CSVファイルが空です。', 'error');
+                    return;
                 }
-            },
-            error: function(error) {
-                showMessage('CSVファイルの読み込みエラー: ' + error.message, 'error');
+
+                Papa.parse(csv, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
+                    delimitersToGuess: [',', '\t', '|', ';'],
+                    complete: function(results) {
+                        try {
+                            if (!results.data || results.data.length === 0) {
+                                showMessage('CSVファイルにデータが含まれていません。', 'error');
+                                return;
+                            }
+                            
+                            allWarehouseData = results.data.filter(row =>
+                                row.Country &&
+                                row["Warehouse floor space (m2)"] > 0
+                            );
+
+                            if (allWarehouseData.length === 0) {
+                                showMessage('有効な倉庫データが見つかりませんでした。CSVファイルの内容を確認してください。', 'error');
+                                return;
+                            }
+
+                            warehouseData = allWarehouseData;
+                            selectedCountry = 'all';
+                            selectedState = 'all';
+
+                            const countriesCount = [...new Set(allWarehouseData.map(row => row.Country))].length;
+                            const hongKongCount = allWarehouseData.filter(row => row.Country === "Hong Kong").length;
+                            const chinaCount = allWarehouseData.filter(row => row.Country === "China").length;
+                            
+                            let message = `${allWarehouseData.length}件の倉庫データを${countriesCount}カ国から読み込みました。`;
+                            if (hongKongCount > 0) {
+                                message += ` 香港: ${hongKongCount}件`;
+                                if (chinaCount > 0) {
+                                    message += `, 中国: ${chinaCount}件`;
+                                }
+                            }
+                            
+                            showMessage(message, 'success');
+
+                            document.getElementById('controls').style.display = 'flex';
+                            document.getElementById('map').style.display = 'block';
+                            document.getElementById('warehouse-list').style.display = 'flex';
+                            document.querySelector('.loading').style.display = 'none';
+
+                            initMap();
+                            populateCountrySelector();
+                            populateStateSelector();
+                            displayWarehouses();
+                            updateStats();
+                            fitMapToData();
+
+                        } catch (error) {
+                            console.error('Data processing error:', error);
+                            showMessage('データの処理中にエラーが発生しました: ' + error.message, 'error');
+                        }
+                    },
+                    error: function(error) {
+                        console.error('CSV parsing error:', error);
+                        showMessage('CSVファイルの読み込みエラー: ' + error.message, 'error');
+                    }
+                });
+            } catch (error) {
+                console.error('File reading error:', error);
+                showMessage('ファイルの読み込み中にエラーが発生しました。', 'error');
             }
-        });
-    };
-    reader.onerror = () => showMessage('ファイルの読み込みに失敗しました。', 'error');
-    reader.readAsText(file);
+        };
+        
+        reader.onerror = function(error) {
+            console.error('FileReader error:', error);
+            showMessage('ファイルの読み込みに失敗しました。', 'error');
+        };
+        
+        reader.readAsText(file);
+    } catch (error) {
+        console.error('Error in processCSVFile:', error);
+        showMessage('ファイル処理中にエラーが発生しました。', 'error');
+    }
 }
 
 function setupFileUpload() {
@@ -454,6 +494,14 @@ function setupFileUpload() {
 
 // 初期化
 document.addEventListener('DOMContentLoaded', function() {
-    initializeDarkMode();
-    setupFileUpload();
+    try {
+        initializeDarkMode();
+        setupFileUpload();
+        
+        // Add cleanup on page unload
+        window.addEventListener('beforeunload', cleanup);
+        window.addEventListener('unload', cleanup);
+    } catch (error) {
+        console.error('Initialization error:', error);
+    }
 });

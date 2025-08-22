@@ -661,7 +661,19 @@
 
         // マウスドラッグイベント
         function handleDragStart(e, workerId) {
-            if (!isDragging) { // タッチとマウスの競合防止
+            // Prevent conflicts with touch events
+            if (isDragging || touchItem) {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Only handle if it's actually a mouse event
+            if (e.type === 'dragstart' && e.pointerType === 'touch') {
+                e.preventDefault();
+                return false;
+            }
+            
+            if (!isDragging) {
                 draggedWorkerId = workerId;
                 e.target.classList.add('dragging');
                 e.dataTransfer.setData('text/plain', workerId);
@@ -692,6 +704,10 @@
         // タッチイベント
         function handleTouchStart(e, workerId) {
             if (e.touches.length !== 1) return; // マルチタッチ無視
+            
+            // Prevent mouse events from firing
+            e.preventDefault();
+            
             const touch = e.touches[0];
             touchItem = e.currentTarget;
             draggedWorkerId = workerId;
@@ -704,19 +720,30 @@
             touchOffset.y = touch.clientY - rect.top;
 
             // ドラッグ開始までの遅延（タップとドラッグの区別）
-            setTimeout(() => {
+            const dragStartTimer = setTimeout(() => {
                 if (touchItem && !isDragging) {
                     isDragging = true;
                     touchItem.classList.add('dragging-touch');
                     touchItem.style.position = 'absolute';
                     touchItem.style.zIndex = '1000';
+                    
+                    // Add visual feedback
+                    touchItem.style.transform = 'scale(1.05)';
+                    touchItem.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
                 }
             }, 200); // 200msの遅延
+            
+            // Store timer for cleanup
+            touchItem.dragStartTimer = dragStartTimer;
         }
 
         function handleTouchMove(e) {
             if (!touchItem || !isDragging) return;
             e.preventDefault(); // スクロール防止
+            
+            // Prevent default touch behaviors
+            e.stopPropagation();
+            
             const touch = e.touches[0];
 
             // カードの位置をタッチ位置に追従
@@ -732,8 +759,15 @@
         }
 
         function handleTouchEnd(e) {
+            // Clear drag start timer if it exists
+            if (touchItem && touchItem.dragStartTimer) {
+                clearTimeout(touchItem.dragStartTimer);
+                delete touchItem.dragStartTimer;
+            }
+            
             if (!touchItem || !isDragging) {
                 touchItem = null;
+                draggedWorkerId = null;
                 return;
             }
 
@@ -743,6 +777,8 @@
             touchItem.style.left = '';
             touchItem.style.top = '';
             touchItem.style.zIndex = '';
+            touchItem.style.transform = '';
+            touchItem.style.boxShadow = '';
 
             // ドロップターゲットの特定
             const touch = e.changedTouches[0];
@@ -832,19 +868,40 @@
 
         // 作業員追加
         function addWorker() {
-            const input = document.getElementById('workerNameInput');
-            const name = input.value.trim();
-            if (!name) return;
+            try {
+                const input = document.getElementById('workerNameInput');
+                const name = input.value.trim();
+                
+                if (!name) {
+                    showAlert('作業員名を入力してください', 'warning');
+                    return;
+                }
+                
+                if (name.length > 20) {
+                    showAlert('作業員名は20文字以内で入力してください', 'warning');
+                    return;
+                }
+                
+                // Check for duplicate names
+                if (workers.some(w => w.name === name)) {
+                    showAlert('同じ名前の作業員が既に存在します', 'warning');
+                    return;
+                }
 
-            const newWorker = {
-                id: Date.now(),
-                name: name
-            };
+                const newWorker = {
+                    id: Date.now(),
+                    name: name
+                };
 
-            workers.push(newWorker);
-            workerPositions[newWorker.id] = 'waiting';
-            input.value = '';
-            renderWhiteboard();
+                workers.push(newWorker);
+                workerPositions[newWorker.id] = 'waiting';
+                input.value = '';
+                renderWhiteboard();
+                showAlert(`作業員「${name}」を追加しました`, 'success');
+            } catch (error) {
+                console.error('Error adding worker:', error);
+                showAlert('作業員の追加中にエラーが発生しました', 'error');
+            }
         }
 
         // 作業員削除
@@ -857,20 +914,41 @@
 
         // 作業エリア追加
         function addWorkArea() {
-            const input = document.getElementById('workAreaInput');
-            const name = input.value.trim();
-            if (!name) return;
+            try {
+                const input = document.getElementById('workAreaInput');
+                const name = input.value.trim();
+                
+                if (!name) {
+                    showAlert('作業内容を入力してください', 'warning');
+                    return;
+                }
+                
+                if (name.length > 30) {
+                    showAlert('作業内容は30文字以内で入力してください', 'warning');
+                    return;
+                }
+                
+                // Check for duplicate names
+                if (workAreas.some(a => a.name === name)) {
+                    showAlert('同じ名前の作業エリアが既に存在します', 'warning');
+                    return;
+                }
 
-            const colors = ['yellow', 'purple', 'pink', 'blue', 'green'];
-            const newArea = {
-                id: `task_${Date.now()}`,
-                name: name,
-                color: colors[workAreas.length % colors.length]
-            };
+                const colors = ['yellow', 'purple', 'pink', 'blue', 'green'];
+                const newArea = {
+                    id: `task_${Date.now()}`,
+                    name: name,
+                    color: colors[workAreas.length % colors.length]
+                };
 
-            workAreas.push(newArea);
-            input.value = '';
-            renderWhiteboard();
+                workAreas.push(newArea);
+                input.value = '';
+                renderWhiteboard();
+                showAlert(`作業エリア「${name}」を追加しました`, 'success');
+            } catch (error) {
+                console.error('Error adding work area:', error);
+                showAlert('作業エリアの追加中にエラーが発生しました', 'error');
+            }
         }
 
         // 作業エリア削除
@@ -941,30 +1019,37 @@
 
         // CSV出力
         function exportToCSV() {
-            if (workLogs.length === 0) {
-                alert('エクスポートする作業ログがありません');
-                return;
+            try {
+                if (workLogs.length === 0) {
+                    alert('エクスポートする作業ログがありません');
+                    return;
+                }
+
+                const headers = ['作業員名', '作業内容', '開始時刻', '終了時刻', '作業時間(秒)'];
+                const rows = workLogs.map(log => [
+                    `"${log.workerName}"`,
+                    `"${log.workArea}"`,
+                    `"${log.startTime}"`,
+                    `"${log.endTime}"`,
+                    log.duration
+                ]);
+
+                const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row => row.join(','))
+                ].join('\n');
+
+                const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `作業ログ_${new Date().toLocaleDateString('ja-JP').replace(/\//g, '-')}.csv`;
+                link.click();
+                
+                showAlert('作業ログをエクスポートしました', 'success');
+            } catch (error) {
+                console.error('Error exporting CSV:', error);
+                alert('CSVエクスポート中にエラーが発生しました');
             }
-
-            const headers = ['作業員名', '作業内容', '開始時刻', '終了時刻', '作業時間(秒)'];
-            const rows = workLogs.map(log => [
-                log.workerName,
-                log.workArea,
-                log.startTime,
-                log.endTime,
-                log.duration
-            ]);
-
-            const csvContent = [
-                headers.join(','),
-                ...rows.map(row => row.join(','))
-            ].join('\n');
-
-            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `作業ログ_${new Date().toLocaleDateString('ja-JP').replace(/\//g, '-')}.csv`;
-            link.click();
         }
 
         // テンプレートダウンロード
@@ -1004,8 +1089,127 @@
 
         // CSV処理（簡略版）
         function processCSV(content) {
-            console.log('CSV処理:', content);
-            alert('CSVインポート機能（実装中）');
+            try {
+                const lines = content.split('\n');
+                if (lines.length < 2) {
+                    showAlert('CSVファイルにデータが含まれていません', 'error');
+                    return;
+                }
+                
+                const header = lines[0].toLowerCase();
+                
+                // Check if it's a worker CSV or work area CSV
+                if (header.includes('作業員') || header.includes('worker')) {
+                    processWorkerCSV(lines);
+                } else if (header.includes('作業内容') || header.includes('work') || header.includes('area')) {
+                    processWorkAreaCSV(lines);
+                } else {
+                    showAlert('CSVファイルの形式が認識できません', 'error');
+                }
+            } catch (error) {
+                console.error('Error processing CSV:', error);
+                showAlert('CSVファイルの処理中にエラーが発生しました', 'error');
+            }
+        }
+        
+        function processWorkerCSV(lines) {
+            let imported = 0;
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const name = line.split(',')[0].trim().replace(/"/g, '');
+                if (name && !workers.some(w => w.name === name)) {
+                    workers.push({
+                        id: Date.now() + i,
+                        name: name
+                    });
+                    workerPositions[Date.now() + i] = 'waiting';
+                    imported++;
+                }
+            }
+            
+            if (imported > 0) {
+                renderWhiteboard();
+                showAlert(`${imported}名の作業員をインポートしました`, 'success');
+            } else {
+                showAlert('インポートできる作業員がありませんでした', 'warning');
+            }
+        }
+        
+        function processWorkAreaCSV(lines) {
+            let imported = 0;
+            const colors = ['yellow', 'purple', 'pink', 'blue', 'green'];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const parts = line.split(',');
+                const name = parts[0].trim().replace(/"/g, '');
+                const color = parts[1] ? parts[1].trim().replace(/"/g, '') : colors[imported % colors.length];
+                
+                if (name && !workAreas.some(a => a.name === name)) {
+                    workAreas.push({
+                        id: `task_${Date.now()}_${i}`,
+                        name: name,
+                        color: colors.includes(color) ? color : colors[imported % colors.length]
+                    });
+                    imported++;
+                }
+            }
+            
+            if (imported > 0) {
+                renderWhiteboard();
+                showAlert(`${imported}個の作業エリアをインポートしました`, 'success');
+            } else {
+                showAlert('インポートできる作業エリアがありませんでした', 'warning');
+            }
+        }
+        
+        // Alert function for better user feedback
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 6px;
+                font-weight: 500;
+                z-index: 10000;
+                max-width: 300px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideInRight 0.3s ease;
+            `;
+            
+            const colors = {
+                error: { bg: '#fef2f2', border: '#fecaca', text: '#dc2626' },
+                warning: { bg: '#fffbeb', border: '#fed7aa', text: '#d97706' },
+                success: { bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a' },
+                info: { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb' }
+            };
+            
+            const color = colors[type] || colors.info;
+            alertDiv.style.backgroundColor = color.bg;
+            alertDiv.style.borderLeft = `4px solid ${color.border}`;
+            alertDiv.style.color = color.text;
+            alertDiv.textContent = message;
+            
+            document.body.appendChild(alertDiv);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.style.animation = 'slideOutRight 0.3s ease';
+                    setTimeout(() => {
+                        if (alertDiv.parentNode) {
+                            alertDiv.parentNode.removeChild(alertDiv);
+                        }
+                    }, 300);
+                }
+            }, 3000);
         }
 
         // Enterキーで追加
