@@ -323,37 +323,64 @@ function toggleImportArea() {
 
 // カートン追加・編集
 function addCarton() {
-    const code = document.getElementById('newCode').value.trim();
-    const qty = parseInt(document.getElementById('newQty').value);
-    const weight = parseFloat(document.getElementById('newWeight').value);
-    const l = parseFloat(document.getElementById('newL').value);
-    const w = parseFloat(document.getElementById('newW').value);
-    const h = parseFloat(document.getElementById('newH').value);
-    
-    if (!code || !qty || !weight || !l || !w || !h) {
-        alert('全ての項目を入力してください');
-        return;
-    }
-    
-    if (editingId) {
-        // 編集モード
-        const index = cartonData.findIndex(c => c.id === editingId);
-        if (index !== -1) {
-            cartonData[index] = { id: editingId, code, qty, weight, l, w, h };
+    try {
+        const code = document.getElementById('newCode').value.trim();
+        const qty = parseInt(document.getElementById('newQty').value);
+        const weight = parseFloat(document.getElementById('newWeight').value);
+        const l = parseFloat(document.getElementById('newL').value);
+        const w = parseFloat(document.getElementById('newW').value);
+        const h = parseFloat(document.getElementById('newH').value);
+        
+        if (!code || !qty || !weight || !l || !w || !h) {
+            alert('全ての項目を入力してください');
+            return;
         }
-        editingId = null;
-    } else {
-        // 新規追加
-        cartonData.push({
-            id: nextId++,
-            code, qty, weight, l, w, h
-        });
+        
+        // Validation for positive numbers
+        if (qty <= 0 || weight <= 0 || l <= 0 || w <= 0 || h <= 0) {
+            alert('数値は正の値を入力してください');
+            return;
+        }
+        
+        // Validation for reasonable ranges
+        if (qty > 10000) {
+            alert('数量は10,000個以下で入力してください');
+            return;
+        }
+        
+        if (weight > 1000) {
+            alert('重量は1,000kg以下で入力してください');
+            return;
+        }
+        
+        if (l > 500 || w > 500 || h > 500) {
+            alert('寸法は500cm以下で入力してください');
+            return;
+        }
+        
+        if (editingId) {
+            // 編集モード
+            const index = cartonData.findIndex(c => c.id === editingId);
+            if (index !== -1) {
+                cartonData[index] = { id: editingId, code, qty, weight, l, w, h };
+            }
+            editingId = null;
+        } else {
+            // 新規追加
+            cartonData.push({
+                id: nextId++,
+                code, qty, weight, l, w, h
+            });
+        }
+        
+        clearInputs();
+        updateTable();
+        updateSummary();
+        document.getElementById('addForm').classList.add('hidden');
+    } catch (error) {
+        console.error('Error adding carton:', error);
+        alert('カートンの追加中にエラーが発生しました');
     }
-    
-    clearInputs();
-    updateTable();
-    updateSummary();
-    document.getElementById('addForm').classList.add('hidden');
 }
 
 function clearInputs() {
@@ -428,54 +455,94 @@ function downloadCSVTemplate() {
 }
 
 function executeImport() {
-    const fileInput = document.getElementById('csvFileInput');
-    const file = fileInput.files[0];
-    
-    if (!file) {
-        alert('CSVファイルを選択してください');
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const content = e.target.result;
-            const lines = content.split('\n');
-            const importedData = [];
-            
-            // ヘッダー行をスキップ
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-                
-                const values = line.split(',').map(v => v.trim());
-                if (values.length >= 6) {
-                    importedData.push({
-                        id: nextId++,
-                        code: values[0],
-                        qty: parseInt(values[1]) || 0,
-                        weight: parseFloat(values[2]) || 0,
-                        l: parseFloat(values[3]) || 0,
-                        w: parseFloat(values[4]) || 0,
-                        h: parseFloat(values[5]) || 0
-                    });
-                }
-            }
-            
-            if (importedData.length > 0) {
-                cartonData.push(...importedData);
-                updateTable();
-                updateSummary();
-                cancelImport();
-                alert(`${importedData.length}件のデータをインポートしました`);
-            } else {
-                alert('有効なデータが見つかりませんでした');
-            }
-        } catch (error) {
-            alert('CSVファイルの読み込みに失敗しました: ' + error.message);
+    try {
+        const fileInput = document.getElementById('csvFileInput');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            alert('CSVファイルを選択してください');
+            return;
         }
-    };
-    reader.readAsText(file, 'UTF-8');
+        
+        // File size validation (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('ファイルサイズが大きすぎます（5MB以下）');
+            return;
+        }
+        
+        // File type validation
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            alert('CSVファイルを選択してください');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const content = e.target.result;
+                const lines = content.split('\n');
+                const importedData = [];
+                
+                if (lines.length < 2) {
+                    alert('CSVファイルにデータが含まれていません');
+                    return;
+                }
+                
+                // ヘッダー行をスキップ
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    const values = line.split(',').map(v => v.trim());
+                    if (values.length >= 6) {
+                        const qty = parseInt(values[1]) || 0;
+                        const weight = parseFloat(values[2]) || 0;
+                        const l = parseFloat(values[3]) || 0;
+                        const w = parseFloat(values[4]) || 0;
+                        const h = parseFloat(values[5]) || 0;
+                        
+                        // Skip invalid data
+                        if (qty <= 0 || weight <= 0 || l <= 0 || w <= 0 || h <= 0) {
+                            console.warn(`Skipping invalid row ${i + 1}:`, values);
+                            continue;
+                        }
+                        
+                        importedData.push({
+                            id: nextId++,
+                            code: values[0],
+                            qty: qty,
+                            weight: weight,
+                            l: l,
+                            w: w,
+                            h: h
+                        });
+                    }
+                }
+                
+                if (importedData.length > 0) {
+                    cartonData.push(...importedData);
+                    updateTable();
+                    updateSummary();
+                    cancelImport();
+                    alert(`${importedData.length}件のデータをインポートしました`);
+                } else {
+                    alert('有効なデータが見つかりませんでした');
+                }
+            } catch (error) {
+                console.error('CSV parsing error:', error);
+                alert('CSVファイルの読み込みに失敗しました: ' + error.message);
+            }
+        };
+        
+        reader.onerror = function() {
+            alert('ファイルの読み込みに失敗しました');
+        };
+        
+        reader.readAsText(file, 'UTF-8');
+    } catch (error) {
+        console.error('Error in executeImport:', error);
+        alert('インポート処理中にエラーが発生しました');
+    }
 }
 
 // パレタイズ計算（メイン処理）
@@ -497,6 +564,11 @@ function calculateImprovedPalletization() {
     setTimeout(() => {
         try {
             const results = performOptimizedPalletization();
+            if (!results || results.length === 0) {
+                showAlert('計算結果が生成されませんでした。データを確認してください。', 'warning');
+                showLoading(false);
+                return;
+            }
             displayResults(results);
             showLoading(false);
         } catch (error) {
@@ -532,49 +604,65 @@ function performOptimizedPalletization() {
 
 // 単一カートン種類でのパレット計算
 function calculateSingleCartonPallet(carton, palletSize, maxHeight) {
-    const orientations = [
-        { l: carton.l, w: carton.w, h: carton.h, rotated: false },
-        { l: carton.w, w: carton.l, h: carton.h, rotated: true }
-    ];
-    
-    let bestResult = null;
-    let maxQuantity = 0;
-    
-    orientations.forEach(orientation => {
-        if (orientation.h <= maxHeight) {
-            const xCount = Math.floor(palletSize.width / orientation.l);
-            const yCount = Math.floor(palletSize.depth / orientation.w);
-            const layers = Math.floor(maxHeight / orientation.h);
-            const quantity = xCount * yCount * layers;
-            
-            if (quantity > maxQuantity) {
-                maxQuantity = quantity;
-                
-                // パレット使用可能体積
-                const palletVolume = palletSize.width * palletSize.depth * maxHeight;
-                // カートン使用体積
-                const cartonVolume = quantity * orientation.l * orientation.w * orientation.h;
-                // 効率計算
-                const efficiency = (cartonVolume / palletVolume) * 100;
-                
-                bestResult = {
-                    carton: carton,
-                    palletSize: palletSize,
-                    orientation: orientation,
-                    layout: { x: xCount, y: yCount, layers: layers },
-                    quantity: Math.min(quantity, carton.qty),
-                    totalQuantity: quantity,
-                    efficiency: efficiency,
-                    height: layers * orientation.h + 14, // パレット台座14cm含む
-                    weight: Math.min(quantity, carton.qty) * carton.weight,
-                    volume: cartonVolume / 1000000, // 立方メートル
-                    layers: generateLayers(orientation, xCount, yCount, layers, carton, Math.min(quantity, carton.qty))
-                };
-            }
+    try {
+        // Input validation
+        if (!carton || !palletSize || maxHeight <= 0) {
+            console.warn('Invalid input parameters for pallet calculation');
+            return null;
         }
-    });
-    
-    return bestResult;
+        
+        if (!carton.l || !carton.w || !carton.h || carton.l <= 0 || carton.w <= 0 || carton.h <= 0) {
+            console.warn('Invalid carton dimensions:', carton);
+            return null;
+        }
+
+        const orientations = [
+            { l: carton.l, w: carton.w, h: carton.h, rotated: false },
+            { l: carton.w, w: carton.l, h: carton.h, rotated: true }
+        ];
+        
+        let bestResult = null;
+        let maxQuantity = 0;
+        
+        orientations.forEach(orientation => {
+            if (orientation.h <= maxHeight) {
+                const xCount = Math.floor(palletSize.width / orientation.l);
+                const yCount = Math.floor(palletSize.depth / orientation.w);
+                const layers = Math.floor(maxHeight / orientation.h);
+                const quantity = xCount * yCount * layers;
+                
+                if (quantity > maxQuantity) {
+                    maxQuantity = quantity;
+                    
+                    // パレット使用可能体積
+                    const palletVolume = palletSize.width * palletSize.depth * maxHeight;
+                    // カートン使用体積
+                    const cartonVolume = quantity * orientation.l * orientation.w * orientation.h;
+                    // 効率計算
+                    const efficiency = (cartonVolume / palletVolume) * 100;
+                    
+                    bestResult = {
+                        carton: carton,
+                        palletSize: palletSize,
+                        orientation: orientation,
+                        layout: { x: xCount, y: yCount, layers: layers },
+                        quantity: Math.min(quantity, carton.qty),
+                        totalQuantity: quantity,
+                        efficiency: efficiency,
+                        height: layers * orientation.h + 14, // パレット台座14cm含む
+                        weight: Math.min(quantity, carton.qty) * carton.weight,
+                        volume: cartonVolume / 1000000, // 立方メートル
+                        layers: generateLayers(orientation, xCount, yCount, layers, carton, Math.min(quantity, carton.qty))
+                    };
+                }
+            }
+        });
+        
+        return bestResult;
+    } catch (error) {
+        console.error('Error in calculateSingleCartonPallet:', error);
+        return null;
+    }
 }
 
 // 層データの生成
