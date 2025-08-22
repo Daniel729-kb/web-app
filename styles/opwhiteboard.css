@@ -167,12 +167,29 @@ h1 {
     border: 1px solid var(--border-color);
 }
 
-.work-area.waiting { background-color: var(--gray-100); }
-.work-area.blue { background-color: #dbeafe; }
-.work-area.green { background-color: #d1fae5; }
-.work-area.yellow { background-color: #fef3c7; }
-.work-area.purple { background-color: #e9d5ff; }
-.work-area.pink { background-color: #fce7f3; }
+.work-area.waiting {
+    background-color: var(--gray-100);
+}
+
+.work-area.blue {
+    background-color: #dbeafe;
+}
+
+.work-area.green {
+    background-color: #d1fae5;
+}
+
+.work-area.yellow {
+    background-color: #fef3c7;
+}
+
+.work-area.purple {
+    background-color: #e9d5ff;
+}
+
+.work-area.pink {
+    background-color: #fce7f3;
+}
 
 .area-header {
     display: flex;
@@ -202,8 +219,13 @@ h1 {
     transition: color var(--transition-fast);
 }
 
-.icon-btn:hover { color: var(--text-primary); }
-.icon-btn.delete:hover { color: var(--error-500); }
+.icon-btn:hover {
+    color: var(--text-primary);
+}
+
+.icon-btn.delete:hover {
+    color: var(--error-500);
+}
 
 /* 作業員カード */
 .worker-card {
@@ -218,17 +240,23 @@ h1 {
     align-items: center;
     transition: all var(--transition-base);
     border: 1px solid var(--border-color);
-    position: relative;
+    position: relative; /* タッチドラッグ用 */
 }
 
-.worker-card:hover { box-shadow: var(--shadow-md); }
+.worker-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
 .worker-card.dragging, .worker-card.dragging-touch {
     opacity: 0.5;
-    transform: scale(1.05);
-    z-index: 1000;
+    transform: scale(1.05); /* タッチドラッグ時の視覚的フィードバック */
+    z-index: 1000; /* 前面に表示 */
 }
 
-.worker-name { font-weight: 500; color: var(--text-primary); }
+.worker-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
 
 .timer {
     display: flex;
@@ -248,11 +276,19 @@ h1 {
     border-radius: var(--radius-base);
 }
 
-.delete-worker:hover { background-color: rgba(239, 68, 68, 0.1); }
+.delete-worker:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+}
 
 /* ログセクション */
-.logs-section { margin-top: var(--space-10); }
-.logs-section h2 { margin-bottom: var(--space-5); color: var(--text-primary); }
+.logs-section {
+    margin-top: var(--space-10);
+}
+
+.logs-section h2 {
+    margin-bottom: var(--space-5);
+    color: var(--text-primary);
+}
 
 .empty-logs {
     text-align: center;
@@ -284,24 +320,58 @@ h1 {
 
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
-    .container { padding: var(--space-4); }
+    .container {
+        padding: var(--space-4);
+    }
+
     .header-controls {
         position: static;
         margin-bottom: var(--space-4);
         justify-content: flex-end;
     }
-    .control-panel { grid-template-columns: 1fr; gap: var(--space-4); }
-    .whiteboard { grid-template-columns: 1fr; }
-    .worker-card { touch-action: none; }
-    .import-buttons { flex-direction: column; width: 100%; }
+
+    .control-panel {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
+
+    .whiteboard {
+        grid-template-columns: 1fr;
+    }
+
+    .worker-card {
+        touch-action: none; /* デフォルトのタッチ動作を無効化 */
+    }
+
+    .import-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
     .import-buttons button,
-    .import-buttons label { width: 100%; justify-content: center; }
+    .import-buttons label {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 /* タッチデバイス向けの調整 */
 @media (hover: none) and (pointer: coarse) {
-    .btn { padding: var(--space-3) var(--space-5); font-size: var(--font-size-base); }
-    .worker-card { padding: var(--space-4) var(--space-5); margin-bottom: var(--space-3); }
-    .icon-btn { padding: var(--space-2) var(--space-3); }
-    input[type="text"], .form-input { font-size: var(--font-size-base); }
+    .btn {
+        padding: var(--space-3) var(--space-5);
+        font-size: var(--font-size-base);
+    }
+
+    .worker-card {
+        padding: var(--space-4) var(--space-5);
+        margin-bottom: var(--space-3);
+    }
+
+    .icon-btn {
+        padding: var(--space-2) var(--space-3);
+    }
+
+    input[type="text"], .form-input {
+        font-size: var(--font-size-base); /* iOSのズーム防止 */
+    }
 }

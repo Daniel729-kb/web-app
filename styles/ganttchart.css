@@ -1,0 +1,377 @@
+/* ganttchart.css - extracted from inline styles */
+
+/* CSS extracted from gantt.js and enhanced */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', 'Yu Gothic', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+    background: #f5f7fa;
+}
+
+.app-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.project-title {
+    background: transparent;
+    border: 2px dashed transparent;
+    color: white;
+    font-size: 24px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 4px;
+    min-width: 200px;
+    cursor: text;
+    transition: all 0.2s ease;
+}
+
+.project-title:hover, .project-title:focus {
+    border-color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.1);
+    outline: none;
+}
+
+.toolbar {
+    background: white;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e1e5e9;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    background: #4285f4;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn:hover {
+    background: #3367d6;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
+}
+
+.btn-success { background: #34a853; }
+.btn-success:hover { background: #2d8f47; }
+
+.btn-warning { background: #fbbc04; color: #333; }
+.btn-warning:hover { background: #f9ab00; }
+
+.btn-danger { background: #ea4335; }
+.btn-danger:hover { background: #d33b2c; }
+
+.btn-info { background: #17a2b8; }
+.btn-info:hover { background: #138496; }
+
+.btn-disabled {
+    background: #6c757d !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+}
+
+.btn-disabled:hover {
+    background: #6c757d !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.gantt-container {
+    height: calc(100vh - 140px);
+    margin: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+#gantt_here {
+    width: 100%;
+    height: 100%;
+}
+
+.status-info {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    color: #666;
+    font-size: 14px;
+    margin-left: auto;
+}
+
+.status-badge {
+    background: #e8f0fe;
+    color: #1a73e8;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* File input styling */
+.file-input-wrapper {
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+}
+
+.file-input-wrapper input[type=file] {
+    position: absolute;
+    left: -9999px;
+}
+
+.file-input-label {
+    cursor: pointer;
+}
+
+/* Enhanced Gantt styles */
+.gantt_task_line.high_priority {
+    background: #ff5722 !important;
+    border: 2px solid #d84315 !important;
+}
+
+.gantt_task_line.medium_priority {
+    background: #ff9800 !important;
+    border: 2px solid #f57c00 !important;
+}
+
+.gantt_task_line.low_priority {
+    background: #4caf50 !important;
+    border: 2px solid #388e3c !important;
+}
+
+/* Completed tasks (100% progress) - Dark Gray */
+.gantt_task_line.completed {
+    background: #424242 !important;
+    border: 2px solid #212121 !important;
+    opacity: 0.9;
+}
+
+.gantt_row.completed_row {
+    background-color: #eeeeee !important;
+    color: #424242 !important;
+}
+
+.gantt_row.completed_row .gantt_cell {
+    color: #424242 !important;
+}
+
+/* Parent tasks (大項目) - Blue color */
+.gantt_task_line.parent_task {
+    background: #2196f3 !important;
+    border: 2px solid #1976d2 !important;
+    font-weight: bold;
+}
+
+.gantt_row.parent_row {
+    background-color: #e3f2fd !important;
+    font-weight: bold;
+}
+
+.gantt_row.parent_row .gantt_cell {
+    font-weight: bold;
+    color: #1976d2;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 3% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 450px;
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: black;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Context menu */
+.context-menu {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 10000;
+    display: none;
+}
+
+.context-menu-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+.context-menu-item:hover {
+    background: #f5f5f5;
+}
+
+.context-menu-item:last-child {
+    border-bottom: none;
+}
+
+.link-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #4285f4;
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Weekend styling for scale cells */
+.gantt_scale_cell.weekend {
+    background-color: #f5f5f5 !important;
+    color: #999 !important;
+}
+
+/* Weekend styling for task area */
+.gantt_task_cell.weekend {
+    background-color: #f8f8f8 !important;
+}
+
+/* Weekend styling for grid rows */
+.gantt_row.weekend {
+    background-color: #f8f8f8 !important;
+}
+
+/* Month header styling */
+.gantt_scale_line:first-child {
+    background: linear-gradient(to bottom, #f8f9fa, #e9ecef) !important;
+    border-bottom: 2px solid #dee2e6 !important;
+    font-weight: 600 !important;
+    color: #495057 !important;
+}
+
+/* Day header styling */
+.gantt_scale_line:last-child {
+    background: #ffffff !important;
+    border-bottom: 1px solid #e1e5e9 !important;
+}
+
+/* Month header weekend styling */
+.gantt_scale_line:first-child .gantt_scale_cell {
+    color: #495057 !important;
+}
+
+/* Priority cell styling */
+.priority-cell, .department-cell {
+    transition: all 0.2s ease !important;
+    border: 1px solid transparent !important;
+}
+
+.priority-cell:hover, .department-cell:hover {
+    background: #e9ecef !important;
+    border-color: #adb5bd !important;
+    transform: scale(1.05);
+}
+
+.priority-cell:active, .department-cell:active {
+    transform: scale(0.95);
+}
+
+/* Custom column resize handle styling */
+.custom-resize-handle {
+    transition: background-color 0.2s ease;
+}
+
+.custom-resize-handle:hover {
+    background: #007bff !important;
+}
+
+/* Modal improvements for better visibility */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    overflow-y: auto;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 60px;
+    max-height: 120px;
+}
+
+.modal-buttons {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 15px 0 0 0;
+    margin-top: 20px;
+    border-top: 1px solid #eee;
+}
