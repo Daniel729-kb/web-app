@@ -800,6 +800,51 @@
             });
         }
 
+        // メモリ管理とパフォーマンス最適化
+        const memoryManager = {
+            // タイマーの追跡
+            timers: new Set(),
+            
+            // 安全なタイマー設定
+            setTimeout: (callback, delay) => {
+                const timerId = setTimeout(callback, delay);
+                memoryManager.timers.add(timerId);
+                return timerId;
+            },
+            
+            // タイマーのクリア
+            clearTimeout: (timerId) => {
+                clearTimeout(timerId);
+                memoryManager.timers.delete(timerId);
+            },
+            
+            // 全タイマーのクリア
+            clearAllTimers: () => {
+                memoryManager.timers.forEach(timerId => {
+                    clearTimeout(timerId);
+                });
+                memoryManager.timers.clear();
+            },
+            
+            // メモリクリーンアップ
+            cleanup: () => {
+                memoryManager.clearAllTimers();
+                
+                // 大きなデータセットのクリア
+                if (window.allPalletsGenerated && window.allPalletsGenerated.length > 1000) {
+                    console.log('Large dataset detected, clearing old data...');
+                    window.allPalletsGenerated = window.allPalletsGenerated.slice(-500);
+                }
+                
+                // 未使用のDOM要素のクリア
+                const unusedElements = document.querySelectorAll('.temp-element, .calculation-result');
+                if (unusedElements.length > 50) {
+                    console.log('Clearing unused DOM elements...');
+                    unusedElements.forEach(el => el.remove());
+                }
+            }
+        };
+
         // ユーティリティ関数
         const utils = {
             getCurrentClearance: () => parseFloat(elements.clearanceValue.value) || 1,
@@ -810,12 +855,18 @@
             showError: (message) => {
                 elements.errorMessage.textContent = message;
                 elements.errorMessage.style.display = 'block';
-                    // setTimeout(() => elements.errorMessage.style.display = 'none', 5000);
+                // 安全なタイマー使用
+                const timerId = memoryManager.setTimeout(() => {
+                    elements.errorMessage.style.display = 'none';
+                }, 5000);
             },
             showSuccess: (message) => {
                 elements.successMessage.textContent = message;
                 elements.successMessage.style.display = 'block';
-                    // setTimeout(() => elements.successMessage.style.display = 'none', 5000);
+                // 安全なタイマー使用
+                const timerId = memoryManager.setTimeout(() => {
+                    elements.successMessage.style.display = 'none';
+                }, 5000);
             },
             adjustColor: (color, amount) => {
                 return '#' + color.replace(/^#/, '').replace(/../g, value => 
@@ -2012,6 +2063,17 @@
         }
 
         document.addEventListener('DOMContentLoaded', init);
+        
+        // ページ離脱時のクリーンアップ
+        window.addEventListener('beforeunload', () => {
+            console.log('Cleaning up before page unload...');
+            memoryManager.cleanup();
+        });
+        
+        // 定期的なメモリクリーンアップ（3分ごと）
+        setInterval(() => {
+            memoryManager.cleanup();
+        }, 3 * 60 * 1000);
     </script>
 </body>
 </html>

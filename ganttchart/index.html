@@ -1570,7 +1570,7 @@ gantt.$container.addEventListener('dblclick', function(e) {
         
         // Save initial state for undo
         function saveInitialState() {
-            setTimeout(function() {
+            memoryManager.setTimeout(function() {
                 if (typeof gantt !== 'undefined') {
                     saveUndoState("initial", {
                         projectName: document.getElementById('projectTitle').value,
@@ -1581,6 +1581,56 @@ gantt.$container.addEventListener('dblclick', function(e) {
             }, 2000);
         }
         
+        // メモリ管理とパフォーマンス最適化
+        const memoryManager = {
+            // タイマーの追跡
+            timers: new Set(),
+            
+            // 安全なタイマー設定
+            setTimeout: (callback, delay) => {
+                const timerId = setTimeout(callback, delay);
+                memoryManager.timers.add(timerId);
+                return timerId;
+            },
+            
+            // タイマーのクリア
+            clearTimeout: (timerId) => {
+                clearTimeout(timerId);
+                memoryManager.timers.delete(timerId);
+            },
+            
+            // 全タイマーのクリア
+            clearAllTimers: () => {
+                memoryManager.timers.forEach(timerId => {
+                    clearTimeout(timerId);
+                });
+                memoryManager.timers.clear();
+            },
+            
+            // メモリクリーンアップ
+            cleanup: () => {
+                memoryManager.clearAllTimers();
+                
+                // 大きなデータセットのクリア
+                if (undoStack && undoStack.length > 100) {
+                    console.log('Large undo stack detected, clearing old data...');
+                    undoStack = undoStack.slice(-50);
+                }
+                
+                if (redoStack && redoStack.length > 100) {
+                    console.log('Large redo stack detected, clearing old data...');
+                    redoStack = redoStack.slice(-50);
+                }
+                
+                // 未使用のDOM要素のクリア
+                const unusedElements = document.querySelectorAll('.temp-element, .calculation-result');
+                if (unusedElements.length > 50) {
+                    console.log('Clearing unused DOM elements...');
+                    unusedElements.forEach(el => el.remove());
+                }
+            }
+        };
+
         // Form submission setup
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('taskForm').addEventListener('submit', function(e) {
@@ -1630,6 +1680,17 @@ gantt.$container.addEventListener('dblclick', function(e) {
                 closeTaskModal();
                 updateStats();
             });
+            
+            // 定期的なメモリクリーンアップ（7分ごと）
+            setInterval(() => {
+                memoryManager.cleanup();
+            }, 7 * 60 * 1000);
+        });
+        
+        // ページ離脱時のクリーンアップ
+        window.addEventListener('beforeunload', () => {
+            console.log('Cleaning up Gantt chart before page unload...');
+            memoryManager.cleanup();
         });
     </script>
 </body>

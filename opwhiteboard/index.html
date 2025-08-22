@@ -1199,11 +1199,11 @@
             
             document.body.appendChild(alertDiv);
             
-            // Auto remove after 3 seconds
-            setTimeout(() => {
+            // Auto remove after 3 seconds (safe timer usage)
+            memoryManager.setTimeout(() => {
                 if (alertDiv.parentNode) {
                     alertDiv.style.animation = 'slideOutRight 0.3s ease';
-                    setTimeout(() => {
+                    memoryManager.setTimeout(() => {
                         if (alertDiv.parentNode) {
                             alertDiv.parentNode.removeChild(alertDiv);
                         }
@@ -1211,6 +1211,56 @@
                 }
             }, 3000);
         }
+
+        // メモリ管理とパフォーマンス最適化
+        const memoryManager = {
+            // タイマーの追跡
+            timers: new Set(),
+            
+            // 安全なタイマー設定
+            setTimeout: (callback, delay) => {
+                const timerId = setTimeout(callback, delay);
+                memoryManager.timers.add(timerId);
+                return timerId;
+            },
+            
+            // タイマーのクリア
+            clearTimeout: (timerId) => {
+                clearTimeout(timerId);
+                memoryManager.timers.delete(timerId);
+            },
+            
+            // 全タイマーのクリア
+            clearAllTimers: () => {
+                memoryManager.timers.forEach(timerId => {
+                    clearTimeout(timerId);
+                });
+                memoryManager.timers.clear();
+            },
+            
+            // メモリクリーンアップ
+            cleanup: () => {
+                memoryManager.clearAllTimers();
+                
+                // 大きなデータセットのクリア
+                if (workers && workers.length > 1000) {
+                    console.log('Large worker dataset detected, clearing old data...');
+                    workers = workers.slice(-500);
+                }
+                
+                if (workAreas && workAreas.length > 100) {
+                    console.log('Large work area dataset detected, clearing old data...');
+                    workAreas = workAreas.slice(-100);
+                }
+                
+                // 未使用のDOM要素のクリア
+                const unusedElements = document.querySelectorAll('.temp-element, .calculation-result');
+                if (unusedElements.length > 50) {
+                    console.log('Clearing unused DOM elements...');
+                    unusedElements.forEach(el => el.remove());
+                }
+            }
+        };
 
         // Enterキーで追加
         document.addEventListener('DOMContentLoaded', () => {
@@ -1225,6 +1275,17 @@
             });
 
             init();
+            
+            // 定期的なメモリクリーンアップ（6分ごと）
+            setInterval(() => {
+                memoryManager.cleanup();
+            }, 6 * 60 * 1000);
+        });
+        
+        // ページ離脱時のクリーンアップ
+        window.addEventListener('beforeunload', () => {
+            console.log('Cleaning up whiteboard before page unload...');
+            memoryManager.cleanup();
         });
     </script>
 </body>
