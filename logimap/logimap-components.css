@@ -135,7 +135,7 @@
 
 /* Form Components */
 .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .form-label {
@@ -151,13 +151,16 @@
 .form-textarea {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid var(--border-color);
+    border: 2px solid var(--border-color);
     border-radius: 6px;
-    background: var(--input-background);
-    color: var(--text-color);
+    background: #ffffff !important;
+    color: #333333 !important;
     font-size: 0.875rem;
     transition: border-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+
+
 
 .form-input:focus,
 .form-select:focus,
@@ -165,6 +168,8 @@
     outline: none;
     border-color: var(--primary-blue);
     box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+    background: #ffffff !important;
+    color: #333333 !important;
 }
 
 .form-textarea {
@@ -211,12 +216,15 @@
 .location-box {
     border: 2px solid var(--border-color);
     border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    background: var(--input-background);
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    background: #ffffff !important;
     position: relative;
     transition: border-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
+
+
 
 .location-box:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -361,11 +369,14 @@
     border: 2px dashed var(--border-color);
     border-radius: 6px;
     text-align: center;
-    background: var(--input-background);
-    color: var(--text-color);
+    background: #ffffff !important;
+    color: #333333 !important;
     transition: all 0.2s;
     cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+
+
 
 .file-upload:hover .file-upload-label {
     border-color: var(--primary-blue);

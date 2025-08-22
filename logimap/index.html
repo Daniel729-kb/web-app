@@ -6,6 +6,9 @@
     <title>🚛 Logistics Map Generator</title>
     
     <!-- External CSS Files -->
+    <link rel="stylesheet" href="../styles/theme.css">
+    <link rel="stylesheet" href="../styles/variables.css">
+    <link rel="stylesheet" href="../styles/components.css">
     <link rel="stylesheet" href="logimap-layout.css">
     <link rel="stylesheet" href="logimap-components.css">
     <link rel="stylesheet" href="logimap-map.css">
@@ -17,7 +20,6 @@
     <!-- Header -->
     <header class="header">
         <div class="header__left">
-            <button class="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
             <h1 class="header__title" data-translate="app-title">🚛 ロジスティクスマップジェネレーター</h1>
         </div>
         <div class="header__controls">
@@ -32,20 +34,12 @@
         </div>
     </header>
 
-    <!-- Mobile Overlay -->
-    <div class="mobile-overlay"></div>
+
 
     <!-- Main Container -->
     <div class="container">
         <!-- Input Panel (Sidebar) -->
         <aside class="input-panel">
-            <div class="panel-header">
-                <h2 class="panel-title">Configuration Panel</h2>
-                <div class="panel-controls">
-                    <button class="btn btn--small" onclick="collapseAllSections()" title="Collapse All">📁</button>
-                    <button class="btn btn--small" onclick="expandAllSections()" title="Expand All">📂</button>
-                </div>
-            </div>
 
             <!-- Facility1 Section -->
             <section class="section">
@@ -152,12 +146,6 @@
 
         <!-- Map Panel -->
         <main class="map-panel">
-            <div class="map-controls">
-                <button class="map-control-btn" onclick="fitMapToContent()" title="Fit to Content">🔍</button>
-                <button class="map-control-btn" onclick="resetMapZoom()" title="Reset Zoom">↻</button>
-                <button class="map-control-btn" onclick="centerMap()" title="Center Map">⊹</button>
-            </div>
-            
             <div class="map-display" id="mapDisplay">
                 <div class="map-flow" id="mapFlow">
                     <!-- Map content will be generated here -->

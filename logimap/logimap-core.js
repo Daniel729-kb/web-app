@@ -1226,6 +1226,13 @@ function exportAsImage() {
     mapPanel.style.overflow = 'visible';
     mapDisplay.style.overflow = 'visible';
     
+    // Temporarily adjust container for full capture
+    const originalMapFlowStyle = mapFlow.style.cssText;
+    mapFlow.style.width = 'auto';
+    mapFlow.style.height = 'auto';
+    mapFlow.style.overflow = 'visible';
+    mapFlow.style.position = 'relative';
+    
     // Apply export-ready classes to fix transparency
     transportArrows.forEach((arrow, index) => {
         originalArrowStyles[index] = {
@@ -1242,28 +1249,49 @@ function exportAsImage() {
     // Temporarily add exporting class for all export-specific styles
     mapFlow.classList.add('exporting');
     
-    // Force reflow
+    // Force reflow and wait for layout to settle
     mapFlow.offsetHeight;
+    setTimeout(() => {
+        // Continue with export after layout settles
+        performExport();
+    }, 100);
     
-    // Calculate proper dimensions
+    function performExport() {
+    
+    // Calculate proper dimensions - use mapFlow for full content capture
     const mapRect = mapFlow.getBoundingClientRect();
-    const scrollWidth = Math.max(mapFlow.scrollWidth, mapRect.width);
-    const scrollHeight = Math.max(mapFlow.scrollHeight, mapRect.height);
+    
+    // Get all child elements to calculate total dimensions
+    const allColumns = mapFlow.querySelectorAll('.location-column, .transport-arrows-container');
+    let totalWidth = 0;
+    let totalHeight = 0;
+    
+    allColumns.forEach(column => {
+        const rect = column.getBoundingClientRect();
+        totalWidth += rect.width;
+        totalHeight = Math.max(totalHeight, rect.height);
+    });
+    
+    // Add some padding for better export
+    totalWidth += 40; // 20px padding on each side
+    totalHeight += 40;
     
     const options = {
         useCORS: true,
         allowTaint: true,
         scale: 2,
         backgroundColor: document.body.getAttribute('data-theme') === 'dark' ? '#1a202c' : '#ffffff',
-        width: scrollWidth,
-        height: scrollHeight,
+        width: totalWidth,
+        height: totalHeight,
         logging: false,
         removeContainer: false,
-        windowWidth: scrollWidth,
-        windowHeight: scrollHeight
+        windowWidth: totalWidth,
+        windowHeight: totalHeight,
+        scrollX: 0,
+        scrollY: 0
     };
     
-    html2canvas(mapDisplay, options).then(canvas => {
+    html2canvas(mapFlow, options).then(canvas => {
         canvas.toBlob(blob => {
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -1278,10 +1306,14 @@ function exportAsImage() {
         }, 'image/png');
     }).catch(error => {
         showDebugMessage('画像エクスポートエラー: ' + error.message, true);
+        // Restore export button on error
+        exportBtn.textContent = originalBtnText;
+        exportBtn.disabled = false;
     }).finally(() => {
         // Restore original styles
         mapPanel.style.overflow = originalPanelOverflow;
         mapDisplay.style.overflow = originalDisplayOverflow;
+        mapFlow.style.cssText = originalMapFlowStyle;
         
         // Restore transport arrow classes
         transportArrows.forEach((arrow, index) => {
@@ -1299,6 +1331,7 @@ function exportAsImage() {
         exportBtn.textContent = originalBtnText;
         exportBtn.disabled = false;
     });
+    }
 }
 
 // Validation System
@@ -1360,18 +1393,7 @@ function expandAllSections() {
     });
 }
 
-// Map control functions
-function fitMapToContent() {
-    showDebugMessage('Map fitted to content');
-}
 
-function resetMapZoom() {
-    showDebugMessage('Map zoom reset');
-}
-
-function centerMap() {
-    showDebugMessage('Map centered');
-}
 
 // Initialize Application
 function initializeApp() {
@@ -1438,5 +1460,5 @@ function initializeApp() {
     showDebugMessage('Logistics Map Generator initialized successfully!');
 }
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', initializeApp);
+// Initialize when DOM is ready - let layout.js handle the timing
+// document.addEventListener('DOMContentLoaded', initializeApp);

@@ -6,6 +6,23 @@ let layoutState = {
     isMobile: window.innerWidth <= 768
 };
 
+// Update mobile detection on window resize
+window.addEventListener('resize', () => {
+    const wasMobile = layoutState.isMobile;
+    layoutState.isMobile = window.innerWidth <= 768;
+    
+    // If switching from mobile to desktop, ensure sidebar is visible
+    if (wasMobile && !layoutState.isMobile) {
+        layoutState.sidebarCollapsed = false;
+        const sidebar = document.querySelector('.input-panel');
+        if (sidebar) {
+            sidebar.classList.remove('collapsed');
+        }
+    }
+    
+    checkMobileLayout();
+});
+
 // Initialize layout functionality
 function initializeLayout() {
     setupSidebarToggle();
@@ -141,14 +158,21 @@ function handleResize() {
 
 function checkMobileLayout() {
     const toggleBtn = document.querySelector('.sidebar-toggle');
+    const sidebar = document.querySelector('.input-panel');
     
     if (toggleBtn) {
         toggleBtn.style.display = layoutState.isMobile ? 'block' : 'none';
     }
     
     // On mobile, start with sidebar closed
-    if (layoutState.isMobile && !layoutState.sidebarCollapsed) {
+    if (layoutState.isMobile && sidebar && !layoutState.sidebarCollapsed) {
         closeSidebar();
+    }
+    
+    // On desktop, ensure sidebar is visible
+    if (!layoutState.isMobile && sidebar) {
+        sidebar.classList.remove('collapsed');
+        layoutState.sidebarCollapsed = false;
     }
 }
 
@@ -157,7 +181,14 @@ function setupSectionCollapse() {
     const sectionHeaders = document.querySelectorAll('.section__header');
     
     sectionHeaders.forEach(header => {
-        header.addEventListener('click', () => {
+        header.addEventListener('click', (event) => {
+            // Don't collapse if clicking on buttons or interactive elements
+            if (event.target.tagName === 'BUTTON' || 
+                event.target.closest('button') || 
+                event.target.closest('.btn')) {
+                return;
+            }
+            
             const section = header.closest('.section');
             if (section) {
                 toggleSection(section);
@@ -429,6 +460,29 @@ document.addEventListener('DOMContentLoaded', () => {
     restoreLayoutPreferences();
     restoreSectionStates();
     optimizeMapLayout();
+    
+    // Force sidebar to be visible on desktop and debug positioning
+    if (window.innerWidth > 768) {
+        const sidebar = document.querySelector('.input-panel');
+        if (sidebar) {
+            sidebar.classList.remove('collapsed');
+            layoutState.sidebarCollapsed = false;
+            
+            // Debug: Log sidebar state
+            console.log('Sidebar state:', {
+                collapsed: sidebar.classList.contains('collapsed'),
+                position: getComputedStyle(sidebar).position,
+                display: getComputedStyle(sidebar).display,
+                width: getComputedStyle(sidebar).width,
+                order: getComputedStyle(sidebar).order
+            });
+        }
+    }
+    
+    // Initialize the app after layout is ready
+    if (typeof initializeApp === 'function') {
+        setTimeout(initializeApp, 100); // Small delay to ensure layout is ready
+    }
     
     // Set up auto-save
     window.addEventListener('beforeunload', saveLayoutPreferences);

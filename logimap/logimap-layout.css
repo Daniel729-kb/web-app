@@ -2,18 +2,18 @@
 
 /* CSS Custom Properties for Theming */
 :root {
-    --primary-blue: #3182ce;
-    --success-green: #38a169;
-    --warning-yellow: #d69e2e;
-    --danger-red: #e53e3e;
-    --background-color: #ffffff;
-    --text-color: #333333;
-    --border-color: #e2e8f0;
-    --panel-background: #f8fafc;
-    --button-background: #ffffff;
+    /* Use shared variables from main theme */
+    --primary-blue: var(--primary-color, #3182ce);
+    --success-green: var(--success-color, #38a169);
+    --warning-yellow: var(--warning-color, #d69e2e);
+    --danger-red: var(--danger-color, #e53e3e);
+    --background-color: var(--background, #ffffff);
+    --text-color: var(--text-primary, #333333);
+    --border-color: var(--border-color, #e2e8f0);
+    --panel-background: var(--card-bg, #f8fafc);
+    --button-background: var(--card-bg, #ffffff);
     --input-background: #ffffff;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    --sidebar-width: 380px;
+    --shadow: var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.1));
     --header-height: 70px;
 }
 
@@ -96,58 +96,34 @@ body {
 
 /* Main Layout */
 .container {
-    display: flex;
+    display: grid;
+    grid-template-columns: 320px 1fr;
     height: calc(100vh - var(--header-height));
     position: relative;
 }
 
 .input-panel {
-    width: var(--sidebar-width);
     background: var(--panel-background);
     border-right: 1px solid var(--border-color);
     overflow-y: auto;
-    padding: 1rem;
-    transition: transform 0.3s ease;
-    position: relative;
-    z-index: 100;
+    padding: 0.75rem;
 }
 
-.input-panel.collapsed {
-    transform: translateX(-100%);
-}
+
+
+
 
 .map-panel {
-    flex: 1;
     background: var(--background-color);
     overflow: hidden;
     position: relative;
-    min-width: 0; /* Prevents flex item from overflowing */
 }
 
-/* Panel Header */
-.panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid var(--border-color);
-}
 
-.panel-title {
-    font-size: 1.25rem;
-    font-weight: bold;
-    color: var(--text-color);
-}
-
-.panel-controls {
-    display: flex;
-    gap: 0.5rem;
-}
 
 /* Collapsible Sections */
 .section {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
@@ -162,7 +138,6 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer;
     transition: background-color 0.2s;
 }
 
@@ -172,6 +147,34 @@ body {
 
 .section__header .toggle-icon {
     transition: transform 0.3s ease;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+}
+
+.section__header .toggle-icon:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Make the title text clickable for collapse */
+.section__header span:first-child {
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.section__header span:first-child:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Ensure buttons don't have pointer cursor from header */
+.section__header .btn {
+    cursor: pointer;
+}
+
+.section__header .btn:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .section.collapsed .toggle-icon {
@@ -179,7 +182,7 @@ body {
 }
 
 .section__content {
-    padding: 1rem;
+    padding: 0.75rem;
     transition: max-height 0.3s ease, padding 0.3s ease;
     overflow: hidden;
 }
@@ -191,20 +194,11 @@ body {
 
 /* Map Display */
 .map-display {
-    padding: 1rem;
+    padding: 0.75rem;
     height: 100%;
-    overflow: auto;
+    overflow: hidden;
     position: relative;
-}
-
-.map-controls {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    display: flex;
-    gap: 0.5rem;
-    z-index: 10;
-    flex-wrap: wrap;
+    width: 100%;
 }
 
 .map-flow {
@@ -216,13 +210,15 @@ body {
     overflow-x: auto;
     overflow-y: visible;
     gap: 1rem;
-    padding: 2rem 1rem;
+    padding: 1.5rem 1rem;
+    width: auto;
+    min-width: 100%;
 }
 
 .location-column {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
     flex: 0 0 auto;
     width: 220px;
     min-width: 200px;
@@ -245,71 +241,42 @@ body {
 }
 
 @media (max-width: 768px) {
-    .sidebar-toggle {
-        display: block;
-    }
-    
-    .header {
-        padding: 0.75rem 1rem;
-    }
-    
-    .header__title {
-        font-size: 1.25rem;
-    }
-    
-    .header__controls {
-        gap: 0.5rem;
-    }
-    
     .container {
-        position: relative;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
     }
     
     .input-panel {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: 100%;
-        max-width: 400px;
-        z-index: 200;
-        box-shadow: var(--shadow);
+        height: 300px;
         border-right: none;
+        border-bottom: 1px solid var(--border-color);
     }
     
-    .input-panel.collapsed {
-        transform: translateX(-100%);
+    .header {
+        padding: 1rem;
     }
     
-    .map-panel {
-        width: 100%;
+    .header__controls {
+        flex-wrap: wrap;
+        gap: 0.5rem;
     }
     
     .map-flow {
         flex-direction: column;
-        align-items: center;
-        gap: 2rem;
-        padding: 1rem;
+        min-height: auto;
     }
     
     .location-column {
-        width: 100%;
-        max-width: 300px;
+        max-width: 100%;
     }
     
     .transport-arrows-container {
-        flex-direction: row;
+        margin: 1rem 0;
         width: 100%;
-        max-width: 300px;
-        justify-content: center;
     }
     
-    .map-controls {
-        position: relative;
-        top: auto;
-        right: auto;
-        margin-bottom: 1rem;
-        justify-content: center;
+    .transport-arrow {
+        margin: 0.5rem 0;
     }
 }
 
