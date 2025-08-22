@@ -877,7 +877,7 @@ border-bottom: 4px solid transparent;
                 'general-warehouse': '一般倉庫',
                 'bonded-warehouse': '保税倉庫',
                 'operating-entity': '運営主体',
-                'own-company': 'NX',
+                'own-company': 'own',
                 'other-company': '他社',
                 'new': '新規',
                 'temperature-control': '温湿度管理',
@@ -897,7 +897,7 @@ border-bottom: 4px solid transparent;
                 'transport-operating-entity': '輸送運営主体',
                 'transport-entity-name': '運営主体名',
                 'transport-details': '輸送詳細',
-                'nx-transport': 'NX 輸送',
+                'nx-transport': 'own 輸送',
                 'other-transport': '他社輸送',
                 'new-transport': '新規',
                 'custom-transport': 'カスタム',
@@ -938,7 +938,7 @@ border-bottom: 4px solid transparent;
                 'general-warehouse': 'General Warehouse',
                 'bonded-warehouse': 'Bonded Warehouse',
                 'operating-entity': 'Operating Entity',
-                'own-company': 'by NX',
+                'own-company': 'by own',
                 'other-company': 'Other Company',
                 'new': 'New',
                 'temperature-control': 'Temperature Control',
@@ -958,7 +958,7 @@ border-bottom: 4px solid transparent;
                 'transport-operating-entity': 'Transport Entity',
                 'transport-entity-name': 'Entity Name',
                 'transport-details': 'Transport Details',
-                'nx-transport': 'NX Transport',
+                'nx-transport': 'own Transport',
                 'other-transport': 'Other Transport',
                 'new-transport': 'New',
                 'custom-transport': 'Custom',
@@ -999,7 +999,7 @@ border-bottom: 4px solid transparent;
                 'general-warehouse': '普通仓库',
                 'bonded-warehouse': '保税仓库',
                 'operating-entity': '运营主体',
-                'own-company': 'by NX',
+                'own-company': 'by own',
                 'other-company': '他营',
                 'new': '新建',
                 'temperature-control': '温湿度控制',
@@ -1019,7 +1019,7 @@ border-bottom: 4px solid transparent;
                 'transport-operating-entity': '运输主体',
                 'transport-entity-name': '主体名称',
                 'transport-details': '运输详情',
-                'nx-transport': 'NX 运输',
+                'nx-transport': 'own 运输',
                 'other-transport': '其他运输',
                 'new-transport': '新建',
                 'custom-transport': '自定义',
@@ -1156,7 +1156,7 @@ border-bottom: 4px solid transparent;
                         <label class="form-label" data-translate="operating-entity">運営主体</label>
                         <div class="operating-entity-selector">
                             <button class="entity-btn entity-btn--own ${facilityData.operatingEntity === 'own' ? 'active' : ''}"
-                                    onclick="updateFacilityData(${facilityType}, ${facilityData.id}, 'operatingEntity', 'own')" data-translate="own-company">by NX</button>
+                                    onclick="updateFacilityData(${facilityType}, ${facilityData.id}, 'operatingEntity', 'own')" data-translate="own-company">by own</button>
                             <button class="entity-btn entity-btn--other ${facilityData.operatingEntity === 'other' ? 'active' : ''}"
                                     onclick="updateFacilityData(${facilityType}, ${facilityData.id}, 'operatingEntity', 'other')" data-translate="other-company">他社</button>
                             <button class="entity-btn entity-btn--new ${facilityData.operatingEntity === 'new' ? 'active' : ''}"
@@ -1394,7 +1394,7 @@ border-bottom: 4px solid transparent;
             if (route.operatingEntity) {
                 let entityText = route.operatingEntity;
                 if (route.operatingEntity === 'nx') {
-                    entityText = translations[globalState.currentLanguage]['nx-transport'] || 'NX 輸送';
+                    entityText = translations[globalState.currentLanguage]['nx-transport'] || 'own 輸送';
                 } else if (route.operatingEntity === 'other') {
                     entityText = translations[globalState.currentLanguage]['other-transport'] || '他社輸送';
                 } else if (route.operatingEntity === 'new') {
@@ -1569,7 +1569,7 @@ border-bottom: 4px solid transparent;
                 <div class="form-group">
                     <label class="form-label" data-translate="transport-operating-entity">輸送運営主体</label>
                     <select class="form-select" onchange="updateTransportEntityType(${transportData.id}, this.value)">
-                        <option value="nx" ${transportData.operatingEntity === 'nx' ? 'selected' : ''} data-translate="nx-transport">NX 輸送</option>
+                        <option value="nx" ${transportData.operatingEntity === 'nx' ? 'selected' : ''} data-translate="nx-transport">own 輸送</option>
                         <option value="other" ${transportData.operatingEntity === 'other' ? 'selected' : ''} data-translate="other-transport">他社輸送</option>
                         <option value="new" ${transportData.operatingEntity === 'new' ? 'selected' : ''} data-translate="new-transport">新規</option>
                         <option value="custom" ${transportData.operatingEntity === 'custom' ? 'selected' : ''} data-translate="custom-transport">カスタム</option>
