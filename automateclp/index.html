@@ -326,6 +326,17 @@
         filter: brightness(1.2);
         z-index: 10;
     }
+    
+    /* 3D積み重ね表示用スタイル */
+    .pallet-2d.stacked {
+        border: 2px solid #e74c3c;
+        box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+    }
+    
+    .pallet-2d.base-pallet {
+        border: 2px solid #27ae60;
+        box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+    }
 
     .pallet-2d.dragging {
         cursor: grabbing;
@@ -620,34 +631,64 @@
 <div class="sidebar">
 <div class="form-group">
 <label for="containerType">コンテナタイプ</label>
-<select id="containerType">
-<option value="20ft">20ftコンテナ (5.898m × 2.352m 内寸)</option>
-<option value="40ft">40ftコンテナ (12.032m × 2.350m 内寸)</option>
-</select>
-</div>
-<div class="form-group">
-<label>パレット寸法 (cm)</label>
-<div class="dimensions-grid">
-<input id="palletLength" max="300" min="1" placeholder="長さ" type="number"/>
-<input id="palletWidth" max="300" min="1" placeholder="幅" type="number"/>
-</div>
-<div class="preset-pallets">
-<button class="preset-btn" data-length="120" data-width="100" type="button">
-                            EUR<br/>(120×100)
+        <select id="containerType">
+        <option value="20ft">20ftコンテナ (5.898m × 2.352m × 2.385m 内寸)</option>
+        <option value="40ft">40ftコンテナ (12.032m × 2.350m × 2.385m 内寸)</option>
+        <option value="40HQ">40HQコンテナ (12.032m × 2.350m × 2.690m 内寸)</option>
+                </select>
+        </div>
+        <div class="form-group">
+        <label>
+        <input type="checkbox" id="enableStacking" style="margin-right: 8px; width: auto;">
+        パレット積み重ねを有効にする
+        </label>
+        <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
+        チェックすると、パレットを3Dで積み重ねて配置します（重量と重心を考慮）
+        </small>
+        </div>
+        <div class="form-group">
+        <label>パレット寸法 (cm)</label>
+        <div class="dimensions-grid">
+        <input id="palletLength" max="300" min="1" placeholder="長さ" type="number"/>
+        <input id="palletWidth" max="300" min="1" placeholder="幅" type="number"/>
+        </div>
+        <div class="dimensions-grid" style="margin-top: 10px;">
+        <input id="palletHeight" max="300" min="1" placeholder="高さ" type="number"/>
+        <input id="palletWeight" max="2000" min="1" placeholder="重量(kg)" type="number"/>
+        </div>
+        <div class="form-group" style="margin-top: 15px;">
+        <label style="margin-bottom: 10px;">積み重ね制約</label>
+        <div style="display: flex; gap: 15px; align-items: center;">
+        <label style="display: flex; align-items: center; font-weight: normal; font-size: 14px;">
+        <input type="checkbox" id="canStackAbove" checked style="margin-right: 6px; width: auto;">
+        他のパレットの上に積める
+        </label>
+        <label style="display: flex; align-items: center; font-weight: normal; font-size: 14px;">
+        <input type="checkbox" id="canStackBelow" checked style="margin-right: 6px; width: auto;">
+        他のパレットの下に積まれる
+        </label>
+        </div>
+        <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
+        両方チェック解除すると積み重ね不可、片方のみで制限付き積み重ね
+        </small>
+        </div>
+        <div class="preset-pallets">
+        <button class="preset-btn" data-length="120" data-width="100" data-height="120" data-weight="600" type="button">
+                            EUR<br/>(120×100×120)
                         </button>
-<button class="preset-btn" data-length="120" data-width="80" type="button">
-                            EUR2<br/>(120×80)
+        <button class="preset-btn" data-length="120" data-width="80" data-height="100" data-weight="400" type="button">
+                            EUR2<br/>(120×80×100)
                         </button>
-<button class="preset-btn" data-length="122" data-width="102" type="button">
-                            US<br/>(122×102)
+        <button class="preset-btn" data-length="122" data-width="102" data-height="120" data-weight="700" type="button">
+                            US<br/>(122×102×120)
                         </button>
-<button class="preset-btn" data-length="110" data-width="110" type="button">
-                            正方形<br/>(110×110)
+        <button class="preset-btn" data-length="110" data-width="110" data-height="120" data-weight="500" type="button">
+                            正方形<br/>(110×110×120)
                         </button>
-<button class="preset-btn" data-length="100" data-width="125" type="button">
-                            カスタム<br/>(100×125)
+        <button class="preset-btn" data-length="100" data-width="125" data-height="100" data-weight="600" type="button">
+                            カスタム<br/>(100×125×100)
                         </button>
-</div>
+        </div>
 </div>
 <div class="form-group">
 <label for="palletQty">数量</label>
@@ -668,8 +709,18 @@
 <p style="text-align: center; color: #6c757d; font-style: italic;">パレットがまだ追加されていません</p>
 </div>
 </div>
-<button class="test-btn" id="testBtn" type="button">🧪 テストケース実行</button>
-<button class="calculate-btn" id="calculateBtn" type="button">🔄 積載プランを計算</button>
+        <button class="test-btn" id="testBtn" type="button">🧪 テストケース実行</button>
+        <button class="calculate-btn" id="calculateBtn" type="button">🔄 積載プランを計算</button>
+        <div class="form-group" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+        <label style="margin-bottom: 10px; color: #495057;">🐛 デバッグ機能</label>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button type="button" id="debugStacking" style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">積み重ねテスト</button>
+        <button type="button" id="debugGravity" style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">重心計算テスト</button>
+        <button type="button" id="debugLayout" style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">レイアウト解析</button>
+        <button type="button" id="debugClear" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">デバッグクリア</button>
+        </div>
+        <div id="debugOutput" style="margin-top: 10px; padding: 8px; background: white; border-radius: 4px; font-family: monospace; font-size: 11px; max-height: 100px; overflow-y: auto; display: none;"></div>
+        </div>
 <button class="export-btn" id="exportBtn" style="display: none;" type="button">🖼️ 配置図を画像で保存</button>
 </div>
 <div class="visualization">
@@ -754,15 +805,21 @@
         };
 
         const containers = {
-            '20ft': { length: 589.8, width: 235.2 },
-            '40ft': { length: 1203.2, width: 235.0 }
+            '20ft': { length: 589.8, width: 235.2, height: 238.5 },
+            '40ft': { length: 1203.2, width: 235.0, height: 238.5 },
+            '40HQ': { length: 1203.2, width: 235.0, height: 269.0 }
         };
 
         // DOM要素のキャッシュ
         const elements = {
             containerType: document.getElementById('containerType'),
+            enableStacking: document.getElementById('enableStacking'),
             palletLength: document.getElementById('palletLength'),
             palletWidth: document.getElementById('palletWidth'),
+            palletHeight: document.getElementById('palletHeight'),
+            palletWeight: document.getElementById('palletWeight'),
+            canStackAbove: document.getElementById('canStackAbove'),
+            canStackBelow: document.getElementById('canStackBelow'),
             palletQty: document.getElementById('palletQty'),
             clearanceValue: document.getElementById('clearanceValue'),
             addPalletBtn: document.getElementById('addPalletBtn'),
@@ -779,7 +836,8 @@
             stats: document.getElementById('stats'),
             errorMessage: document.getElementById('errorMessage'),
             successMessage: document.getElementById('successMessage'),
-            darkModeToggle: document.getElementById('darkModeToggle')
+            darkModeToggle: document.getElementById('darkModeToggle'),
+            debugOutput: document.getElementById('debugOutput')
         };
 
         // ダークモード初期化
@@ -845,6 +903,137 @@
             }
         };
 
+        // デバッグ機能
+        const debug = {
+            log: function(message, data = null) {
+                const timestamp = new Date().toLocaleTimeString();
+                let logMessage = `[${timestamp}] ${message}`;
+                
+                if (data) {
+                    if (typeof data === 'object') {
+                        logMessage += '\n' + JSON.stringify(data, null, 2);
+                    } else {
+                        logMessage += `: ${data}`;
+                    }
+                }
+                
+                console.log(logMessage);
+                
+                // デバッグ出力エリアに表示
+                if (elements.debugOutput) {
+                    elements.debugOutput.style.display = 'block';
+                    elements.debugOutput.innerHTML += `<div style="margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 3px;">${logMessage.replace(/\n/g, '<br>')}</div>`;
+                    elements.debugOutput.scrollTop = elements.debugOutput.scrollHeight;
+                }
+            },
+            
+            clear: function() {
+                if (elements.debugOutput) {
+                    elements.debugOutput.innerHTML = '';
+                    elements.debugOutput.style.display = 'none';
+                }
+                console.clear();
+            },
+            
+            testStacking: function() {
+                this.log('=== 積み重ねテスト開始 ===');
+                this.log('パレット数:', pallets.length);
+                this.log('積み重ね有効:', elements.enableStacking.checked);
+                
+                pallets.forEach((pallet, index) => {
+                    this.log(`パレット#${pallet.palletNumber}:`, {
+                        size: `${pallet.length}×${pallet.width}×${pallet.height}cm`,
+                        weight: `${pallet.weight}kg`,
+                        stacking: `${pallet.canStackAbove ? '上積み可' : '上積み不可'}, ${pallet.canStackBelow ? '下積み可' : '下積み不可'}`
+                    });
+                });
+                
+                if (allPalletsGenerated.length > 0) {
+                    this.log('生成済みパレット数:', allPalletsGenerated.length);
+                    this.log('配置済みパレット数:', allPalletsGenerated.filter(p => p.placed).length);
+                    this.log('積み重ね済みパレット数:', allPalletsGenerated.filter(p => p.stackedOn).length);
+                }
+            },
+            
+            testGravity: function() {
+                this.log('=== 重心計算テスト開始 ===');
+                
+                if (allPalletsGenerated.length === 0) {
+                    this.log('パレットが配置されていません');
+                    return;
+                }
+                
+                const placedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted);
+                if (placedPallets.length === 0) {
+                    this.log('配置済みパレットがありません');
+                    return;
+                }
+                
+                const stability = calculateStackingStability(placedPallets);
+                this.log('重心計算結果:', stability);
+                
+                // 各パレットの詳細情報
+                placedPallets.forEach(pallet => {
+                    this.log(`パレット#${pallet.palletNumber}:`, {
+                        position: `(${pallet.x}, ${pallet.y}, ${pallet.z})`,
+                        size: `${pallet.finalLength}×${pallet.finalWidth}×${pallet.finalHeight}cm`,
+                        weight: `${pallet.weight}kg`,
+                        stackedOn: pallet.stackedOn ? `#${pallet.stackedOn.palletNumber}` : 'なし',
+                        stackedBy: pallet.stackedBy.length > 0 ? pallet.stackedBy.map(s => `#${s.palletNumber}`).join(', ') : 'なし'
+                    });
+                });
+            },
+            
+            testLayout: function() {
+                this.log('=== レイアウト解析テスト開始 ===');
+                
+                const container = containers[elements.containerType.value];
+                this.log('コンテナ情報:', {
+                    type: elements.containerType.value,
+                    dimensions: `${container.length}×${container.width}×${container.height}cm`,
+                    clearance: `${utils.getCurrentClearance()}cm`
+                });
+                
+                if (allPalletsGenerated.length === 0) {
+                    this.log('パレットが配置されていません');
+                    return;
+                }
+                
+                const placedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted);
+                const unplacedPallets = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
+                
+                this.log('配置状況:', {
+                    total: allPalletsGenerated.length,
+                    placed: placedPallets.length,
+                    unplaced: unplacedPallets.length,
+                    deleted: allPalletsGenerated.filter(p => p.deleted).length
+                });
+                
+                // 面積使用率計算
+                const totalArea = container.length * container.width;
+                const usedArea = placedPallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
+                const areaUtilization = (usedArea / totalArea) * 100;
+                
+                this.log('面積使用率:', `${areaUtilization.toFixed(2)}%`);
+                
+                // 高さ使用率計算（積み重ね時）
+                if (elements.enableStacking.checked) {
+                    const maxHeight = Math.max(...placedPallets.map(p => p.z + p.finalHeight));
+                    const heightUtilization = (maxHeight / container.height) * 100;
+                    this.log('高さ使用率:', `${heightUtilization.toFixed(2)}%`);
+                }
+                
+                // 重量分布
+                const totalWeight = placedPallets.reduce((sum, p) => sum + (p.weight || 0), 0);
+                this.log('総重量:', `${totalWeight}kg`);
+            }
+        };
+        
+        // グローバルデバッグ関数
+        function debugLog(message, data = null) {
+            debug.log(message, data);
+        }
+        
         // ユーティリティ関数
         const utils = {
             getCurrentClearance: () => parseFloat(elements.clearanceValue.value) || 1,
@@ -885,15 +1074,27 @@
             add: function() {
                 const length = parseInt(elements.palletLength.value);
                 const width = parseInt(elements.palletWidth.value);
+                const height = parseInt(elements.palletHeight.value) || 0;
+                const weight = parseInt(elements.palletWeight.value) || 0;
                 const qty = parseInt(elements.palletQty.value);
+                const canStackAbove = elements.canStackAbove.checked;
+                const canStackBelow = elements.canStackBelow.checked;
                 
-                if (!this.validate(length, width, qty)) return;
+                if (!this.validate(length, width, height, weight, qty)) return;
+                
+                // パレット番号を自動生成
+                const palletNumber = this.generatePalletNumber();
                 
                 pallets.push({
                     id: Date.now(),
+                    palletNumber: palletNumber,
                     length,
                     width,
+                    height,
+                    weight,
                     qty,
+                    canStackAbove,
+                    canStackBelow,
                     color: utils.getRandomColor()
                 });
                 
@@ -903,13 +1104,27 @@
                 clearResults();
             },
             
-            validate: (length, width, qty) => {
+            generatePalletNumber: function() {
+                // 既存のパレット番号を取得して次の番号を生成
+                const existingNumbers = pallets.map(p => p.palletNumber);
+                let nextNumber = 1;
+                while (existingNumbers.includes(nextNumber)) {
+                    nextNumber++;
+                }
+                return nextNumber;
+            },
+            
+            validate: (length, width, height, weight, qty) => {
                 if (!length || !width || !qty || length <= 0 || width <= 0 || qty <= 0) {
                     utils.showError('有効なパレット寸法と数量を入力してください');
                     return false;
                 }
-                if (length > 300 || width > 300) {
+                if (length > 300 || width > 300 || height > 300) {
                     utils.showError('パレットサイズは300cm以下にしてください');
+                    return false;
+                }
+                if (weight > 2000) {
+                    utils.showError('パレット重量は2000kg以下にしてください');
                     return false;
                 }
                 if (qty > 100) {
@@ -933,24 +1148,30 @@
             allPalletsGenerated = [];
             elements.containerType.value = '40ft';
             elements.clearanceValue.value = '1';
+            elements.enableStacking.checked = true;
             
             const testData = [
-                { l: 110, w: 110, q: 12, c: '#f39c12' },  // 黄色
-                { l: 100, w: 125, q: 8, c: '#3498db' }    // 青色
+                { l: 110, w: 110, h: 120, wt: 800, q: 12, c: '#f39c12', above: true, below: true },  // 黄色
+                { l: 100, w: 125, h: 100, wt: 600, q: 8, c: '#3498db', above: true, below: true }    // 青色
             ];
             
             testData.forEach((p, i) => pallets.push({
                 id: Date.now() + i,
+                palletNumber: i + 1,
                 length: p.l,
                 width: p.w,
+                height: p.h,
+                weight: p.wt,
                 qty: p.q,
+                canStackAbove: p.above,
+                canStackBelow: p.below,
                 color: p.c
             }));
             
             updatePalletList();
             updateContainerInfo();
             clearResults();
-            utils.showSuccess('🎯 エリア分割配置テスト: 110×110 (12個) + 100×125 (8個)');
+            utils.showSuccess('🎯 3D積み重ねテスト: 110×110×120cm (12個) + 100×125×100cm (8個)');
         }
 
         // UI更新関数
@@ -962,24 +1183,39 @@
                 return;
             }
             
-            pallets.forEach(p => {
-                const item = document.createElement('div');
-                item.className = 'pallet-item';
-                item.innerHTML = `<span>${p.length}×${p.width}cm (${p.qty}個)</span><button class="remove-btn">✕</button>`;
-                item.querySelector('.remove-btn').addEventListener('click', () => palletManager.remove(p.id));
-                elements.palletList.appendChild(item);
-            });
+                    pallets.forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'pallet-item';
+            const stackInfo = p.canStackAbove && p.canStackBelow ? '積み重ね可' : 
+                             p.canStackAbove ? '上積みのみ' : 
+                             p.canStackBelow ? '下積みのみ' : '積み重ね不可';
+            const weightInfo = p.weight > 0 ? ` ${p.weight}kg` : '';
+            const heightInfo = p.height > 0 ? ` H:${p.height}cm` : '';
+            item.innerHTML = `
+                <div style="flex: 1;">
+                    <div style="font-weight: bold;">#${p.palletNumber} ${p.length}×${p.width}${heightInfo}${weightInfo}</div>
+                    <div style="font-size: 12px; color: #6c757d;">${p.qty}個 - ${stackInfo}</div>
+                </div>
+                <button class="remove-btn">✕</button>
+            `;
+            item.querySelector('.remove-btn').addEventListener('click', () => palletManager.remove(p.id));
+            elements.palletList.appendChild(item);
+        });
         }
 
         function updateContainerInfo() {
             const container = containers[elements.containerType.value];
-            elements.containerInfo.innerHTML = `${elements.containerType.value}内寸: ${(container.length/100).toFixed(3)}m×${(container.width/100).toFixed(3)}m <small>クリアランス: ${utils.getCurrentClearance()}cm</small>`;
+            elements.containerInfo.innerHTML = `${elements.containerType.value}内寸: ${(container.length/100).toFixed(3)}m×${(container.width/100).toFixed(3)}m×${(container.height/100).toFixed(3)}m <small>クリアランス: ${utils.getCurrentClearance()}cm</small>`;
         }
 
         function clearInputs() {
             elements.palletLength.value = '';
             elements.palletWidth.value = '';
+            elements.palletHeight.value = '';
+            elements.palletWeight.value = '';
             elements.palletQty.value = '1';
+            elements.canStackAbove.checked = true;
+            elements.canStackBelow.checked = true;
         }
 
         function clearResults() {
@@ -1042,16 +1278,25 @@
                         allPalletsGenerated.push({
                             id: pt.id,
                             instance: i,
+                            palletNumber: pt.palletNumber,
                             length: pt.length,
                             width: pt.width,
+                            height: pt.height || 0,
+                            weight: pt.weight || 0,
+                            canStackAbove: pt.canStackAbove,
+                            canStackBelow: pt.canStackBelow,
                             color: pt.color,
                             placed: false,
                             deleted: false,
                             x: 0,
                             y: 0,
+                            z: 0, // 3D座標
                             finalLength: pt.length,
                             finalWidth: pt.width,
-                            rotated: false
+                            finalHeight: pt.height || 0,
+                            rotated: false,
+                            stackedOn: null, // 積み重ね先のパレットID
+                            stackedBy: [] // このパレットの上に積まれているパレットID
                         });
                     }
                 });
@@ -1107,9 +1352,10 @@
             }, CONSTANTS.ANIMATION_DELAY);
         }
 
-        // 簡略化された配置アルゴリズム
+        // 3D積み重ね対応の配置アルゴリズム
         function packPallets2D(palletsToPlace, container, clearance) {
             const placed = [];
+            const stackingEnabled = elements.enableStacking.checked;
             
             // パレットをタイプごとにグループ化
             const groups = {};
@@ -1238,6 +1484,12 @@
             });
             
             console.log(`通常配置で追加配置: ${remainingPallets.filter(p => p.placed).length}個`);
+            
+            // 3D積み重ね処理
+            if (stackingEnabled) {
+                console.log('3D積み重ね処理を開始...');
+                perform3DStacking(palletsToPlace, container, clearance, placed);
+            }
             
             // 未配置パレットの整列
             const unplaced = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
@@ -1370,6 +1622,215 @@
             return placedPallets;
         }
 
+        // 3D積み重ね処理
+        function perform3DStacking(palletsToPlace, container, clearance, placed2D) {
+            console.log('3D積み重ね処理を実行中...');
+            
+            // 配置済みパレットを取得
+            const placedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted);
+            const unplacedPallets = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
+            
+            if (unplacedPallets.length === 0) {
+                console.log('積み重ね対象のパレットがありません');
+                return;
+            }
+            
+            // パレットを重量と高さでソート（重いもの、高いものを優先）
+            unplacedPallets.sort((a, b) => {
+                const weightDiff = (b.weight || 0) - (a.weight || 0);
+                if (weightDiff !== 0) return weightDiff;
+                return (b.height || 0) - (a.height || 0);
+            });
+            
+            console.log(`積み重ね対象パレット: ${unplacedPallets.length}個`);
+            
+            // 各未配置パレットに対して積み重ね可能な位置を探索
+            unplacedPallets.forEach(pallet => {
+                if (pallet.placed) return;
+                
+                const bestStackPosition = findBestStackPosition(pallet, placedPallets, container, clearance);
+                if (bestStackPosition) {
+                    // 積み重ね配置
+                    pallet.x = bestStackPosition.x;
+                    pallet.y = bestStackPosition.y;
+                    pallet.z = bestStackPosition.z;
+                    pallet.placed = true;
+                    pallet.stackedOn = bestStackPosition.stackedOn;
+                    
+                    // 積み重ね関係を更新
+                    if (bestStackPosition.stackedOn) {
+                        const basePallet = allPalletsGenerated.find(p => 
+                            p.id === bestStackPosition.stackedOn.id && 
+                            p.instance === bestStackPosition.stackedOn.instance
+                        );
+                        if (basePallet) {
+                            basePallet.stackedBy.push({
+                                id: pallet.id,
+                                instance: pallet.instance
+                            });
+                        }
+                    }
+                    
+                    console.log(`パレット#${pallet.palletNumber} を積み重ね配置: (${pallet.x}, ${pallet.y}, ${pallet.z})`);
+                }
+            });
+            
+            // 重心計算と安定性チェック
+            const stabilityResult = calculateStackingStability(placedPallets);
+            console.log('積み重ね安定性:', stabilityResult);
+            
+            // デバッグ出力
+            debugLog('3D積み重ね完了', {
+                totalPlaced: placedPallets.length + unplacedPallets.filter(p => p.placed).length,
+                stackedCount: unplacedPallets.filter(p => p.placed && p.stackedOn).length,
+                stability: stabilityResult
+            });
+        }
+        
+        // 最適な積み重ね位置を探索
+        function findBestStackPosition(pallet, placedPallets, container, clearance) {
+            let bestPosition = null;
+            let bestScore = -Infinity;
+            
+            // 各配置済みパレットの上に積み重ねを試行
+            placedPallets.forEach(basePallet => {
+                // 積み重ね制約チェック
+                if (!pallet.canStackBelow || !basePallet.canStackAbove) return;
+                
+                // サイズ制約チェック
+                if (pallet.finalLength > basePallet.finalLength || 
+                    pallet.finalWidth > basePallet.finalWidth) return;
+                
+                // 高さ制約チェック
+                const containerHeight = containers[elements.containerType.value].height;
+                const totalHeight = basePallet.z + basePallet.finalHeight + pallet.finalHeight;
+                if (totalHeight > containerHeight) return;
+                
+                // 重量制約チェック（積み重ね制限）
+                const totalWeight = calculateStackWeight(basePallet) + pallet.weight;
+                if (totalWeight > 2000) return; // 積み重ね重量制限
+                
+                // 位置計算
+                const x = basePallet.x;
+                const y = basePallet.y;
+                const z = basePallet.z + basePallet.finalHeight;
+                
+                // スコア計算（重心、重量分布、高さ効率を考慮）
+                const score = calculateStackingScore(pallet, basePallet, x, y, z);
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestPosition = { x, y, z, stackedOn: basePallet };
+                }
+            });
+            
+            return bestPosition;
+        }
+        
+        // 積み重ねスコア計算
+        function calculateStackingScore(pallet, basePallet, x, y, z) {
+            let score = 0;
+            
+            // 高さ効率（高いほど良い）
+            score += z * 0.1;
+            
+            // 重量分布（軽いものを上に）
+            if (pallet.weight < basePallet.weight) score += 50;
+            
+            // サイズ適合度（ぴったり合うほど良い）
+            const lengthFit = 1 - Math.abs(pallet.finalLength - basePallet.finalLength) / basePallet.finalLength;
+            const widthFit = 1 - Math.abs(pallet.finalWidth - basePallet.finalWidth) / basePallet.finalWidth;
+            score += (lengthFit + widthFit) * 25;
+            
+            // 重心安定性
+            const centerX = (basePallet.x + basePallet.finalLength / 2 + pallet.finalLength / 2) / 2;
+            const centerY = (basePallet.y + basePallet.finalWidth / 2 + pallet.finalWidth / 2) / 2;
+            const containerCenterX = containers[elements.containerType.value].length / 2;
+            const containerCenterY = containers[elements.containerType.value].width / 2;
+            
+            const distanceFromCenter = Math.sqrt(
+                Math.pow(centerX - containerCenterX, 2) + 
+                Math.pow(centerY - containerCenterY, 2)
+            );
+            score -= distanceFromCenter * 0.01; // 中心に近いほど良い
+            
+            return score;
+        }
+        
+        // 積み重ね重量計算
+        function calculateStackWeight(basePallet) {
+            let totalWeight = basePallet.weight || 0;
+            
+            // このパレットの上に積まれているパレットの重量を加算
+            basePallet.stackedBy.forEach(stackedPallet => {
+                const pallet = allPalletsGenerated.find(p => 
+                    p.id === stackedPallet.id && p.instance === stackedPallet.instance
+                );
+                if (pallet) {
+                    totalWeight += pallet.weight || 0;
+                }
+            });
+            
+            return totalWeight;
+        }
+        
+        // 積み重ね安定性計算
+        function calculateStackingStability(placedPallets) {
+            const container = containers[elements.containerType.value];
+            let totalWeight = 0;
+            let weightedCenterX = 0;
+            let weightedCenterY = 0;
+            let weightedCenterZ = 0;
+            
+            placedPallets.forEach(pallet => {
+                const weight = pallet.weight || 0;
+                totalWeight += weight;
+                
+                const centerX = pallet.x + pallet.finalLength / 2;
+                const centerY = pallet.y + pallet.finalWidth / 2;
+                const centerZ = pallet.z + pallet.finalHeight / 2;
+                
+                weightedCenterX += centerX * weight;
+                weightedCenterY += centerY * weight;
+                weightedCenterZ += centerZ * weight;
+            });
+            
+            if (totalWeight === 0) return { stable: true, centerOfGravity: { x: 0, y: 0, z: 0 } };
+            
+            const centerOfGravity = {
+                x: weightedCenterX / totalWeight,
+                y: weightedCenterY / totalWeight,
+                z: weightedCenterZ / totalWeight
+            };
+            
+            // 重心がコンテナ中心に近いほど安定
+            const containerCenterX = container.length / 2;
+            const containerCenterY = container.width / 2;
+            const containerCenterZ = container.height / 2;
+            
+            const distanceFromCenter = Math.sqrt(
+                Math.pow(centerOfGravity.x - containerCenterX, 2) + 
+                Math.pow(centerOfGravity.y - containerCenterY, 2) + 
+                Math.pow(centerOfGravity.z - containerCenterZ, 2)
+            );
+            
+            const maxDistance = Math.sqrt(
+                Math.pow(container.length / 2, 2) + 
+                Math.pow(container.width / 2, 2) + 
+                Math.pow(container.height / 2, 2)
+            );
+            
+            const stability = Math.max(0, 100 - (distanceFromCenter / maxDistance) * 100);
+            
+            return {
+                stable: stability > 70,
+                stability: Math.round(stability),
+                centerOfGravity,
+                totalWeight,
+                distanceFromCenter: Math.round(distanceFromCenter)
+            };
+        }
+        
         // エリア分割配置戦略
         function tryAreaDivisionPlacement(groups, container, clearance) {
             const placedPallets = [];
@@ -1752,8 +2213,29 @@
                     el.classList.add('outside-container');
                 }
                 
+                // 3D積み重ねクラス付与
+                if (elements.enableStacking.checked) {
+                    if (pallet.stackedOn) {
+                        el.classList.add('stacked');
+                    } else if (pallet.stackedBy.length > 0) {
+                        el.classList.add('base-pallet');
+                    }
+                }
+                
+                // 3D情報を表示
+                let stackInfo = '';
+                if (elements.enableStacking.checked && pallet.stackedOn) {
+                    stackInfo = `<div style="font-size: 10px; color: #e74c3c; font-weight: bold;">↑積み重ね</div>`;
+                } else if (elements.enableStacking.checked && pallet.stackedBy.length > 0) {
+                    stackInfo = `<div style="font-size: 10px; color: #27ae60; font-weight: bold;">↓${pallet.stackedBy.length}個積載</div>`;
+                }
+                
+                const heightInfo = pallet.finalHeight > 0 ? ` H:${pallet.finalHeight}` : '';
+                const weightInfo = pallet.weight > 0 ? ` ${pallet.weight}kg` : '';
+                
                 el.innerHTML = `
-                    <div class="pallet-label">${pallet.finalLength}×${pallet.finalWidth}${pallet.rotated ? ' ↻' : ''}</div>
+                    <div class="pallet-label">#${pallet.palletNumber} ${pallet.finalLength}×${pallet.finalWidth}${heightInfo}${weightInfo}${pallet.rotated ? ' ↻' : ''}</div>
+                    ${stackInfo}
                     <div class="pallet-controls">
                         <button class="rotate-btn" title="回転">↻</button>
                         <button class="delete-btn" title="削除">✕</button>
@@ -1966,6 +2448,30 @@
                 sum + (p.finalLength * p.finalWidth) / 10000, 0
             );
             
+            // 3D積み重ね情報
+            let stackingInfo = '';
+            if (elements.enableStacking.checked) {
+                const stackedPallets = insidePallets.filter(p => p.stackedOn);
+                const basePallets = insidePallets.filter(p => p.stackedBy.length > 0);
+                const maxHeight = Math.max(...insidePallets.map(p => p.z + p.finalHeight), 0);
+                const totalWeight = insidePallets.reduce((sum, p) => sum + (p.weight || 0), 0);
+                
+                stackingInfo = `
+                    <div class="stat-card">
+                        <div class="stat-value">${stackedPallets.length}</div>
+                        <div class="stat-label">積み重ねパレット</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${maxHeight.toFixed(0)}cm</div>
+                        <div class="stat-label">最大高さ</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${totalWeight}kg</div>
+                        <div class="stat-label">総重量</div>
+                    </div>
+                `;
+            }
+            
             const totalInputPallets = pallets.reduce((sum, p) => sum + p.qty, 0);
             
             document.getElementById('inputPallets').textContent = totalInputPallets;
@@ -1976,6 +2482,14 @@
             document.getElementById('efficiency').textContent = 
                 `${containerArea > 0 ? Math.round((usedArea / containerArea) * 100) : 0}%`;
             document.getElementById('remainingArea').textContent = `${(containerArea - usedArea).toFixed(2)}m²`;
+            
+            // 3D情報を追加
+            if (stackingInfo) {
+                const statsContainer = document.getElementById('stats');
+                const existing3DStats = statsContainer.querySelectorAll('.stat-card:nth-child(n+7)');
+                existing3DStats.forEach(el => el.remove());
+                statsContainer.insertAdjacentHTML('beforeend', stackingInfo);
+            }
             
             elements.stats.style.display = 'grid';
         }
@@ -2036,8 +2550,14 @@
                 clearResults();
             });
             
+            // デバッグボタンのイベントリスナー
+            document.getElementById('debugStacking').addEventListener('click', () => debug.testStacking());
+            document.getElementById('debugGravity').addEventListener('click', () => debug.testGravity());
+            document.getElementById('debugLayout').addEventListener('click', () => debug.testLayout());
+            document.getElementById('debugClear').addEventListener('click', () => debug.clear());
+            
             // Enterキーでの追加
-            [elements.palletLength, elements.palletWidth, elements.palletQty].forEach(input => {
+            [elements.palletLength, elements.palletWidth, elements.palletHeight, elements.palletWeight, elements.palletQty].forEach(input => {
                 input.addEventListener('keypress', e => {
                     if (e.key === 'Enter') palletManager.add();
                 });
@@ -2049,6 +2569,9 @@
                 btn.addEventListener('click', function() {
                     elements.palletLength.value = this.dataset.length;
                     elements.palletWidth.value = this.dataset.width;
+                    // デフォルトの高さと重量を設定
+                    elements.palletHeight.value = this.dataset.height || '120';
+                    elements.palletWeight.value = this.dataset.weight || '500';
                     elements.palletQty.focus();
                 });
             });
