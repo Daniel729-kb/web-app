@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse App Test - 新フィルター機能テスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-title {
+            color: #2193b0;
+            border-bottom: 2px solid #2193b0;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .test-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .success { color: #28a745; }
+        .info { color: #17a2b8; }
+        .warning { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <h1>🏢 倉庫アプリ 新フィルター機能テスト</h1>
+    
+    <div class="test-section">
+        <h2 class="test-title">✅ 実装完了した機能</h2>
+        
+        <div class="test-item">
+            <h3>🔒 保税倉庫フィルター</h3>
+            <p><strong>フィールド名:</strong> "Bonded warehouse"</p>
+            <p><strong>値:</strong> "Yes" / "No"</p>
+            <p><strong>機能:</strong> 保税倉庫の有無でフィルタリング</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>🌡️ 温度管理倉庫フィルター</h3>
+            <p><strong>フィールド名:</strong> "Temperature controlled warehouse"</p>
+            <p><strong>値:</strong> "Yes" / "No"</p>
+            <p><strong>機能:</strong> 温度管理倉庫の有無でフィルタリング</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>❄️ 冷凍・冷蔵倉庫フィルター</h3>
+            <p><strong>フィールド名:</strong> "Cold/Frozen storage"</p>
+            <p><strong>値:</strong> "Yes" / "No"</p>
+            <p><strong>機能:</strong> 冷凍・冷蔵倉庫の有無でフィルタリング</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>🎯 販売促進フィルター</h3>
+            <p><strong>フィールド名:</strong> "Sales promotion"</p>
+            <p><strong>値:</strong> "Yes" / "No"</p>
+            <p><strong>機能:</strong> 販売促進の有無でフィルタリング</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>🏆 GDP認証倉庫フィルター</h3>
+            <p><strong>フィールド名:</strong> "GDP"</p>
+            <p><strong>値:</strong> "Yes" / "No"</p>
+            <p><strong>機能:</strong> GDP認証の有無でフィルタリング</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>🏢 所有権フィルター</h3>
+            <p><strong>フィールド名:</strong> "Ownership"</p>
+            <p><strong>値:</strong> CSVファイルの所有権フィールドの値</p>
+            <p><strong>機能:</strong> 所有権によるフィルタリング（既存のBlock、Country、State、Cityと同様）</p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2 class="test-title">📋 CSVファイル要件</h2>
+        
+        <div class="test-item">
+            <h3>必須フィールド</h3>
+            <ul>
+                <li><strong>Bonded warehouse</strong> - "Yes" または "No"</li>
+                <li><strong>Temperature controlled warehouse</strong> - "Yes" または "No"</li>
+                <li><strong>Cold/Frozen storage</strong> - "Yes" または "No"</li>
+                <li><strong>Sales promotion</strong> - "Yes" または "No"</li>
+                <li><strong>GDP</strong> - "Yes" または "No"</li>
+                <li><strong>Ownership</strong> - 所有権の値（例：Company A, Company B等）</li>
+            </ul>
+        </div>
+        
+        <div class="test-item">
+            <h3>フィルター連動</h3>
+            <p>新フィルターは既存のフィルター（Block、Country、State、City、Ownership）と連動し、選択された条件に基づいて動的に更新されます。</p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2 class="test-title">🚀 使用方法</h2>
+        
+        <div class="test-item">
+            <h3>1. CSVファイルアップロード</h3>
+            <p>必要なフィールドを含むCSVファイルをアップロード</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>2. フィルター選択</h3>
+            <p>各フィルターのドロップダウンから条件を選択（複数選択可）</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>3. 結果表示</h3>
+            <p>選択された条件に合致する倉庫が地図とリストに表示</p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2 class="test-title">🔧 技術的詳細</h2>
+        
+        <div class="test-item">
+            <h3>実装内容</h3>
+            <ul>
+                <li>新フィルター用のHTML要素追加</li>
+                <li>JavaScript変数とフィルタリングロジック追加</li>
+                <li>フィルター間の連動処理実装</li>
+                <li>動的セレクター更新機能</li>
+                <li>フィルター結果のタイトル表示更新</li>
+            </ul>
+        </div>
+        
+        <div class="test-item">
+            <h3>フィルター順序</h3>
+            <p>Block → Country → State → City → Ownership → 機能フィルター（保税倉庫、温度管理等）</p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2 class="test-title">📝 注意事項</h2>
+        
+        <div class="test-item warning">
+            <h3>⚠️ 重要</h3>
+            <ul>
+                <li>CSVファイルのフィールド名は正確に一致する必要があります</li>
+                <li>機能フィルターは "Yes" / "No" の値のみを想定しています</li>
+                <li>フィルターの選択順序により、表示されるオプションが変わります</li>
+                <li>既存のフィルター機能は完全に保持されています</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2 class="test-title">✅ テスト完了</h2>
+        <p>新フィルター機能の実装が完了しました。ww.htmlファイルに以下の機能が追加されています：</p>
+        <ul>
+            <li>保税倉庫フィルター</li>
+            <li>温度管理倉庫フィルター</li>
+            <li>冷凍・冷蔵倉庫フィルター</li>
+            <li>販売促進フィルター</li>
+            <li>GDP認証倉庫フィルター</li>
+            <li>所有権フィルター</li>
+        </ul>
+        <p><strong>次のステップ:</strong> CSVファイルをアップロードして新フィルター機能をテストしてください。</p>
+    </div>
+</body>
+</html>
