@@ -9,3 +9,677 @@ body {
     -webkit-user-select: none;
     user-select: none;
 }
+
+/* 効率詳細の表示スタイル */
+.efficiency-details {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+    border-left: 4px solid #007bff;
+}
+
+.efficiency-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 8px 0;
+    padding: 5px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.efficiency-item:last-child {
+    border-bottom: none;
+}
+
+.efficiency-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
+}
+
+.efficiency-value {
+    font-weight: 700;
+    color: #007bff;
+    font-size: 16px;
+    background: #e3f2fd;
+    padding: 4px 8px;
+    border-radius: 4px;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* 重心情報の表示スタイル */
+.center-of-gravity {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border: 1px solid #90caf9;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 15px 0;
+}
+
+.center-of-gravity strong {
+    color: #1565c0;
+    font-size: 14px;
+}
+
+/* 改善されたサマリーカード */
+.summary-card.teal {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+    color: white;
+}
+
+.summary-card.indigo {
+    background: linear-gradient(135deg, #6610f2 0%, #6f42c1 100%);
+    color: white;
+}
+
+.summary-card.pink {
+    background: linear-gradient(135deg, #e83e8c 0%, #dc3545 100%);
+    color: white;
+}
+
+/* 混合貨物の表示スタイル */
+.cargo-item {
+    display: inline-flex;
+    align-items: center;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin: 4px;
+    font-size: 12px;
+}
+
+.cargo-code {
+    font-weight: 600;
+    color: #495057;
+    margin-right: 8px;
+}
+
+.cargo-badge {
+    background: #007bff;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+/* パレットカードの改善 */
+.pallet-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin: 20px 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+}
+
+.pallet-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.pallet-card h3 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    margin: 0;
+    padding: 20px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.pallet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    padding: 20px;
+    background: #f8f9fa;
+}
+
+.pallet-stat {
+    text-align: center;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.pallet-stat p:first-child {
+    color: #6c757d;
+    font-size: 12px;
+    margin: 0 0 8px 0;
+    font-weight: 500;
+}
+
+.pallet-stat p:last-child {
+    color: #212529;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.pallet-details {
+    padding: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.layer-info {
+    margin: 15px 0;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #28a745;
+}
+
+.layer-item {
+    font-weight: 600;
+    color: #28a745;
+    margin-top: 5px;
+}
+
+/* 安全性警告の改善 */
+.safety-warning {
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+    border-left: 4px solid;
+    font-weight: 500;
+}
+
+.safety-warning strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+/* ダイアグラムタブの改善 */
+.diagram-tabs {
+    display: flex;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.diagram-tab {
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6c757d;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.diagram-tab:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.diagram-tab.active {
+    background: white;
+    color: #007bff;
+    border-bottom-color: #007bff;
+}
+
+.diagram-content {
+    padding: 20px;
+    background: white;
+}
+
+.canvas-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.pallet-canvas {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: white;
+}
+
+/* サマリーテーブルの改善 */
+.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.summary-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.summary-table th {
+    padding: 15px 12px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    white-space: nowrap;
+}
+
+.summary-table td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 14px;
+}
+
+.summary-table tbody tr:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.01);
+    transition: all 0.2s ease;
+}
+
+.summary-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* パレットリンクのスタイル */
+.pallet-link {
+    color: #007bff;
+    cursor: pointer;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: inline-block;
+}
+
+.pallet-link:hover {
+    background: #e3f2fd;
+    color: #0056b3;
+    transform: translateY(-1px);
+}
+
+/* 効率値の表示スタイル */
+.summary-table td:nth-child(6), /* 総合効率 */
+.summary-table td:nth-child(7), /* 体積効率 */
+.summary-table td:nth-child(8), /* 重量効率 */
+.summary-table td:nth-child(9) { /* 安定性効率 */
+    font-weight: 600;
+    color: #007bff;
+}
+
+.summary-table td:nth-child(6) { /* 総合効率 */
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    color: #1565c0;
+}
+
+.summary-table td:nth-child(7) { /* 体積効率 */
+    background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+    color: #7b1fa2;
+}
+
+.summary-table td:nth-child(8) { /* 重量効率 */
+    background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+    color: #388e3c;
+}
+
+.summary-table td:nth-child(9) { /* 安定性効率 */
+    background: linear-gradient(135deg, #fff3e0 0%, #ffcc02 100%);
+    color: #f57c00;
+}
+
+/* 高さ制限の表示スタイル */
+.summary-table td:nth-child(10) { /* 高さ制限 */
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* レスポンシブテーブル */
+@media (max-width: 1200px) {
+    .summary-table {
+        font-size: 12px;
+    }
+    
+    .summary-table th,
+    .summary-table td {
+        padding: 8px 6px;
+    }
+}
+
+@media (max-width: 768px) {
+    .summary-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .summary-table thead,
+    .summary-table tbody,
+    .summary-table tr,
+    .summary-table th,
+    .summary-table td {
+        display: block;
+    }
+    
+    .summary-table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+    
+    .summary-table tr {
+        border: 1px solid #ccc;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .summary-table td {
+        border: none;
+        border-bottom: 1px solid #eee;
+        position: relative;
+        padding-left: 50%;
+        text-align: left;
+    }
+    
+    .summary-table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 6px;
+        width: 45%;
+        padding-right: 10px;
+        white-space: nowrap;
+        font-weight: bold;
+        color: #495057;
+    }
+    
+    .summary-table td:last-child {
+        border-bottom: none;
+    }
+}
+
+/* 改善されたサマリーグリッド */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.summary-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+    position: relative;
+    overflow: hidden;
+}
+
+.summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: currentColor;
+    opacity: 0.3;
+}
+
+.summary-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.summary-card h3 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.summary-card p {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* サマリーカードの色分け */
+.summary-card.blue {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.summary-card.green {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.summary-card.orange {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    color: white;
+}
+
+.summary-card.purple {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    color: #333;
+}
+
+.summary-card.teal {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+    color: white;
+}
+
+.summary-card.indigo {
+    background: linear-gradient(135deg, #6610f2 0%, #6f42c1 100%);
+    color: white;
+}
+
+.summary-card.pink {
+    background: linear-gradient(135deg, #e83e8c 0%, #dc3545 100%);
+    color: white;
+}
+
+/* レスポンシブデザインの改善 */
+@media (max-width: 768px) {
+    .pallet-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        padding: 15px;
+    }
+    
+    .pallet-stat {
+        padding: 10px;
+    }
+    
+    .pallet-stat p:last-child {
+        font-size: 14px;
+    }
+    
+    .efficiency-details {
+        padding: 12px;
+    }
+    
+    .efficiency-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .efficiency-value {
+        align-self: flex-end;
+    }
+}
+
+/* プログレス表示のスタイル */
+.progress-container {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin: 20px 0;
+    border: 1px solid #e9ecef;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.progress-text {
+    text-align: center;
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
+}
+
+/* 品質評価の表示スタイル */
+.quality-indicator {
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 4px solid;
+    font-weight: 500;
+}
+
+.quality-indicator.good {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.quality-indicator.fair {
+    background: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+}
+
+.quality-indicator.poor {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+/* 計算統計の表示 */
+.calculation-stats {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    border: 1px solid #e9ecef;
+}
+
+.calculation-stats h4 {
+    margin: 0 0 15px 0;
+    color: #495057;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 15px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* 改善されたローディング表示 */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin: 20px 0;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #e9ecef;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-size: 16px;
+    color: #495057;
+    font-weight: 500;
+    text-align: center;
+}
+
+.loading-subtext {
+    font-size: 14px;
+    color: #6c757d;
+    margin-top: 10px;
+    text-align: center;
+}
