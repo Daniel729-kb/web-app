@@ -297,46 +297,67 @@ let camera3D = {
     zoom: 1
 };
 
+// 3D view state
+let threeDViewContainer = null;
+let threeDViewButton = null;
+
 function initialize3DView() {
-    // Create 3D canvas if it doesn't exist
-    if (!canvas3D) {
+    // Create 3D view container if it doesn't exist
+    if (!threeDViewContainer) {
+        threeDViewContainer = document.createElement('div');
+        threeDViewContainer.id = 'threeDViewContainer';
+        threeDViewContainer.className = 'three-d-view-container';
+        threeDViewContainer.style.display = 'none';
+        
+        // Create 3D canvas
         canvas3D = document.createElement('canvas');
         canvas3D.id = 'canvas3D';
         canvas3D.width = 800;
         canvas3D.height = 600;
-        canvas3D.style.display = 'none';
         canvas3D.style.border = '2px solid #e74c3c';
         canvas3D.style.borderRadius = '8px';
         canvas3D.style.margin = '20px auto';
         canvas3D.style.background = '#f8f9fa';
+        canvas3D.style.display = 'block';
         
-        // Add 3D view controls
+        // Create 3D view header
+        const header3D = document.createElement('div');
+        header3D.className = 'three-d-header';
+        header3D.innerHTML = `
+            <h3>🎯 3D積み重ねビュー</h3>
+            <p>パレットの積み重ね状況を3Dで確認できます</p>
+        `;
+        
+        // Create 3D view controls
         const controls3D = document.createElement('div');
-        controls3D.className = '3d-controls';
+        controls3D.className = 'three-d-controls';
         controls3D.innerHTML = `
-            <div style="text-align: center; margin-bottom: 15px;">
-                <h4>🎯 3D積み重ねビュー</h4>
-                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                    <button id="rotateLeft3D" class="btn-3d">↶ 左回転</button>
-                    <button id="rotateRight3D" class="btn-3d">↷ 右回転</button>
-                    <button id="rotateUp3D" class="btn-3d">↶ 上回転</button>
-                    <button id="rotateDown3D" class="btn-3d">↷ 下回転</button>
-                    <button id="reset3D" class="btn-3d">🔄 リセット</button>
-                    <button id="close3D" class="btn-3d">✕ 閉じる</button>
-                </div>
-                <div style="margin-top: 10px; font-size: 12px; color: #666;">
-                    <span>マウスドラッグ: 回転</span> | 
-                    <span>ホイール: ズーム</span> | 
-                    <span>ダブルクリック: リセット</span>
-                </div>
+            <div class="control-group">
+                <button id="rotateLeft3D" class="btn-3d">↶ 左回転</button>
+                <button id="rotateRight3D" class="btn-3d">↷ 右回転</button>
+                <button id="rotateUp3D" class="btn-3d">↶ 上回転</button>
+                <button id="rotateDown3D" class="btn-3d">↷ 下回転</button>
+            </div>
+            <div class="control-group">
+                <button id="reset3D" class="btn-3d">🔄 リセット</button>
+                <button id="close3D" class="btn-3d">✕ 閉じる</button>
+            </div>
+            <div class="control-info">
+                <span>🖱️ マウスドラッグ: 回転</span> | 
+                <span>🔍 ホイール: ズーム</span> | 
+                <span>🔄 ダブルクリック: リセット</span>
             </div>
         `;
+        
+        // Assemble 3D view
+        threeDViewContainer.appendChild(header3D);
+        threeDViewContainer.appendChild(canvas3D);
+        threeDViewContainer.appendChild(controls3D);
         
         // Insert 3D view after the container view
         const containerView = document.querySelector('.container-view');
         if (containerView) {
-            containerView.parentNode.insertBefore(canvas3D, containerView.nextSibling);
-            containerView.parentNode.insertBefore(controls3D, canvas3D.nextSibling);
+            containerView.parentNode.insertBefore(threeDViewContainer, containerView.nextSibling);
         }
         
         // Setup 3D canvas context
@@ -429,11 +450,11 @@ function setup3DMouseControls() {
 }
 
 function show3DView() {
-    if (!canvas3D) {
+    if (!threeDViewContainer) {
         initialize3DView();
     }
     
-    canvas3D.style.display = 'block';
+    threeDViewContainer.style.display = 'block';
     is3DViewActive = true;
     render3DView();
     
@@ -442,11 +463,17 @@ function show3DView() {
     if (containerView) {
         containerView.style.display = 'none';
     }
+    
+    // Update button text
+    if (threeDViewButton) {
+        threeDViewButton.innerHTML = '📐 2Dビューに戻る';
+        threeDViewButton.classList.add('active');
+    }
 }
 
 function hide3DView() {
-    if (canvas3D) {
-        canvas3D.style.display = 'none';
+    if (threeDViewContainer) {
+        threeDViewContainer.style.display = 'none';
     }
     
     is3DViewActive = false;
@@ -455,6 +482,12 @@ function hide3DView() {
     const containerView = document.querySelector('.container-view');
     if (containerView) {
         containerView.style.display = 'block';
+    }
+    
+    // Update button text
+    if (threeDViewButton) {
+        threeDViewButton.innerHTML = '🎯 3D積み重ねビューを表示';
+        threeDViewButton.classList.remove('active');
     }
 }
 
@@ -1377,40 +1410,24 @@ function clearResults() {
 
 function show3DViewButton() {
     // Create 3D view toggle button
-    let toggle3DButton = document.getElementById('toggle3DView');
-    if (!toggle3DButton) {
-        toggle3DButton = document.createElement('button');
-        toggle3DButton.id = 'toggle3DView';
-        toggle3DButton.className = 'toggle-3d-btn';
-        toggle3DButton.innerHTML = '🎯 3D積み重ねビューを表示';
-        toggle3DButton.style.cssText = `
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 15px 20px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin: 20px auto;
-            display: block;
-            transition: all 0.3s ease;
-        `;
+    if (!threeDViewButton) {
+        threeDViewButton = document.createElement('button');
+        threeDViewButton.id = 'toggle3DView';
+        threeDViewButton.className = 'toggle-3d-btn';
+        threeDViewButton.innerHTML = '🎯 3D積み重ねビューを表示';
         
-        toggle3DButton.addEventListener('click', () => {
+        threeDViewButton.addEventListener('click', () => {
             if (is3DViewActive) {
                 hide3DView();
-                toggle3DButton.innerHTML = '🎯 3D積み重ねビューを表示';
             } else {
                 show3DView();
-                toggle3DButton.innerHTML = '📐 2Dビューに戻る';
             }
         });
         
         // Insert after export button
         const exportBtn = document.getElementById('exportBtn');
         if (exportBtn) {
-            exportBtn.parentNode.insertBefore(toggle3DButton, exportBtn.nextSibling);
+            exportBtn.parentNode.insertBefore(threeDViewButton, exportBtn.nextSibling);
         }
     }
 }
