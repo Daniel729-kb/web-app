@@ -1308,6 +1308,13 @@
         function toggleDropdown(type) {
             console.log('toggleDropdown called with type:', type);
             
+            // Check if controls are visible (CSV data loaded)
+            const controls = document.getElementById('controls');
+            if (!controls || controls.style.display === 'none') {
+                console.log('Controls not visible yet. Please upload CSV data first.');
+                return;
+            }
+            
             const dropdown = document.getElementById(`${type}-dropdown`);
             const display = document.querySelector(`#${type}-multiselect .multi-select-display`);
             
