@@ -953,6 +953,13 @@
         </div>
 
         <div class="controls" id="controls">
+            <!-- Debug test button -->
+            <div style="margin-bottom: 20px; text-align: center;">
+                <button onclick="testDropdown()" style="padding: 10px 20px; background: #ff6b6b; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    🧪 Test Dropdown Function
+                </button>
+            </div>
+            
             <div class="filter-section">
                 <div class="selector-group">
                     <label class="selector-label"><strong>🌎 Block選択（複数選択可）:</strong></label>
@@ -1279,22 +1286,56 @@
     'toronto': [43.6532, -79.3832], 'vancouver': [49.2827, -123.1207], 'montreal': [45.5017, -73.5673], 'calgary': [51.0447, -114.0719], 'ottawa': [45.4215, -75.6972],
 };
 
+        // Test function for debugging
+        function testDropdown() {
+            console.log('=== DROPDOWN TEST ===');
+            console.log('Testing toggleDropdown function...');
+            toggleDropdown('block');
+            
+            // Test if elements exist
+            console.log('Checking if elements exist:');
+            console.log('block-dropdown:', document.getElementById('block-dropdown'));
+            console.log('block-multiselect:', document.getElementById('block-multiselect'));
+            console.log('block-options:', document.getElementById('block-options'));
+            
+            // Test if data is loaded
+            console.log('allWarehouseData length:', allWarehouseData ? allWarehouseData.length : 'undefined');
+            console.log('selectedBlocks:', selectedBlocks);
+            console.log('selectedCountries:', selectedCountries);
+        }
+
         // マルチセレクト機能
         function toggleDropdown(type) {
+            console.log('toggleDropdown called with type:', type);
+            
             const dropdown = document.getElementById(`${type}-dropdown`);
             const display = document.querySelector(`#${type}-multiselect .multi-select-display`);
+            
+            console.log('dropdown element:', dropdown);
+            console.log('display element:', display);
+            
+            if (!dropdown || !display) {
+                console.error('Required elements not found for type:', type);
+                return;
+            }
             
             // 他のドロップダウンを閉じる
             ['block', 'country', 'state', 'city', 'ownership', 'bonded', 'temperature', 'cold', 'sales', 'gdp'].forEach(t => {
                 if (t !== type) {
-                    document.getElementById(`${t}-dropdown`).style.display = 'none';
-                    document.querySelector(`#${t}-multiselect .multi-select-display`).classList.remove('open');
+                    const otherDropdown = document.getElementById(`${t}-dropdown`);
+                    const otherDisplay = document.querySelector(`#${t}-multiselect .multi-select-display`);
+                    if (otherDropdown) otherDropdown.style.display = 'none';
+                    if (otherDisplay) otherDisplay.classList.remove('open');
                 }
             });
 
             const isOpen = dropdown.style.display === 'block';
+            console.log('Current dropdown state:', isOpen ? 'open' : 'closed');
+            
             dropdown.style.display = isOpen ? 'none' : 'block';
             display.classList.toggle('open', !isOpen);
+            
+            console.log('Dropdown toggled to:', isOpen ? 'closed' : 'open');
             
             // ドロップダウンを開いた時に検索入力にフォーカス
             if (!isOpen) {
