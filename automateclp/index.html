@@ -5,6 +5,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Automae Container Loader Planeer</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link href="./styles.css" rel="stylesheet"/>
 <style>
     * {
         margin: 0;
@@ -783,17 +784,9 @@
 </div>
 </div>
 </div>
-<script>
-        // 定数の一元管理
-        const CONSTANTS = {
-            CONTAINER_OFFSET_X: 25,
-            CONTAINER_OFFSET_Y: 35,
-            CONTAINER_DISPLAY_WIDTH: 800,
-            CONTAINER_DISPLAY_HEIGHT: 300,
-            MIN_DRAG_MARGIN: 10,
-            EPSILON: 0.01,
-            ANIMATION_DELAY: 500
-        };
+<script src="./app.js"></script>
+<!-- externalized JS loaded; removed inline script -->
+        
 
         // グローバル変数
         let pallets = [];
@@ -2616,6 +2609,6 @@
         setInterval(() => {
             memoryManager.cleanup();
         }, 3 * 60 * 1000);
-    </script>
+    
 </body>
 </html>
