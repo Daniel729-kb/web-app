@@ -99,6 +99,9 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
 }
 
 /* === HEADER === */
@@ -123,9 +126,9 @@ body {
 }
 
 .header-content {
-    max-width: 1400px;
+    max-width: 1800px;
     margin: 0 auto;
-    padding: 0 var(--space-6);
+    padding: 0 var(--space-4);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -173,11 +176,12 @@ body {
 .app-main {
     flex: 1;
     display: grid;
-    grid-template-columns: 380px 1fr;
+    grid-template-columns: 400px 1fr;
     gap: 0;
-    max-width: 1400px;
+    max-width: 1800px;
     margin: 0 auto;
-    padding: 0 var(--space-6);
+    padding: 0 var(--space-4);
+    width: 100%;
 }
 
 /* === SIDEBAR === */
@@ -188,10 +192,11 @@ body {
     height: calc(100vh - 120px);
     position: sticky;
     top: 0;
+    min-width: 400px;
 }
 
 .sidebar-content {
-    padding: var(--space-6);
+    padding: var(--space-4);
 }
 
 .form-section {
@@ -553,12 +558,14 @@ body {
     margin-top: var(--space-6);
     box-shadow: var(--shadow-lg);
     overflow: hidden;
+    min-width: 0;
+    width: 100%;
 }
 
 .content-header {
     background: var(--gray-50);
     border-bottom: 1px solid var(--gray-200);
-    padding: var(--space-6);
+    padding: var(--space-4);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -577,8 +584,9 @@ body {
 
 /* === LOADING ANIMATION === */
 .loading-animation {
-    padding: var(--space-16);
+    padding: var(--space-8);
     text-align: center;
+    width: 100%;
 }
 
 .loading-content h3 {
@@ -611,8 +619,9 @@ body {
     background: linear-gradient(135deg, #fef3c7, #fde68a);
     border: 1px solid #f59e0b;
     border-radius: var(--radius-lg);
-    margin: var(--space-6);
+    margin: var(--space-4);
     overflow: hidden;
+    width: calc(100% - 2rem);
 }
 
 .instructions-header {
@@ -673,11 +682,12 @@ body {
 .container-view {
     background: var(--gray-900);
     border-radius: var(--radius-lg);
-    margin: var(--space-6);
-    padding: var(--space-6);
+    margin: var(--space-4);
+    padding: var(--space-4);
     position: relative;
     overflow: hidden;
-    min-height: 400px;
+    min-height: 500px;
+    width: calc(100% - 2rem);
 }
 
 .container-floor {
@@ -685,11 +695,12 @@ body {
     border: 3px solid var(--primary-color);
     border-radius: var(--radius-base);
     position: absolute;
-    left: 0;
-    top: 0;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
-    width: 600px;
-    height: 300px;
+    width: 800px;
+    height: 400px;
 }
 
 /* === 3D VIEW === */
@@ -785,13 +796,13 @@ body {
 
 /* === STATISTICS === */
 .stats-section {
-    padding: var(--space-6);
+    padding: var(--space-4);
     border-top: 1px solid var(--gray-200);
 }
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: var(--space-4);
     margin-top: var(--space-4);
 }
@@ -831,7 +842,7 @@ body {
 
 /* === LEGEND === */
 .legend-section {
-    padding: var(--space-6);
+    padding: var(--space-4);
     border-top: 1px solid var(--gray-200);
 }
 
@@ -861,7 +872,7 @@ body {
 
 /* === UNLOADED SUMMARY === */
 .unloaded-summary {
-    padding: var(--space-6);
+    padding: var(--space-4);
     border-top: 1px solid var(--gray-200);
 }
 
@@ -907,14 +918,43 @@ body {
 }
 
 /* === RESPONSIVE DESIGN === */
+@media (max-width: 1600px) {
+    .app-main {
+        max-width: 1600px;
+        grid-template-columns: 380px 1fr;
+    }
+    
+    .container-floor {
+        width: 700px;
+        height: 350px;
+    }
+}
+
+@media (max-width: 1400px) {
+    .app-main {
+        max-width: 1400px;
+        grid-template-columns: 360px 1fr;
+    }
+    
+    .container-floor {
+        width: 600px;
+        height: 300px;
+    }
+}
+
 @media (max-width: 1200px) {
     .app-main {
         grid-template-columns: 340px 1fr;
-        padding: 0 var(--space-4);
+        padding: 0 var(--space-3);
     }
     
     .stats-grid {
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    
+    .container-floor {
+        width: 500px;
+        height: 250px;
     }
 }
 
@@ -928,6 +968,7 @@ body {
         height: auto;
         border-right: none;
         border-bottom: 1px solid var(--gray-200);
+        min-width: auto;
     }
     
     .header-content {
@@ -960,6 +1001,15 @@ body {
     .btn-3d {
         flex: 1;
         min-width: 120px;
+    }
+    
+    .container-floor {
+        width: 100%;
+        height: 200px;
+        position: relative;
+        left: 0;
+        top: 0;
+        transform: none;
     }
 }
 
