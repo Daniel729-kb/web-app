@@ -5,6 +5,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Automated Container Loader Planeer</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link href="./styles.css" rel="stylesheet"/>
 <style>
     * {
         margin: 0;
@@ -783,17 +784,9 @@
 </div>
 </div>
 </div>
-<script>
-        // 定数の一元管理
-        const CONSTANTS = {
-            CONTAINER_OFFSET_X: 25,
-            CONTAINER_OFFSET_Y: 35,
-            CONTAINER_DISPLAY_WIDTH: 800,
-            CONTAINER_DISPLAY_HEIGHT: 300,
-            MIN_DRAG_MARGIN: 10,
-            EPSILON: 0.01,
-            ANIMATION_DELAY: 500
-        };
+<script src="./app.js"></script>
+<!-- externalized JS loaded; removed inline script -->
+        
 
         // グローバル変数
         let pallets = [];
@@ -1701,9 +1694,10 @@
                 if (pallet.finalLength > basePallet.finalLength || 
                     pallet.finalWidth > basePallet.finalWidth) return;
                 
-                // 高さ制約チェック
+                // 高さ制約チェック（既存スタックの最上面を考慮）
                 const containerHeight = containers[elements.containerType.value].height;
-                const totalHeight = basePallet.z + basePallet.finalHeight + pallet.finalHeight;
+                const topZ = getTopZForBase(basePallet);
+                const totalHeight = topZ + pallet.finalHeight;
                 if (totalHeight > containerHeight) return;
                 
                 // 重量制約チェック（積み重ね制限）
@@ -1713,7 +1707,7 @@
                 // 位置計算
                 const x = basePallet.x;
                 const y = basePallet.y;
-                const z = basePallet.z + basePallet.finalHeight;
+                const z = topZ;
                 
                 // スコア計算（重心、重量分布、高さ効率を考慮）
                 const score = calculateStackingScore(pallet, basePallet, x, y, z);
@@ -1761,17 +1755,35 @@
         function calculateStackWeight(basePallet) {
             let totalWeight = basePallet.weight || 0;
             
-            // このパレットの上に積まれているパレットの重量を加算
-            basePallet.stackedBy.forEach(stackedPallet => {
+            // このパレットの上に積まれているパレットの重量（再帰的）を加算
+            (basePallet.stackedBy || []).forEach(stackedPallet => {
                 const pallet = allPalletsGenerated.find(p => 
                     p.id === stackedPallet.id && p.instance === stackedPallet.instance
                 );
                 if (pallet) {
                     totalWeight += pallet.weight || 0;
+                    totalWeight += calculateStackWeight(pallet) - (pallet.weight || 0);
                 }
             });
             
             return totalWeight;
+        }
+
+        // 基底パレットの現在の最上面Z座標（z + height）の取得
+        function getTopZForBase(basePallet) {
+            let topZ = (basePallet.z || 0) + (basePallet.finalHeight || 0);
+            
+            (basePallet.stackedBy || []).forEach(stackedPallet => {
+                const pallet = allPalletsGenerated.find(p => 
+                    p.id === stackedPallet.id && p.instance === stackedPallet.instance
+                );
+                if (pallet && pallet.placed) {
+                    const palletTop = (pallet.z || 0) + (pallet.finalHeight || 0);
+                    if (palletTop > topZ) topZ = palletTop;
+                }
+            });
+            
+            return topZ;
         }
         
         // 積み重ね安定性計算
@@ -2597,6 +2609,6 @@
         setInterval(() => {
             memoryManager.cleanup();
         }, 3 * 60 * 1000);
-    </script>
+    
 </body>
 </html>
