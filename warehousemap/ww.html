@@ -1201,7 +1201,23 @@
         </div>
     </div>
 
-   <script>
+                  <script>
+        // Helper function to normalize country names
+        function normalizeCountryName(name) {
+            if (!name) return null;
+            const normalized = name.trim().toLowerCase();
+            const countryNameMap = {
+                "china": "China",
+                "": "China",
+                "usa": "United States",
+                "republic of korea": "Korea",
+                "taiwan": "Taiwan",
+                "slovakia ": "Slovakia",
+                "hong kong": "Hong Kong" // Ensure Hong Kong is preserved if distinct
+            };
+            return countryNameMap[normalized] || name.trim();
+        }
+
         // ダークモード管理
         let isDarkMode = false;
 
@@ -1693,6 +1709,8 @@
             const blocksContainer = document.getElementById('block-options');
             const blocks = [...new Set(allWarehouseData.map(row => row["Block name"]))].filter(Boolean).sort();
             
+            console.log('Populating block selector with:', blocks);
+            
             // 検索をクリア
             clearSearch('block');
             
@@ -1708,6 +1726,8 @@
             // 全て選択状態を初期化
             document.getElementById('block-select-all').checked = false;
             document.getElementById('block-select-all').indeterminate = false;
+            
+            console.log('Block selector populated with', blocks.length, 'options');
         }
 			// Helper function to normalize country names
 			function normalizeCountryName(name) {
@@ -2236,11 +2256,13 @@ function processCSVFile(file) {
                     document.querySelector('.loading').style.display = 'none';
 
                     initMap();
+                    console.log('Populating selectors...');
                     populateBlockSelector();
                     populateCountrySelector();
                     populateStateSelector();
                     populateCitySelector();
                     populateOwnershipSelector();
+                    console.log('Selectors populated successfully');
                     setupSearchFunctionality();
                     displayWarehouses();
                     updateStats();
