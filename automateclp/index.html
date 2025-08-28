@@ -785,14 +785,6 @@
 </div>
 </div>
 <script src="./app.js"></script>
-        let pallets = [];
-        let allPalletsGenerated = [];
-        let renderConfig = {
-            scale: 1,
-            containerOffset: { x: CONSTANTS.CONTAINER_OFFSET_X, y: CONSTANTS.CONTAINER_OFFSET_Y },
-            containerBounds: null
-        };
-
         const containers = {
             '20ft': { length: 589.8, width: 235.2, height: 238.5 },
             '40ft': { length: 1203.2, width: 235.0, height: 238.5 },
@@ -2605,6 +2597,5 @@
         setInterval(() => {
             memoryManager.cleanup();
         }, 3 * 60 * 1000);
-    
 </body>
 </html>
