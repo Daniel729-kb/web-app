@@ -211,6 +211,49 @@
             font-weight: 600;
         }
 
+        /* チェックボックスフィルター */
+        .checkbox-filters {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px;
+            background: var(--card-light);
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            min-height: 48px;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-filters:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(33, 147, 176, 0.1);
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 4px 0;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox-option:hover {
+            color: var(--primary-color);
+        }
+
+        .checkbox-option input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
+            transform: scale(1.1);
+        }
+
+        .checkbox-option span {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
         /* マルチセレクトドロップダウン */
         .multi-select {
             position: relative;
@@ -712,6 +755,15 @@
             border-color: var(--border-dark);
         }
 
+        body.dark-mode .checkbox-filters {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+        }
+
+        body.dark-mode .checkbox-option:hover {
+            color: var(--secondary-color);
+        }
+
         body.dark-mode .multi-select-dropdown {
             background: var(--card-dark);
             border-color: var(--primary-color);
@@ -806,6 +858,17 @@
         }
 
         @media (max-width: 768px) {
+            .checkbox-filters {
+                flex-direction: row;
+                gap: 15px;
+                justify-content: space-around;
+            }
+            
+            .checkbox-option {
+                flex: 1;
+                text-align: center;
+            }
+            
             .container {
                 padding: 15px;
             }
@@ -890,6 +953,8 @@
         </div>
 
         <div class="controls" id="controls">
+
+            
             <div class="filter-section">
                 <div class="selector-group">
                     <label class="selector-label"><strong>🌎 Block選択（複数選択可）:</strong></label>
@@ -1037,116 +1102,71 @@
 
                 <div class="selector-group">
                     <label class="selector-label"><strong>🔒 保税倉庫:</strong></label>
-                    <div class="multi-select" id="bonded-multiselect">
-                        <div class="multi-select-display" onclick="toggleDropdown('bonded')">
-                            <div class="selected-tags" id="bonded-tags">
-                                <span class="placeholder-text">保税倉庫を選択してください</span>
-                            </div>
-                            <span class="multi-select-arrow">▼</span>
-                        </div>
-                        <div class="multi-select-dropdown" id="bonded-dropdown" style="display: none;">
-                            <div class="select-all-container">
-                                <label>
-                                    <input type="checkbox" id="bonded-select-all" onchange="toggleSelectAll('bonded')">
-                                    <strong>すべて選択/解除</strong>
-                                </label>
-                            </div>
-                            <div class="options-container">
-                                <div id="bonded-options"></div>
-                            </div>
-                        </div>
+                    <div class="checkbox-filters" id="bonded-checkboxes">
+                        <label class="checkbox-option">
+                            <input type="checkbox" value="Yes" onchange="updateSelectedItems('bonded')">
+                            <span>はい</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" value="No" onchange="updateSelectedItems('bonded')">
+                            <span>いいえ</span>
+                        </label>
                     </div>
                 </div>
 
                 <div class="selector-group">
                     <label class="selector-label"><strong>🌡️ 温度管理倉庫:</strong></label>
-                    <div class="multi-select" id="temperature-multiselect">
-                        <div class="multi-select-display" onclick="toggleDropdown('temperature')">
-                            <div class="selected-tags" id="temperature-tags">
-                                <span class="placeholder-text">温度管理倉庫を選択してください</span>
-                            </div>
-                            <span class="multi-select-arrow">▼</span>
-                        </div>
-                        <div class="multi-select-dropdown" id="temperature-dropdown" style="display: none;">
-                            <div class="select-all-container">
-                                <label>
-                                    <input type="checkbox" id="temperature-select-all" onchange="toggleSelectAll('temperature')">
-                                    <strong>すべて選択/解除</strong>
-                                </label>
-                            </div>
-                            <div class="options-container">
-                                <div id="temperature-options"></div>
-                            </div>
-                        </div>
+                    <div class="checkbox-filters" id="temperature-checkboxes">
+                        <label class="checkbox-option">
+                            <input type="checkbox" value="Yes" onchange="updateSelectedItems('temperature')">
+                            <span>はい</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" value="No" onchange="updateSelectedItems('temperature')">
+                            <span>いいえ</span>
+                        </label>
                     </div>
                 </div>
 
                 <div class="selector-group">
                     <label class="selector-label"><strong>❄️ 冷凍・冷蔵倉庫:</strong></label>
-                    <div class="multi-select" id="cold-multiselect">
-                        <div class="multi-select-display" onclick="toggleDropdown('cold')">
-                            <div class="selected-tags" id="cold-tags">
-                                <span class="placeholder-text">冷凍・冷蔵倉庫を選択してください</span>
-                            </div>
-                            <span class="multi-select-arrow">▼</span>
-                        </div>
-                        <div class="multi-select-dropdown" id="cold-dropdown" style="display: none;">
-                            <div class="select-all-container">
-                                <label>
-                                    <input type="checkbox" id="cold-select-all" onchange="toggleSelectAll('cold')">
-                                    <strong>すべて選択/解除</strong>
-                                </label>
-                            </div>
-                            <div class="options-container">
-                                <div id="cold-options"></div>
-                            </div>
-                        </div>
+                    <div class="checkbox-filters" id="cold-checkboxes">
+                        <label class="checkbox-option">
+                            <input type="checkbox" value="Yes" onchange="updateSelectedItems('cold')">
+                            <span>はい</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" value="No" onchange="updateSelectedItems('cold')">
+                            <span>いいえ</span>
+                        </label>
                     </div>
                 </div>
 
                 <div class="selector-group">
                     <label class="selector-label"><strong>🎯 販売促進:</strong></label>
-                    <div class="multi-select" id="sales-multiselect">
-                        <div class="multi-select-display" onclick="toggleDropdown('sales')">
-                            <div class="selected-tags" id="sales-tags">
-                                <span class="placeholder-text">販売促進を選択してください</span>
-                            </div>
-                            <span class="multi-select-arrow">▼</span>
-                        </div>
-                        <div class="multi-select-dropdown" id="sales-dropdown" style="display: none;">
-                            <div class="select-all-container">
-                                <label>
-                                    <input type="checkbox" id="sales-select-all" onchange="toggleSelectAll('sales')">
-                                    <strong>すべて選択/解除</strong>
-                                </label>
-                            </div>
-                            <div class="options-container">
-                                <div id="sales-options"></div>
-                            </div>
-                        </div>
+                    <div class="checkbox-filters" id="sales-checkboxes">
+                        <label class="checkbox-option">
+                            <input type="checkbox" value="Yes" onchange="updateSelectedItems('sales')">
+                            <span>はい</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" value="No" onchange="updateSelectedItems('sales')">
+                            <span>いいえ</span>
+                        </label>
                     </div>
                 </div>
 
                 <div class="selector-group">
                     <label class="selector-label"><strong>🏆 GDP認証倉庫:</strong></label>
-                    <div class="multi-select" id="gdp-multiselect">
-                        <div class="multi-select-display" onclick="toggleDropdown('gdp')">
-                            <div class="selected-tags" id="gdp-tags">
-                                <span class="placeholder-text">GDP認証倉庫を選択してください</span>
-                            </div>
-                            <span class="multi-select-arrow">▼</span>
-                        </div>
-                        <div class="multi-select-dropdown" id="gdp-dropdown" style="display: none;">
-                            <div class="select-all-container">
-                                <label>
-                                    <input type="checkbox" id="gdp-select-all" onchange="toggleSelectAll('gdp')">
-                                    <strong>すべて選択/解除</strong>
-                                </label>
-                            </div>
-                            <div class="options-container">
-                                <div id="gdp-options"></div>
-                            </div>
-                        </div>
+                    <div class="checkbox-filters" id="gdp-checkboxes">
+                        <label class="checkbox-option">
+                            <input type="checkbox" value="Yes" onchange="updateSelectedItems('gdp')">
+                            <span>はい</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" value="No" onchange="updateSelectedItems('gdp')">
+                            <span>いいえ</span>
+                        </label>
                     </div>
                 </div>
             </div>
@@ -1183,7 +1203,23 @@
         </div>
     </div>
 
-   <script>
+                  <script>
+        // Helper function to normalize country names
+        function normalizeCountryName(name) {
+            if (!name) return null;
+            const normalized = name.trim().toLowerCase();
+            const countryNameMap = {
+                "china": "China",
+                "": "China",
+                "usa": "United States",
+                "republic of korea": "Korea",
+                "taiwan": "Taiwan",
+                "slovakia ": "Slovakia",
+                "hong kong": "Hong Kong" // Ensure Hong Kong is preserved if distinct
+            };
+            return countryNameMap[normalized] || name.trim();
+        }
+
         // ダークモード管理
         let isDarkMode = false;
 
@@ -1245,16 +1281,30 @@
     'toronto': [43.6532, -79.3832], 'vancouver': [49.2827, -123.1207], 'montreal': [45.5017, -73.5673], 'calgary': [51.0447, -114.0719], 'ottawa': [45.4215, -75.6972],
 };
 
+
+
         // マルチセレクト機能
         function toggleDropdown(type) {
+            // Check if controls are visible (CSV data loaded)
+            const controls = document.getElementById('controls');
+            if (!controls || controls.style.display === 'none') {
+                return;
+            }
+            
             const dropdown = document.getElementById(`${type}-dropdown`);
             const display = document.querySelector(`#${type}-multiselect .multi-select-display`);
+            
+            if (!dropdown || !display) {
+                return;
+            }
             
             // 他のドロップダウンを閉じる
             ['block', 'country', 'state', 'city', 'ownership', 'bonded', 'temperature', 'cold', 'sales', 'gdp'].forEach(t => {
                 if (t !== type) {
-                    document.getElementById(`${t}-dropdown`).style.display = 'none';
-                    document.querySelector(`#${t}-multiselect .multi-select-display`).classList.remove('open');
+                    const otherDropdown = document.getElementById(`${t}-dropdown`);
+                    const otherDisplay = document.querySelector(`#${t}-multiselect .multi-select-display`);
+                    if (otherDropdown) otherDropdown.style.display = 'none';
+                    if (otherDisplay) otherDisplay.classList.remove('open');
                 }
             });
 
@@ -1398,8 +1448,17 @@
         }
 
         function updateSelectedItems(type) {
-            const checkedOptions = document.querySelectorAll(`#${type}-options input[type="checkbox"]:checked`);
-            const selectedValues = Array.from(checkedOptions).map(option => option.value);
+            let selectedValues = [];
+            
+            // チェックボックスフィルターの場合は直接チェックボックスから値を取得
+            if (['bonded', 'temperature', 'cold', 'sales', 'gdp'].includes(type)) {
+                const checkedOptions = document.querySelectorAll(`#${type}-checkboxes input[type="checkbox"]:checked`);
+                selectedValues = Array.from(checkedOptions).map(option => option.value);
+            } else {
+                // 従来のドロップダウンフィルターの場合
+                const checkedOptions = document.querySelectorAll(`#${type}-options input[type="checkbox"]:checked`);
+                selectedValues = Array.from(checkedOptions).map(option => option.value);
+            }
             
             // 選択状態を更新
             if (type === 'block') {
@@ -1424,7 +1483,10 @@
                 selectedGDP = selectedValues;
             }
             
-            updateTagsDisplay(type, selectedValues);
+            // チェックボックスフィルターの場合はタグ表示を更新しない
+            if (!['bonded', 'temperature', 'cold', 'sales', 'gdp'].includes(type)) {
+                updateTagsDisplay(type, selectedValues);
+            }
             
             // 従属関係の更新
             if (type === 'block') {
@@ -1441,20 +1503,10 @@
                 populateStateSelector();
                 populateCitySelector();
                 populateOwnershipSelector();
-                populateBondedSelector();
-                populateTemperatureSelector();
-                populateColdSelector();
-                populateSalesSelector();
-                populateGDPSelector();
                 updateTagsDisplay('country', []);
                 updateTagsDisplay('state', []);
                 updateTagsDisplay('city', []);
                 updateTagsDisplay('ownership', []);
-                updateTagsDisplay('bonded', []);
-                updateTagsDisplay('temperature', []);
-                updateTagsDisplay('cold', []);
-                updateTagsDisplay('sales', []);
-                updateTagsDisplay('gdp', []);
             } else if (type === 'country') {
                 selectedStates = [];
                 selectedCities = [];
@@ -1467,19 +1519,9 @@
                 populateStateSelector();
                 populateCitySelector();
                 populateOwnershipSelector();
-                populateBondedSelector();
-                populateTemperatureSelector();
-                populateColdSelector();
-                populateSalesSelector();
-                populateGDPSelector();
                 updateTagsDisplay('state', []);
                 updateTagsDisplay('city', []);
                 updateTagsDisplay('ownership', []);
-                updateTagsDisplay('bonded', []);
-                updateTagsDisplay('temperature', []);
-                updateTagsDisplay('cold', []);
-                updateTagsDisplay('sales', []);
-                updateTagsDisplay('gdp', []);
             } else if (type === 'state') {
                 selectedCities = [];
                 selectedOwnerships = [];
@@ -1490,18 +1532,8 @@
                 selectedGDP = [];
                 populateCitySelector();
                 populateOwnershipSelector();
-                populateBondedSelector();
-                populateTemperatureSelector();
-                populateColdSelector();
-                populateSalesSelector();
-                populateGDPSelector();
                 updateTagsDisplay('city', []);
                 updateTagsDisplay('ownership', []);
-                updateTagsDisplay('bonded', []);
-                updateTagsDisplay('temperature', []);
-                updateTagsDisplay('cold', []);
-                updateTagsDisplay('sales', []);
-                updateTagsDisplay('gdp', []);
             } else if (type === 'city') {
                 selectedOwnerships = [];
                 selectedBonded = [];
@@ -1510,33 +1542,13 @@
                 selectedSales = [];
                 selectedGDP = [];
                 populateOwnershipSelector();
-                populateBondedSelector();
-                populateTemperatureSelector();
-                populateColdSelector();
-                populateSalesSelector();
-                populateGDPSelector();
                 updateTagsDisplay('ownership', []);
-                updateTagsDisplay('bonded', []);
-                updateTagsDisplay('temperature', []);
-                updateTagsDisplay('cold', []);
-                updateTagsDisplay('sales', []);
-                updateTagsDisplay('gdp', []);
             } else if (type === 'ownership') {
                 selectedBonded = [];
                 selectedTemperature = [];
                 selectedCold = [];
                 selectedSales = [];
                 selectedGDP = [];
-                populateBondedSelector();
-                populateTemperatureSelector();
-                populateColdSelector();
-                populateSalesSelector();
-                populateGDPSelector();
-                updateTagsDisplay('bonded', []);
-                updateTagsDisplay('temperature', []);
-                updateTagsDisplay('cold', []);
-                updateTagsDisplay('sales', []);
-                updateTagsDisplay('gdp', []);
             }
             
             filterAndDisplayData();
@@ -1923,285 +1935,15 @@ function populateCountrySelector() {
             document.getElementById('ownership-select-all').indeterminate = false;
         }
 
-        function populateBondedSelector() {
-            const bondedContainer = document.getElementById('bonded-options');
-            
-            // 現在の選択に基づいてデータを絞り込み
-            let currentData = allWarehouseData;
-            
-            if (selectedBlocks.length > 0) {
-                currentData = currentData.filter(row => selectedBlocks.includes(row["Block name"]));
-            }
-            
-            if (selectedCountries.length > 0) {
-                currentData = currentData.filter(row => selectedCountries.includes(row.Country));
-            }
-            
-            if (selectedStates.length > 0) {
-                const stateFields = ['State', 'Prefecture', 'Province', 'Region'];
-                for (const field of stateFields) {
-                    if (currentData.some(row => row[field])) {
-                        currentData = currentData.filter(row => selectedStates.includes(row[field]));
-                        break;
-                    }
-                }
-            }
-            
-            if (selectedCities.length > 0) {
-                currentData = currentData.filter(row => selectedCities.includes(row.City));
-            }
-            
-            if (selectedOwnerships.length > 0) {
-                currentData = currentData.filter(row => selectedOwnerships.includes(row["Ownership"]));
-            }
-            
-            if (currentData.length === 0) {
-                bondedContainer.innerHTML = '<div class="multi-select-option" style="color: #999; font-style: italic;">選択可能な保税倉庫がありません</div>';
-                document.getElementById('bonded-select-all').checked = false;
-                document.getElementById('bonded-select-all').indeterminate = false;
-                return;
-            }
-            
-            const bondedOptions = ['Yes', 'No'];
-            
-            bondedContainer.innerHTML = '';
-            bondedOptions.forEach(option => {
-                const count = currentData.filter(row => row["Bonded warehouse"] === option).length;
-                if (count > 0) {
-                    const optionElement = document.createElement('div');
-                    optionElement.className = 'multi-select-option';
-                    optionElement.innerHTML = `<input type="checkbox" value="${option}" onchange="updateSelectedItems('bonded')"><span class="option-text">${option}</span><span class="option-count">(${count}棟)</span>`;
-                    bondedContainer.appendChild(optionElement);
-                }
-            });
 
-            document.getElementById('bonded-select-all').checked = false;
-            document.getElementById('bonded-select-all').indeterminate = false;
-        }
 
-        function populateTemperatureSelector() {
-            const temperatureContainer = document.getElementById('temperature-options');
-            
-            // 現在の選択に基づいてデータを絞り込み
-            let currentData = allWarehouseData;
-            
-            if (selectedBlocks.length > 0) {
-                currentData = currentData.filter(row => selectedBlocks.includes(row["Block name"]));
-            }
-            
-            if (selectedCountries.length > 0) {
-                currentData = currentData.filter(row => selectedCountries.includes(row.Country));
-            }
-            
-            if (selectedStates.length > 0) {
-                const stateFields = ['State', 'Prefecture', 'Province', 'Region'];
-                for (const field of stateFields) {
-                    if (currentData.some(row => row[field])) {
-                        currentData = currentData.filter(row => selectedStates.includes(row[field]));
-                        break;
-                    }
-                }
-            }
-            
-            if (selectedCities.length > 0) {
-                currentData = currentData.filter(row => selectedCities.includes(row.City));
-            }
-            
-            if (selectedOwnerships.length > 0) {
-                currentData = currentData.filter(row => selectedOwnerships.includes(row["Ownership"]));
-            }
-            
-            if (currentData.length === 0) {
-                temperatureContainer.innerHTML = '<div class="multi-select-option" style="color: #999; font-style: italic;">選択可能な温度管理倉庫がありません</div>';
-                document.getElementById('temperature-select-all').checked = false;
-                document.getElementById('temperature-select-all').indeterminate = false;
-                return;
-            }
-            
-            const temperatureOptions = ['Yes', 'No'];
-            
-            temperatureContainer.innerHTML = '';
-            temperatureOptions.forEach(option => {
-                const count = currentData.filter(row => row["Temperature controlled warehouse"] === option).length;
-                if (count > 0) {
-                    const optionElement = document.createElement('div');
-                    optionElement.className = 'multi-select-option';
-                    optionElement.innerHTML = `<input type="checkbox" value="${option}" onchange="updateSelectedItems('temperature')"><span class="option-text">${option}</span><span class="option-count">(${count}棟)</span>`;
-                    temperatureContainer.appendChild(optionElement);
-                }
-            });
 
-            document.getElementById('temperature-select-all').checked = false;
-            document.getElementById('temperature-select-all').indeterminate = false;
-        }
 
-        function populateColdSelector() {
-            const coldContainer = document.getElementById('cold-options');
-            
-            // 現在の選択に基づいてデータを絞り込み
-            let currentData = allWarehouseData;
-            
-            if (selectedBlocks.length > 0) {
-                currentData = currentData.filter(row => selectedBlocks.includes(row["Block name"]));
-            }
-            
-            if (selectedCountries.length > 0) {
-                currentData = currentData.filter(row => selectedCountries.includes(row.Country));
-            }
-            
-            if (selectedStates.length > 0) {
-                const stateFields = ['State', 'Prefecture', 'Province', 'Region'];
-                for (const field of stateFields) {
-                    if (currentData.some(row => row[field])) {
-                        currentData = currentData.filter(row => selectedStates.includes(row[field]));
-                        break;
-                    }
-                }
-            }
-            
-            if (selectedCities.length > 0) {
-                currentData = currentData.filter(row => selectedCities.includes(row.City));
-            }
-            
-            if (selectedOwnerships.length > 0) {
-                currentData = currentData.filter(row => selectedOwnerships.includes(row["Ownership"]));
-            }
-            
-            if (currentData.length === 0) {
-                coldContainer.innerHTML = '<div class="multi-select-option" style="color: #999; font-style: italic;">選択可能な冷凍・冷蔵倉庫がありません</div>';
-                document.getElementById('cold-select-all').checked = false;
-                document.getElementById('cold-select-all').indeterminate = false;
-                return;
-            }
-            
-            const coldOptions = ['Yes', 'No'];
-            
-            coldContainer.innerHTML = '';
-            coldOptions.forEach(option => {
-                const count = currentData.filter(row => row["Cold/Frozen storage"] === option).length;
-                if (count > 0) {
-                    const optionElement = document.createElement('div');
-                    optionElement.className = 'multi-select-option';
-                    optionElement.innerHTML = `<input type="checkbox" value="${option}" onchange="updateSelectedItems('cold')"><span class="option-text">${option}</span><span class="option-count">(${count}棟)</span>`;
-                    coldContainer.appendChild(optionElement);
-                }
-            });
 
-            document.getElementById('cold-select-all').checked = false;
-            document.getElementById('cold-select-all').indeterminate = false;
-        }
 
-        function populateSalesSelector() {
-            const salesContainer = document.getElementById('sales-options');
-            
-            // 現在の選択に基づいてデータを絞り込み
-            let currentData = allWarehouseData;
-            
-            if (selectedBlocks.length > 0) {
-                currentData = currentData.filter(row => selectedBlocks.includes(row["Block name"]));
-            }
-            
-            if (selectedCountries.length > 0) {
-                currentData = currentData.filter(row => selectedCountries.includes(row.Country));
-            }
-            
-            if (selectedStates.length > 0) {
-                const stateFields = ['State', 'Prefecture', 'Province', 'Region'];
-                for (const field of stateFields) {
-                    if (currentData.some(row => row[field])) {
-                        currentData = currentData.filter(row => selectedStates.includes(row[field]));
-                        break;
-                    }
-                }
-            }
-            
-            if (selectedCities.length > 0) {
-                currentData = currentData.filter(row => selectedCities.includes(row.City));
-            }
-            
-            if (selectedOwnerships.length > 0) {
-                currentData = currentData.filter(row => selectedOwnerships.includes(row["Ownership"]));
-            }
-            
-            if (currentData.length === 0) {
-                salesContainer.innerHTML = '<div class="multi-select-option" style="color: #999; font-style: italic;">選択可能な販売促進がありません</div>';
-                document.getElementById('sales-select-all').checked = false;
-                document.getElementById('sales-select-all').indeterminate = false;
-                return;
-            }
-            
-            const salesOptions = ['Yes', 'No'];
-            
-            salesContainer.innerHTML = '';
-            salesOptions.forEach(option => {
-                const count = currentData.filter(row => row["Sales promotion"] === option).length;
-                if (count > 0) {
-                    const optionElement = document.createElement('div');
-                    optionElement.className = 'multi-select-option';
-                    optionElement.innerHTML = `<input type="checkbox" value="${option}" onchange="updateSelectedItems('sales')"><span class="option-text">${option}</span><span class="option-count">(${count}棟)</span>`;
-                    salesContainer.appendChild(optionElement);
-                }
-            });
 
-            document.getElementById('sales-select-all').checked = false;
-            document.getElementById('sales-select-all').indeterminate = false;
-        }
 
-        function populateGDPSelector() {
-            const gdpContainer = document.getElementById('gdp-options');
-            
-            // 現在の選択に基づいてデータを絞り込み
-            let currentData = allWarehouseData;
-            
-            if (selectedBlocks.length > 0) {
-                currentData = currentData.filter(row => selectedBlocks.includes(row["Block name"]));
-            }
-            
-            if (selectedCountries.length > 0) {
-                currentData = currentData.filter(row => selectedCountries.includes(row.Country));
-            }
-            
-            if (selectedStates.length > 0) {
-                const stateFields = ['State', 'Prefecture', 'Province', 'Region'];
-                for (const field of stateFields) {
-                    if (currentData.some(row => row[field])) {
-                        currentData = currentData.filter(row => selectedStates.includes(row[field]));
-                        break;
-                    }
-                }
-            }
-            
-            if (selectedCities.length > 0) {
-                currentData = currentData.filter(row => selectedCities.includes(row.City));
-            }
-            
-            if (selectedOwnerships.length > 0) {
-                currentData = currentData.filter(row => selectedOwnerships.includes(row["Ownership"]));
-            }
-            
-            if (currentData.length === 0) {
-                gdpContainer.innerHTML = '<div class="multi-select-option" style="color: #999; font-style: italic;">選択可能なGDP認証倉庫がありません</div>';
-                document.getElementById('gdp-select-all').checked = false;
-                document.getElementById('gdp-select-all').indeterminate = false;
-                return;
-            }
-            
-            const gdpOptions = ['Yes', 'No'];
-            
-            gdpContainer.innerHTML = '';
-            gdpOptions.forEach(option => {
-                const count = currentData.filter(row => row["GDP"] === option).length;
-                if (count > 0) {
-                    const optionElement = document.createElement('div');
-                    optionElement.className = 'multi-select-option';
-                    optionElement.innerHTML = `<input type="checkbox" value="${option}" onchange="updateSelectedItems('gdp')"><span class="option-text">${option}</span><span class="option-count">(${count}棟)</span>`;
-                    gdpContainer.appendChild(optionElement);
-                }
-            });
 
-            document.getElementById('gdp-select-all').checked = false;
-            document.getElementById('gdp-select-all').indeterminate = false;
-        }
 
         function clearSearch(type) {
             const searchInput = document.getElementById(`${type}-search`);
@@ -2531,11 +2273,6 @@ function processCSVFile(file) {
                     populateStateSelector();
                     populateCitySelector();
                     populateOwnershipSelector();
-                    populateBondedSelector();
-                    populateTemperatureSelector();
-                    populateColdSelector();
-                    populateSalesSelector();
-                    populateGDPSelector();
                     setupSearchFunctionality();
                     displayWarehouses();
                     updateStats();
