@@ -3,9 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Automated Container Loader Planeer</title>
+<title>Automae Container Loader Planeer</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<link href="./styles.css" rel="stylesheet"/>
 <style>
     * {
         margin: 0;
@@ -625,7 +624,7 @@
 🌙
 </button>
 </div>
-<h1>Auto CLP - コンテナローディングプランナー</h1>
+<h1>コンテナローディングプランナー</h1>
 <p>パレット情報と枚数を入力→ワンクリックで自動配置</p>
 </div>
 <div class="main-content">
@@ -784,9 +783,17 @@
 </div>
 </div>
 </div>
-<script src="./app.js"></script>
-<!-- externalized JS loaded; removed inline script -->
-        
+<script>
+        // 定数の一元管理
+        const CONSTANTS = {
+            CONTAINER_OFFSET_X: 25,
+            CONTAINER_OFFSET_Y: 35,
+            CONTAINER_DISPLAY_WIDTH: 800,
+            CONTAINER_DISPLAY_HEIGHT: 300,
+            MIN_DRAG_MARGIN: 10,
+            EPSILON: 0.01,
+            ANIMATION_DELAY: 500
+        };
 
         // グローバル変数
         let pallets = [];
@@ -798,9 +805,9 @@
         };
 
         const containers = {
-            '20ft': { length: 589.8, width: 235.2, height: 238.5 },
-            '40ft': { length: 1203.2, width: 235.0, height: 238.5 },
-            '40HQ': { length: 1203.2, width: 235.0, height: 269.0 }
+            '20ft': { length: 589.8, width: 235.0, height: 235.0 },
+            '40ft': { length: 1203.2, width: 235.0, height: 235.0 },
+            '40HQ': { length: 1203.2, width: 235.0, height: 228.8 }
         };
 
         // DOM要素のキャッシュ
@@ -2609,6 +2616,6 @@
         setInterval(() => {
             memoryManager.cleanup();
         }, 3 * 60 * 1000);
-    
+    </script>
 </body>
 </html>

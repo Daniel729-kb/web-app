@@ -22,9 +22,9 @@ let renderConfig = {
 };
 
 const containers = {
-    '20ft': { length: 589.8, width: 235.2, height: 238.5 },
-    '40ft': { length: 1203.2, width: 235.0, height: 238.5 },
-    '40HQ': { length: 1203.2, width: 235.0, height: 269.0 }
+    '20ft': { length: 589.8, width: 235.0, height: 235.0 },
+    '40ft': { length: 1203.2, width: 235.0, height: 235.0 },
+    '40HQ': { length: 1203.2, width: 235.0, height: 228.8 }
 };
 
 // DOM要素のキャッシュ
