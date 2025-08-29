@@ -1014,11 +1014,6 @@
                         <th>重量 (kg)</th>
                         <th>貨物コード</th>
                         <th>数量</th>
-                        <th>総合効率</th>
-                        <th>体積効率</th>
-                        <th>重量効率</th>
-                        <th>安定性効率</th>
-                        <th>高さ制限</th>
                     </tr>
                 </thead>
                 <tbody id="summaryBody"></tbody>
@@ -1895,17 +1890,8 @@
                     }
 
                     window.currentPallets = pallets;
-                    
-                    // script.js の displayResults を使用（読み込まれていない場合はカスタム版を使用）
-                    if (typeof displayResults === 'function') {
-                        displayResults(pallets);
-                    } else if (typeof displayResultsWithDiagram === 'function') {
-                        displayResultsWithDiagram(pallets);
-                        // サマリーテーブルも更新
-                        if (typeof updateSummaryTable === 'function') {
-                            updateSummaryTable(pallets);
-                        }
-                    }
+                    displayResults(pallets);
+                    buildSummaryTable(pallets);
                     
                 } catch (error) {
                     console.error('計算エラー:', error);
@@ -2755,9 +2741,7 @@
         }
 
         // === 結果表示関数（高さ制限表示付き） ===
-        // この関数は index.html 内で定義されているカスタム版
-        // script.js の displayResults と競合しないように別名にする
-        function displayResultsWithDiagram(pallets) {
+        function displayResults(pallets) {
             const results = document.getElementById('results');
             const resultSummary = document.getElementById('resultSummary');
             const palletResults = document.getElementById('palletResults');
@@ -3109,16 +3093,8 @@
                                 console.log(`✅ 結合完了: 高さ${bestCombinedPallet.height.toFixed(1)}cm ≤ 制限${maxHeightLimit}cm`);
                                 
                                                     maxHeightLimit = originalLimit;
-                    
-                    // script.js の displayResults を使用
-                    if (typeof displayResults === 'function') {
-                        displayResults(window.currentPallets);
-                    } else if (typeof displayResultsWithDiagram === 'function') {
-                        displayResultsWithDiagram(window.currentPallets);
-                        if (typeof updateSummaryTable === 'function') {
-                            updateSummaryTable(window.currentPallets);
-                        }
-                    }
+                    displayResults(window.currentPallets);
+                                buildSummaryTable(window.currentPallets);
                                 updatePalletSelectors();
                                 
                                 const successDiv = document.createElement('div');
@@ -3310,8 +3286,7 @@
         }
 
         // === サマリーテーブル構築（高さ制限表示付き） ===
-        // この関数は使用されていません。script.js の updateSummaryTable を使用
-        function buildSummaryTable_deprecated(pallets) {
+        function buildSummaryTable(pallets) {
             const summarySection = document.getElementById('summarySection');
             const summaryBody = document.getElementById('summaryBody');
             
@@ -3332,24 +3307,13 @@
                 const quantities = Object.values(cartonCounts).join(', ');
                 const heightStatus = pallet.height <= maxHeightLimit ? '✅' : '❌';
                 
-                // 効率データの取得（palletオブジェクトから直接、またはデフォルト値）
-                const totalEfficiency = pallet.efficiency || 0;
-                const volumeEfficiency = pallet.volumeEfficiency || 0;
-                const weightEfficiency = pallet.weightEfficiency || 0;
-                const stabilityEfficiency = pallet.stabilityEfficiency || 0;
-                
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><span class="pallet-link" onclick="scrollToPallet(${palletIndex})">${palletIndex + 1}</span></td>
+                    <td><span class="pallet-link" onclick="scrollToPallet(${palletIndex})">${palletIndex + 1} ${heightStatus}</span></td>
                     <td>${dimensions}</td>
                     <td>${weight}</td>
                     <td>${codes}</td>
                     <td>${quantities}</td>
-                    <td>${totalEfficiency.toFixed(1)}%</td>
-                    <td>${volumeEfficiency.toFixed(1)}%</td>
-                    <td>${weightEfficiency.toFixed(1)}%</td>
-                    <td>${stabilityEfficiency.toFixed(1)}%</td>
-                    <td>${heightStatus}</td>
                 `;
                 
                 if (pallet.height > maxHeightLimit) {
@@ -3367,30 +3331,22 @@
                 return;
             }
             
-            const headers = ['パレットNo', 'パレットサイズ(cm)', '高さ(cm)', '高さ制限適合', '重量(kg)', 
-                           '貨物コード', '数量', '層数', '総合効率(%)', '体積効率(%)', '重量効率(%)', '安定性効率(%)'];
+            const headers = ['パレットNo', 'パレットサイズ(cm)', '高さ(cm)', '高さ制限適合', '重量(kg)', '貨物コード', '数量', '層数'];
             const rows = [headers];
             
             window.currentPallets.forEach((pallet, palletIndex) => {
-                const cartonCounts = pallet.cartons ? pallet.cartons.reduce((acc, carton) => {
+                const cartonCounts = pallet.cartons.reduce((acc, carton) => {
                     acc[carton.code] = (acc[carton.code] || 0) + 1;
                     return acc;
-                }, {}) : {};
+                }, {});
                 
                 const palletSize = `${pallet.palletSize.width}×${pallet.palletSize.depth}`;
-                const height = (pallet.height || 0).toFixed(1);
+                const height = pallet.height.toFixed(1);
                 const heightCompliant = pallet.height <= maxHeightLimit ? 'OK' : 'NG';
-                const weight = (pallet.totalWeight || pallet.weight || 0).toFixed(1);
-                const codes = Object.keys(cartonCounts).join(', ') || (pallet.carton ? 
-                    (Array.isArray(pallet.carton) ? pallet.carton.map(c => c.code).join('+') : pallet.carton.code) : '');
-                const quantities = Object.values(cartonCounts).join(', ') || pallet.quantity || '';
-                const layers = pallet.layers ? pallet.layers.length : '';
-                
-                // 効率データの取得
-                const totalEfficiency = (pallet.efficiency || 0).toFixed(1);
-                const volumeEfficiency = (pallet.volumeEfficiency || 0).toFixed(1);
-                const weightEfficiency = (pallet.weightEfficiency || 0).toFixed(1);
-                const stabilityEfficiency = (pallet.stabilityEfficiency || 0).toFixed(1);
+                const weight = pallet.totalWeight.toFixed(1);
+                const codes = Object.keys(cartonCounts).join(', ');
+                const quantities = Object.values(cartonCounts).join(', ');
+                const layers = pallet.layers.length;
                 
                 rows.push([
                     palletIndex + 1,
@@ -3400,11 +3356,7 @@
                     weight,
                     codes,
                     quantities,
-                    layers,
-                    totalEfficiency,
-                    volumeEfficiency,
-                    weightEfficiency,
-                    stabilityEfficiency
+                    layers
                 ]);
             });
             
