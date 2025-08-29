@@ -3,106 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>パレタイズ最適化計算機</title>
+    <title>パレタイズ最適化計算機 - Palletizar</title>
+    <meta name="description" content="高度なアルゴリズムを使用したパレット積載最適化計算機。効率的な貨物配置と空間活用を実現します。">
+    <meta name="keywords" content="パレタイズ, 積載最適化, 物流, 倉庫管理, パレット配置">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
 </head>
 <body>
     <div class="container">
         <div class="header-row">
-            <h1>パレタイズ最適化計算機</h1>
-            <button id="themeToggle" class="btn btn-secondary btn-sm" aria-label="テーマ切替">🌙 ダーク</button>
+            <h1>🚛 パレタイズ最適化計算機</h1>
+            <button id="themeToggle" class="btn btn-secondary btn-sm" aria-label="テーマ切替">
+                <span class="theme-icon">🌙</span>
+                <span class="theme-text">ダーク</span>
+            </button>
         </div>
 
+        <!-- 使用方法ガイド -->
         <div class="improvement-note">
-            <h3>📋 使用方法</h3>
-            <ol style="margin-left: 20px;">
-                <li><strong>貨物データの入力</strong>：「📄 CSVインポート」で一括追加または「➕ 新規追加」で個別入力</li>
-                <li><strong>CSVテンプレート</strong>：「📥 CSVテンプレート」をダウンロードしてExcelで編集可能</li>
-                <li><strong>高さ制限設定</strong>：用途に応じて積載高さの上限を調整</li>
-                <li><strong>パレット種類選択</strong>：使用するパレットサイズを選択</li>
-                <li><strong>パレタイズ計算</strong>：「🔢 パレタイズ計算を実行」で最適配置を自動計算</li>
-                <li><strong>結果確認</strong>：配置図（側面図・層別配置）で視覚的に確認、パレット番号クリックで詳細表示</li>
-                <li><strong>データ管理</strong>：「🗑️ 一括削除」で全データをクリア可能</li>
-            </ol>
+            <h3>📋 パレタイズ最適化の完全ガイド</h3>
+            <div class="guide-grid">
+                <div class="guide-section">
+                    <h4>🎯 基本操作フロー</h4>
+                    <ol>
+                        <li><strong>貨物データの入力</strong>：「📄 CSVインポート」で一括追加または「➕ 新規追加」で個別入力</li>
+                        <li><strong>CSVテンプレート</strong>：「📥 CSVテンプレート」をダウンロードしてExcelで編集可能</li>
+                        <li><strong>高さ制限設定</strong>：用途に応じて積載高さの上限を調整</li>
+                        <li><strong>パレット種類選択</strong>：使用するパレットサイズを選択</li>
+                        <li><strong>パレタイズ計算</strong>：「🔢 パレタイズ計算を実行」で最適配置を自動計算</li>
+                        <li><strong>結果確認</strong>：配置図（側面図・層別配置）で視覚的に確認、パレット番号クリックで詳細表示</li>
+                        <li><strong>データ管理</strong>：「🗑️ 一括削除」で全データをクリア可能</li>
+                    </ol>
+                </div>
+                
+                <div class="guide-section">
+                    <h4>💡 プロの使い方</h4>
+                    <ul>
+                        <li><strong>高さ制限の最適化</strong>：輸送手段に応じて適切な高さ制限を設定</li>
+                        <li><strong>パレットサイズの選択</strong>：貨物特性に合わせて最適なパレットサイズを選択</li>
+                        <li><strong>パレット結合機能</strong>：2つのパレットを効率的に結合して最適化</li>
+                        <li><strong>自動最適化</strong>：AIが最適な配置パターンを自動選択</li>
+                    </ul>
+                </div>
+                
+                <div class="guide-section">
+                    <h4>⚠️ 注意事項</h4>
+                    <ul>
+                        <li><strong>重量制限</strong>：パレットの最大積載重量を確認してください</li>
+                        <li><strong>安定性</strong>：重心が偏らないよう配置を確認</li>
+                        <li><strong>輸送制限</strong>：高さ制限は輸送手段に応じて設定</li>
+                        <li><strong>データバックアップ</strong>：重要な設定はCSVでエクスポート</li>
+                    </ul>
+                </div>
+            </div>
         </div>
 
         <!-- エラー表示 -->
-        <div id="errors"></div>
+        <div id="errors" role="alert" aria-live="polite"></div>
 
         <!-- 貨物情報サマリー -->
         <div class="summary-grid">
             <div class="summary-card blue">
                 <h3>総カートン数</h3>
-                <p id="totalCartons"></p>
+                <p id="totalCartons" aria-label="総カートン数">0</p>
             </div>
             <div class="summary-card green">
                 <h3>総重量</h3>
-                <p id="totalWeight"></p>
+                <p id="totalWeight" aria-label="総重量">0 kg</p>
             </div>
             <div class="summary-card purple">
                 <h3>品目数</h3>
-                <p id="itemCount"></p>
+                <p id="itemCount" aria-label="品目数">0</p>
             </div>
         </div>
 
         <!-- 貨物詳細テーブル -->
         <div class="section">
             <div class="section-header">
-                <h2>貨物詳細</h2>
+                <h2>📦 貨物詳細管理</h2>
                 <div class="flex gap-2">
-                    <button id="downloadTemplateButton" class="btn btn-secondary">📥 CSVテンプレート</button>
-                    <button id="importButton" class="btn btn-primary">📄 CSVインポート</button>
-                    <button id="clearAllButton" class="btn btn-danger">🗑️ 一括削除</button>
-                    <button id="addButton" class="btn btn-success">➕ 新規追加</button>
+                    <button id="downloadTemplateButton" class="btn btn-secondary" aria-describedby="template-help">
+                        📥 CSVテンプレート
+                    </button>
+                    <button id="importButton" class="btn btn-primary" aria-describedby="import-help">
+                        📄 CSVインポート
+                    </button>
+                    <button id="clearAllButton" class="btn btn-danger" aria-describedby="clear-help">
+                        🗑️ 一括削除
+                    </button>
+                    <button id="addButton" class="btn btn-success" aria-describedby="add-help">
+                        ➕ 新規追加
+                    </button>
                 </div>
+            </div>
+            
+            <!-- ヘルプテキスト -->
+            <div class="help-texts">
+                <div id="template-help" class="sr-only">CSVテンプレートをダウンロードして、貨物データを入力できます</div>
+                <div id="import-help" class="sr-only">CSVファイルから貨物データを一括インポートできます</div>
+                <div id="clear-help" class="sr-only">すべての貨物データを削除します（確認ダイアログが表示されます）</div>
+                <div id="add-help" class="sr-only">個別に貨物データを追加できます</div>
             </div>
             
             <!-- CSVインポートエリア -->
             <div id="importArea" class="add-form hidden">
-                <h3>CSVファイルをインポート</h3>
-                <div style="margin-bottom: 15px;">
-                    <input type="file" id="csvFileInput" accept=".csv" class="form-input" style="margin-bottom: 10px;">
-                    <div style="font-size: 0.9rem; color: #666;">
-                        <strong>CSV形式:</strong> 貨物コード, 数量, 重量(kg), 長さ(cm), 幅(cm), 高さ(cm)<br>
-                        <strong>例:</strong> SAMPLE, 209, 6.70, 53.0, 38.5, 23.5
+                <h3>📁 CSVファイルをインポート</h3>
+                <div class="import-instructions">
+                    <div class="form-field-group">
+                        <label for="csvFileInput">CSVファイルを選択</label>
+                        <input type="file" id="csvFileInput" accept=".csv" class="form-input" 
+                               aria-describedby="csv-format-help">
+                        <div id="csv-format-help" class="help-text">
+                            <strong>📋 CSV形式:</strong> 貨物コード, 数量, 重量(kg), 長さ(cm), 幅(cm), 高さ(cm)<br>
+                            <strong>📝 例:</strong> SAMPLE, 209, 6.70, 53.0, 38.5, 23.5
+                        </div>
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button id="executeImportButton" class="btn btn-primary">📥 インポート実行</button>
-                    <button id="cancelImportButton" class="btn btn-secondary">❌ キャンセル</button>
+                    <button id="executeImportButton" class="btn btn-primary">
+                        📥 インポート実行
+                    </button>
+                    <button id="cancelImportButton" class="btn btn-secondary">
+                        ❌ キャンセル
+                    </button>
                 </div>
             </div>
             
             <!-- 新規追加フォーム -->
             <div id="addForm" class="add-form hidden">
-                <h3>新しいカートンを追加</h3>
+                <h3>➕ 新しいカートンを追加</h3>
                 <div class="form-grid">
-                    <input type="text" id="newCode" placeholder="貨物コード" class="form-input">
-                    <input type="number" id="newQty" placeholder="数量" class="form-input">
-                    <input type="number" id="newWeight" placeholder="重量(kg)" step="0.1" class="form-input">
-                    <input type="number" id="newL" placeholder="長さ(cm)" step="0.1" class="form-input">
-                    <input type="number" id="newW" placeholder="幅(cm)" step="0.1" class="form-input">
-                    <input type="number" id="newH" placeholder="高さ(cm)" step="0.1" class="form-input">
+                    <div class="form-field-group">
+                        <label for="newCode">貨物コード <span class="required">*</span></label>
+                        <input type="text" id="newCode" placeholder="例: SAMPLE001" class="form-input" 
+                               required aria-required="true">
+                    </div>
+                    <div class="form-field-group">
+                        <label for="newQty">数量 <span class="required">*</span></label>
+                        <input type="number" id="newQty" placeholder="例: 100" class="form-input" 
+                               min="1" required aria-required="true">
+                    </div>
+                    <div class="form-field-group">
+                        <label for="newWeight">重量 (kg) <span class="required">*</span></label>
+                        <input type="number" id="newWeight" placeholder="例: 5.5" step="0.1" class="form-input" 
+                               min="0.1" required aria-required="true">
+                    </div>
+                    <div class="form-field-group">
+                        <label for="newL">長さ (cm) <span class="required">*</span></label>
+                        <input type="number" id="newL" placeholder="例: 50.0" step="0.1" class="form-input" 
+                               min="0.1" required aria-required="true">
+                    </div>
+                    <div class="form-field-group">
+                        <label for="newW">幅 (cm) <span class="required">*</span></label>
+                        <input type="number" id="newW" placeholder="例: 30.0" step="0.1" class="form-input" 
+                               min="0.1" required aria-required="true">
+                    </div>
+                    <div class="form-field-group">
+                        <label for="newH">高さ (cm) <span class="required">*</span></label>
+                        <input type="number" id="newH" placeholder="例: 20.0" step="0.1" class="form-input" 
+                               min="0.1" required aria-required="true">
+                    </div>
                 </div>
                 <div class="flex gap-2">
-                    <button id="saveAddButton" class="btn btn-primary">💾 追加</button>
-                    <button id="cancelAddButton" class="btn btn-secondary">❌ キャンセル</button>
+                    <button id="saveAddButton" class="btn btn-primary">
+                        💾 追加
+                    </button>
+                    <button id="cancelAddButton" class="btn btn-secondary">
+                        ❌ キャンセル
+                    </button>
                 </div>
             </div>
 
             <div class="table-container">
-                <table class="table">
+                <table class="table" role="table" aria-label="貨物詳細一覧">
                     <thead>
                         <tr>
-                            <th>貨物コード</th>
-                            <th>数量</th>
-                            <th>重量 (kg)</th>
-                            <th>長さ (cm)</th>
-                            <th>幅 (cm)</th>
-                            <th>高さ (cm)</th>
-                            <th>体積 (㎥)</th>
-                            <th>操作</th>
+                            <th scope="col">貨物コード</th>
+                            <th scope="col">数量</th>
+                            <th scope="col">重量 (kg)</th>
+                            <th scope="col">長さ (cm)</th>
+                            <th scope="col">幅 (cm)</th>
+                            <th scope="col">高さ (cm)</th>
+                            <th scope="col">体積 (㎥)</th>
+                            <th scope="col">操作</th>
                         </tr>
                     </thead>
                     <tbody id="cartonTableBody">
@@ -119,17 +202,26 @@
                 <div class="height-input-group">
                     <label for="heightLimitInput">最大積載高さ</label>
                     <div class="height-input-wrapper">
-                        <input type="number" id="heightLimitInput" value="158" min="50" max="300" step="1">
+                        <input type="number" id="heightLimitInput" value="158" min="50" max="300" step="1" 
+                               aria-describedby="height-presets">
                         <span class="height-unit">cm</span>
                     </div>
                     <div class="height-current-display">
                         現在の制限: <span id="heightLimitDisplay">158</span>cm
                     </div>
-                    <div class="height-presets">
-                        <button class="height-preset-btn" onclick="setHeightLimit(120)">コンテナ標準 (120cm)</button>
-                        <button class="height-preset-btn active" onclick="setHeightLimit(158)">一般パレット (158cm)</button>
-                        <button class="height-preset-btn" onclick="setHeightLimit(180)">高積載 (180cm)</button>
-                        <button class="height-preset-btn" onclick="setHeightLimit(200)">倉庫内専用 (200cm)</button>
+                    <div class="height-presets" id="height-presets">
+                        <button class="height-preset-btn" onclick="setHeightLimit(120)" aria-label="コンテナ標準120cm">
+                            コンテナ標準 (120cm)
+                        </button>
+                        <button class="height-preset-btn active" onclick="setHeightLimit(158)" aria-label="一般パレット158cm">
+                            一般パレット (158cm)
+                        </button>
+                        <button class="height-preset-btn" onclick="setHeightLimit(180)" aria-label="高積載180cm">
+                            高積載 (180cm)
+                        </button>
+                        <button class="height-preset-btn" onclick="setHeightLimit(200)" aria-label="倉庫内専用200cm">
+                            倉庫内専用 (200cm)
+                        </button>
                     </div>
                 </div>
                 <div class="height-info">
@@ -154,8 +246,12 @@
                 <!-- パレット選択肢はJavaScriptで生成 -->
             </div>
             <div class="pallet-selection-actions">
-                <button id="selectAllPallets" class="btn btn-secondary btn-sm">✓ 全て選択</button>
-                <button id="deselectAllPallets" class="btn btn-secondary btn-sm">✗ 全て解除</button>
+                <button id="selectAllPallets" class="btn btn-secondary btn-sm">
+                    ✓ 全て選択
+                </button>
+                <button id="deselectAllPallets" class="btn btn-secondary btn-sm">
+                    ✗ 全て解除
+                </button>
                 <span id="selectedPalletsInfo" style="color: #666; font-size: 0.9rem; padding: 8px 0;"></span>
             </div>
             
@@ -164,14 +260,30 @@
                 <h4>🔧 カスタムパレット追加</h4>
                 <div class="custom-pallet-form">
                     <div class="form-grid">
-                        <input type="text" id="customPalletName" placeholder="パレット名" class="form-input">
-                        <input type="number" id="customPalletWidth" placeholder="幅(cm)" step="0.1" class="form-input">
-                        <input type="number" id="customPalletDepth" placeholder="奥行(cm)" step="0.1" class="form-input">
-                        <input type="text" id="customPalletDesc" placeholder="説明" class="form-input">
+                        <div class="form-field-group">
+                            <label for="customPalletName">パレット名</label>
+                            <input type="text" id="customPalletName" placeholder="例: 特注パレット" class="form-input">
+                        </div>
+                        <div class="form-field-group">
+                            <label for="customPalletWidth">幅 (cm)</label>
+                            <input type="number" id="customPalletWidth" placeholder="例: 100.0" step="0.1" class="form-input">
+                        </div>
+                        <div class="form-field-group">
+                            <label for="customPalletDepth">奥行 (cm)</label>
+                            <input type="number" id="customPalletDepth" placeholder="例: 80.0" step="0.1" class="form-input">
+                        </div>
+                        <div class="form-field-group">
+                            <label for="customPalletDesc">説明</label>
+                            <input type="text" id="customPalletDesc" placeholder="例: 特殊用途向け" class="form-input">
+                        </div>
                     </div>
                     <div class="flex gap-2">
-                        <button id="addCustomPallet" class="btn btn-success btn-sm">➕ カスタムパレット追加</button>
-                        <button id="clearCustomPallet" class="btn btn-secondary btn-sm">🗑️ クリア</button>
+                        <button id="addCustomPallet" class="btn btn-success btn-sm">
+                            ➕ カスタムパレット追加
+                        </button>
+                        <button id="clearCustomPallet" class="btn btn-secondary btn-sm">
+                            🗑️ クリア
+                        </button>
                     </div>
                 </div>
             </div>
@@ -179,7 +291,12 @@
 
         <!-- 計算ボタン -->
         <div class="center">
-            <button id="calculateButton" class="btn btn-primary btn-lg">🔢 パレタイズ計算を実行</button>
+            <button id="calculateButton" class="btn btn-primary btn-lg" aria-describedby="calculation-help">
+                🔢 パレタイズ計算を実行
+            </button>
+            <div id="calculation-help" class="sr-only">
+                貨物データに基づいて最適なパレット配置を計算します。計算には数秒かかる場合があります。
+            </div>
         </div>
 
         <div class="loading" id="loading">
@@ -192,26 +309,28 @@
             <div class="result-section">
                 <div class="result-header">
                     <h2>🚛 最適化結果</h2>
+                </div>
                 
-        <!-- パレタイズサマリー -->
-        <div id="summarySection" class="hidden">
-            <h2 style="margin-top:1rem;">パレタイズ結果サマリー</h2>
-            <table class="summary-table">
-                <thead>
-                    <tr>
-                        <th>パレットNo</th>
-                        <th>寸法 (cm)</th>
-                        <th>重量 (kg)</th>
-                        <th>貨物コード</th>
-                        <th>数量</th>
-                    </tr>
-                </thead>
-                <tbody id="summaryBody"></tbody>
-            </table>
-            <button id="exportButton" class="btn btn-primary" style="margin-top:8px;">CSVダウンロード</button>
-        </div>
+                <!-- パレタイズサマリー -->
+                <div id="summarySection" class="hidden">
+                    <h2 style="margin-top:1rem;">📊 パレタイズ結果サマリー</h2>
+                    <table class="summary-table" role="table" aria-label="パレタイズ結果サマリー">
+                        <thead>
+                            <tr>
+                                <th scope="col">パレットNo</th>
+                                <th scope="col">寸法 (cm)</th>
+                                <th scope="col">重量 (kg)</th>
+                                <th scope="col">貨物コード</th>
+                                <th scope="col">数量</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryBody"></tbody>
+                    </table>
+                    <button id="exportButton" class="btn btn-primary" style="margin-top:8px;">
+                        📥 CSVダウンロード
+                    </button>
+                </div>
 
-                
                 <div class="summary-grid" id="resultSummary">
                     <!-- 結果サマリー -->
                 </div>
@@ -221,7 +340,7 @@
                     <div class="improvement-note" style="background-color: #fff3cd; border-color: #ffeaa7;">
                         <h3>🔄 パレット結合機能</h3>
                         <p style="margin-bottom: 15px;">2つのパレットを選択して、より効率的な1つのパレットに結合できます。</p>
-                        <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px;">
+                        <div class="combine-controls">
                             <div>
                                 <label for="pallet1Select">パレット1:</label>
                                 <select id="pallet1Select" class="form-input" style="width: 120px;">
