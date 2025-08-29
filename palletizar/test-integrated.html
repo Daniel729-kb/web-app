@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>統合関数テスト</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-warning { background-color: #ffc107; color: black; }
+        .function-list { font-family: monospace; background-color: #f8f9fa; padding: 10px; border-radius: 4px; }
+        .instructions { background-color: #e7f3ff; border: 1px solid #b3d9ff; padding: 15px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 統合関数テスト</h1>
+    
+    <div class="instructions">
+        <h3>📋 使用方法</h3>
+        <p>このテストファイルは、メインのパレタイズアプリ（index.html）内で実行する必要があります。</p>
+        <ol>
+            <li>メインアプリ（index.html）を開く</li>
+            <li>ブラウザの開発者ツール（F12）を開く</li>
+            <li>コンソールタブで以下のコマンドを実行：</li>
+            <li><code>fetch('test-integrated.html').then(r => r.text()).then(html => document.body.insertAdjacentHTML('beforeend', html))</code></li>
+        </ol>
+    </div>
+    
+    <div class="test-section">
+        <h3>📋 関数存在チェック</h3>
+        <p>現在のページで利用可能な関数をチェックします。</p>
+        <button onclick="checkAvailableFunctions()" class="btn-primary">関数チェック実行</button>
+        <div id="functionCheckResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🚀 パレット結合機能テスト</h3>
+        <p>パレット結合関連の関数をテストします。</p>
+        <button onclick="testPalletCombination()" class="btn-success">パレット結合テスト</button>
+        <div id="combinationTestResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>⚡ パフォーマンス機能テスト</h3>
+        <p>パフォーマンス監視機能をテストします。</p>
+        <button onclick="testPerformanceFunctions()" class="btn-warning">パフォーマンステスト</button>
+        <div id="performanceTestResult"></div>
+    </div>
+
+    <script>
+        // 利用可能な関数のチェック
+        function checkAvailableFunctions() {
+            const result = document.getElementById('functionCheckResult');
+            
+            const requiredFunctions = [
+                'updatePalletSelectors',
+                'updateCombinePreview', 
+                'combinePallets',
+                'autoOptimizePallets',
+                'analyzeSelectedPallets',
+                'showDiagramView',
+                'scrollToPallet',
+                'setHeightLimit',
+                'saveEdit',
+                'cancelEdit',
+                'startEdit',
+                'deleteCarton'
+            ];
+            
+            const missingFunctions = [];
+            const availableFunctions = [];
+            
+            requiredFunctions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    availableFunctions.push(funcName);
+                } else {
+                    missingFunctions.push(funcName);
+                }
+            });
+            
+            if (missingFunctions.length === 0) {
+                result.innerHTML = `
+                    <div class="success">
+                        ✅ すべての必須関数が利用可能です！<br>
+                        利用可能な関数数: ${availableFunctions.length}個
+                    </div>
+                `;
+            } else {
+                result.innerHTML = `
+                    <div class="error">
+                        ❌ 不足している関数があります<br>
+                        不足関数数: ${missingFunctions.length}個<br>
+                        不足関数: <span class="function-list">${missingFunctions.join(', ')}</span>
+                    </div>
+                `;
+            }
+        }
+        
+        // パレット結合機能テスト
+        function testPalletCombination() {
+            const result = document.getElementById('combinationTestResult');
+            
+            try {
+                // モックデータを作成
+                if (!window.currentPallets) {
+                    window.currentPallets = [
+                        {
+                            palletSize: { name: '1100×1000', width: 110, depth: 100 },
+                            cartons: [{ code: 'TEST1', l: 50, w: 30, h: 20 }],
+                            layers: [{ height: 20, cartons: [{ code: 'TEST1' }] }],
+                            height: 20,
+                            totalWeight: 10
+                        },
+                        {
+                            palletSize: { name: '1100×1000', width: 110, depth: 100 },
+                            cartons: [{ code: 'TEST2', l: 40, w: 25, h: 15 }],
+                            layers: [{ height: 15, cartons: [{ code: 'TEST2' }] }],
+                            height: 15,
+                            totalWeight: 8
+                        }
+                    ];
+                }
+                
+                // 関数の存在チェック
+                const functions = ['updatePalletSelectors', 'updateCombinePreview', 'combinePallets'];
+                const missingFuncs = functions.filter(f => typeof window[f] !== 'function');
+                
+                if (missingFuncs.length > 0) {
+                    result.innerHTML = `
+                        <div class="error">
+                            ❌ パレット結合機能テスト失敗<br>
+                            不足している関数: ${missingFuncs.join(', ')}<br>
+                            <br>
+                            <strong>解決方法:</strong><br>
+                            1. メインアプリ（index.html）を開く<br>
+                            2. パレタイズ計算を実行してパレットデータを生成<br>
+                            3. このテストを再実行
+                        </div>
+                    `;
+                    return;
+                }
+                
+                result.innerHTML = `
+                    <div class="success">
+                        ✅ パレット結合機能テスト成功！<br>
+                        モックデータ作成完了<br>
+                        パレット数: ${window.currentPallets.length}枚<br>
+                        利用可能な関数: ${functions.join(', ')}
+                    </div>
+                `;
+                
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="error">
+                        ❌ パレット結合機能テスト失敗<br>
+                        エラー: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // パフォーマンス機能テスト
+        function testPerformanceFunctions() {
+            const result = document.getElementById('performanceTestResult');
+            
+            try {
+                // 基本的なパフォーマンス関数のチェック
+                const basicFunctions = ['performance', 'performance.now'];
+                const missingBasic = basicFunctions.filter(f => {
+                    try {
+                        return eval(f) === undefined;
+                    } catch {
+                        return true;
+                    }
+                });
+                
+                if (missingBasic.length > 0) {
+                    result.innerHTML = `
+                        <div class="error">
+                            ❌ 基本的なパフォーマンスAPIが利用できません<br>
+                            不足: ${missingBasic.join(', ')}
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // パフォーマンス測定テスト
+                const startTime = performance.now();
+                let sum = 0;
+                for (let i = 0; i < 100000; i++) {
+                    sum += Math.sqrt(i);
+                }
+                const endTime = performance.now();
+                const duration = (endTime - startTime) / 1000;
+                
+                result.innerHTML = `
+                    <div class="success">
+                        ✅ パフォーマンス機能テスト成功！<br>
+                        基本的なパフォーマンスAPI: 利用可能<br>
+                        パフォーマンス測定テスト: ${duration.toFixed(3)}秒<br>
+                        計算結果: ${sum.toFixed(2)}
+                    </div>
+                `;
+                
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="error">
+                        ❌ パフォーマンス機能テスト失敗<br>
+                        エラー: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // ページ読み込み時に自動テスト実行
+        window.addEventListener('load', () => {
+            console.log('🔍 統合関数テスト開始');
+            setTimeout(() => {
+                checkAvailableFunctions();
+                testPalletCombination();
+                testPerformanceFunctions();
+            }, 1000);
+        });
+        
+        // グローバル関数として公開
+        window.testFunctions = {
+            checkAvailableFunctions,
+            testPalletCombination,
+            testPerformanceFunctions
+        };
+        
+        console.log('🔍 統合関数テストが読み込まれました。window.testFunctions でアクセスできます。');
+    </script>
+</body>
+</html>
