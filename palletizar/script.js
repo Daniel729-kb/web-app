@@ -7,7 +7,11 @@ let maxHeightLimit = 158; // デフォルトは158cm（パレット台座14cm含
 // 初期データ（拡張サンプル）
 let cartonData = [
     { id: 1, code: 'SAMPLE A', qty: 362, weight: 6.70, l: 53.0, w: 38.5, h: 23.5 },
-    { id: 2, code: 'SAMPLE B', qty: 42, weight: 7.60, l: 55.0, w: 40.0, h: 24.0 }
+    { id: 2, code: 'SAMPLE B', qty: 42, weight: 7.60, l: 55.0, w: 40.0, h: 24.0 },
+    // 🔧 3D最適化デモ用サンプルデータ
+    { id: 3, code: 'TALL BOX', qty: 15, weight: 8.20, l: 45.0, w: 35.0, h: 35.0 },
+    { id: 4, code: 'SHORT BOX', qty: 25, weight: 4.50, l: 40.0, w: 30.0, h: 15.0 },
+    { id: '5', code: 'MEDIUM BOX', qty: 18, weight: 6.80, l: 50.0, w: 40.0, h: 25.0 }
 ];
 
 const allPalletSizes = [
@@ -1092,13 +1096,17 @@ function calculateSmallQuantityMixedPallet(availableItems, palletSize) {
         return null;
     }
 
-    console.log(`少数混載パレット完了: ${selectedCartons.length}個, 高さ${currentHeight}cm ≤ 制限${maxHeightLimit}cm`);
+    // 🔧 動的層高さ最適化（改善6）
+    const optimizedLayers = optimizeLayerHeights(layers, palletSize, maxHeightLimit);
+    const optimizedHeight = optimizedLayers.reduce((sum, layer) => sum + layer.height, 0);
+    
+    console.log(`少数混載パレット完了: ${selectedCartons.length}個, 最適化前${currentHeight}cm → 最適化後${optimizedHeight.toFixed(1)}cm ≤ 制限${maxHeightLimit}cm`);
 
     return {
         palletSize,
         cartons: selectedCartons,
-        layers: layers,
-        height: currentHeight,
+        layers: optimizedLayers,
+        height: optimizedHeight,
         totalWeight,
         safetyWarnings: []
     };
@@ -1343,13 +1351,17 @@ function calculatePalletConfigurationForItem(availableItems, palletSize, priorit
         return null;
     }
 
-    console.log(`\n✅ パレット配置完了: 高さ${currentHeight}cm ≤ 制限${maxHeightLimit}cm`);
+    // 🔧 動的層高さ最適化（改善6）
+    const optimizedLayers = optimizeLayerHeights(layers, palletSize, maxHeightLimit);
+    const optimizedHeight = optimizedLayers.reduce((sum, layer) => sum + layer.height, 0);
+    
+    console.log(`\n✅ パレット配置完了: 最適化前${currentHeight}cm → 最適化後${optimizedHeight.toFixed(1)}cm ≤ 制限${maxHeightLimit}cm`);
 
     return {
         palletSize,
         cartons: selectedCartons,
-        layers: layers,
-        height: currentHeight,
+        layers: optimizedLayers,
+        height: optimizedHeight,
         totalWeight,
         safetyWarnings: []
     };
@@ -1467,57 +1479,68 @@ function createHeightBasedMixedLayer(remainingItems, palletSize, maxHeight) {
     };
 }
 
-// === 層スコア計算 ===
-function calculateLayerScore(layer, palletSize, isPriority = false) {
-    const palletArea = palletSize.width * palletSize.depth;
-    const areaUtilization = layer.area / palletArea;
-    const cartonCount = layer.cartons.length;
-    
+// === 層スコア計算（3D最適化対応） ===
+function calculateLayerScore(layer, palletSize, isPriority) {
     let score = 0;
     
     // 1. 面積利用率スコア（最重要）
+    const palletArea = palletSize.width * palletSize.depth;
+    const areaUtilization = layer.area / palletArea;
     score += areaUtilization * 50;
     
     // 2. カートン数スコア
-    score += cartonCount * 15;
+    score += layer.cartons.length * 15;
     
     // 3. 混載効率ボーナス
     const uniqueCodes = [...new Set(layer.cartons.map(c => c.code))];
-    const isActuallyMixed = uniqueCodes.length > 1;
-    
-    if (isActuallyMixed) {
-        const avgPerCode = cartonCount / uniqueCodes.length;
-        if (avgPerCode >= 3) {
+    if (uniqueCodes.length > 1) {
+        const mixedEfficiency = layer.cartons.length / uniqueCodes.length;
+        if (mixedEfficiency >= 3) {
             score += 35; // 効率的な混載
-        } else if (avgPerCode >= 2) {
-            score += 20; // 適度な混載
-        }
-        
-        // 高さの統一性ボーナス
-        const heights = [...new Set(layer.cartons.map(c => c.h))];
-        if (heights.length === 1) {
-            score += 15; // 同じ高さの混載
+        } else if (mixedEfficiency >= 2) {
+            score += 20; // 標準的な混載
         }
     }
     
-    // 4. 単一アイテムの効率チェック
-    if (!isActuallyMixed && cartonCount <= 3) {
-        if (areaUtilization < 0.4) {
-            score -= 25; // 効率不良ペナルティ
-        }
+    // 4. 高さ均一性スコア
+    const heights = layer.cartons.map(c => c.h || c.height);
+    const heightVariance = Math.max(...heights) - Math.min(...heights);
+    if (heightVariance <= 2) {
+        score += 15; // 高さが均一
+    } else if (heightVariance <= 5) {
+        score += 8; // 高さが比較的均一
     }
     
-    // 5. 優先アイテムボーナス
+    // 5. 単一アイテムペナルティ
+    if (uniqueCodes.length === 1 && layer.cartons.length <= 2) {
+        score -= 25; // 単一アイテムで少数の場合
+    }
+    
+    // 6. 優先アイテムボーナス
     if (isPriority) {
         score += 20;
     }
     
-    // 6. 重量効率ボーナス
-    if (layer.weight) {
-        const weightDensity = layer.weight / layer.area;
-        if (weightDensity > 0.1) { // 適度な重量密度
-            score += 10;
-        }
+    // 7. 重量効率ボーナス
+    if (layer.weight && layer.weight > 0) {
+        const weightEfficiency = layer.cartons.length / layer.weight;
+        score += weightEfficiency * 10;
+    }
+    
+    // 🔧 8. 3D最適化ボーナス（改善5）
+    if (layer.type === 'multi-height-3d') {
+        score += 40; // 3D最適化層に大幅ボーナス
+        console.log(`  3D最適化ボーナス: +40点 (${layer.type})`);
+    } else if (layer.type === 'multi-height') {
+        score += 25; // 多段高さ層にボーナス
+    }
+    
+    // 🔧 9. 高さ効率ボーナス（改善6）
+    const heightEfficiency = layer.cartons.length / layer.height;
+    if (heightEfficiency > 2.0) {
+        score += 20; // 高さ効率が良い場合
+    } else if (heightEfficiency > 1.5) {
+        score += 10; // 高さ効率が標準的な場合
     }
     
     return Math.max(0, Math.round(score));
@@ -2070,6 +2093,9 @@ function displayResults(pallets) {
     
     // パレット結合機能のセレクターを更新
     updatePalletSelectors();
+    
+    // 🔧 3D最適化結果サマリーを表示（改善5&6）
+    display3DOptimizationSummary(pallets);
 }
 
 // === サマリーテーブル構築（高さ制限表示付き） ===
@@ -3120,6 +3146,18 @@ function findBestLayerCombination(availableItems, palletSize, availableHeight) {
         });
     }
     
+    // 🔧 3D最適化層の候補も追加（改善5）
+    const optimized3DLayer = create3DOptimizedLayer(availableItems, palletSize, availableHeight);
+    if (optimized3DLayer && optimized3DLayer.cartons.length > 0) {
+        candidates.push({
+            layers: [optimized3DLayer],
+            totalScore: calculateLayerScore(optimized3DLayer, palletSize, false),
+            remainingHeight: availableHeight - optimized3DLayer.height,
+            usedItems: [],
+            type: '3d-optimized'
+        });
+    }
+    
     // スコアでソートして最良の組み合わせを返す
     candidates.sort((a, b) => b.totalScore - a.totalScore);
     
@@ -3184,3 +3222,569 @@ function findOptimalPalletSize(items) {
     
     return palletEvaluations[0].size;
 }
+
+// === アイテム高さグループ化ヘルパー ===
+function groupItemsByHeight(items, tolerance) {
+    const groups = {};
+    
+    items.forEach(item => {
+        if (item.remaining <= 0) return;
+        
+        let groupFound = false;
+        
+        for (const [groupHeight, groupItems] of Object.entries(groups)) {
+            if (Math.abs(item.h - parseFloat(groupHeight)) <= tolerance) {
+                groupItems.push(item);
+                groupFound = true;
+                break;
+            }
+        }
+        
+        if (!groupFound) {
+            groups[item.h.toString()] = [item];
+        }
+    });
+    
+    return groups;
+}
+
+// === 3Dパッキング最適化（改善5） ===
+function create3DOptimizedLayer(availableItems, palletSize, maxHeight) {
+    if (availableItems.length === 0) return null;
+    
+    // 高さでグループ化（±1cm許容でより精密に）
+    const heightGroups = groupItemsByHeight(availableItems, 1);
+    const heightKeys = Object.keys(heightGroups).map(h => parseFloat(h)).sort((a, b) => a - b);
+    
+    if (heightKeys.length === 0) return null;
+    
+    // 3D配置の候補を生成
+    const candidates = [];
+    
+    // 単一高さ層（従来の方法）
+    heightKeys.forEach(height => {
+        if (height > maxHeight) return;
+        
+        const groupItems = heightGroups[height.toString()];
+        const singleHeightLayer = createEfficientMixedLayer(groupItems, palletSize, height);
+        if (singleHeightLayer && singleHeightLayer.cartons.length > 0) {
+            candidates.push({
+                layer: singleHeightLayer,
+                type: 'single-height',
+                score: calculateLayerScore(singleHeightLayer, palletSize, false),
+                heightEfficiency: singleHeightLayer.cartons.length / height
+            });
+        }
+    });
+    
+    // 多段高さ層（3D最適化）
+    for (let i = 0; i < heightKeys.length; i++) {
+        const baseHeight = heightKeys[i];
+        if (baseHeight > maxHeight) continue;
+        
+        // この高さをベースに、より低いアイテムを追加配置
+        const baseItems = heightGroups[baseHeight.toString()];
+        const lowerItems = heightKeys.slice(0, i).flatMap(h => heightGroups[h.toString()]);
+        
+        if (lowerItems.length === 0) continue;
+        
+        // 3D配置でベース層の上に低いアイテムを配置
+        const multiHeightLayer = createMultiHeightLayer(baseItems, lowerItems, palletSize, baseHeight, maxHeight);
+        if (multiHeightLayer && multiHeightLayer.cartons.length > 0) {
+            candidates.push({
+                layer: multiHeightLayer,
+                type: 'multi-height',
+                score: calculateLayerScore(multiHeightLayer, palletSize, false),
+                heightEfficiency: multiHeightLayer.cartons.length / multiHeightLayer.height
+            });
+        }
+    }
+    
+    // スコアと高さ効率でソート
+    candidates.sort((a, b) => {
+        // スコアを優先し、同点の場合は高さ効率で比較
+        if (b.score !== a.score) return b.score - a.score;
+        return b.heightEfficiency - a.heightEfficiency;
+    });
+    
+    if (candidates.length > 0) {
+        const best = candidates[0];
+        console.log(`  3D最適化: ${best.type}タイプ, スコア${best.score}, 高さ効率${best.heightEfficiency.toFixed(2)}`);
+        return best.layer;
+    }
+    
+    return null;
+}
+
+// === 多段高さ層作成（3D最適化） ===
+function createMultiHeightLayer(baseItems, lowerItems, palletSize, baseHeight, maxHeight) {
+    const layerCartons = [];
+    let layerWeight = 0;
+    let maxLayerHeight = baseHeight;
+    
+    // ベース層のアイテムを配置
+    const baseLayer = createEfficientMixedLayer(baseItems, palletSize, baseHeight);
+    if (!baseLayer || baseLayer.cartons.length === 0) return null;
+    
+    layerCartons.push(...baseLayer.cartons);
+    layerWeight += baseLayer.weight;
+    
+    // ベース層の占有領域を取得
+    const occupiedAreas = baseLayer.cartons.map(carton => ({
+        x: carton.position.x,
+        y: carton.position.y,
+        width: carton.position.width,
+        depth: carton.position.depth
+    }));
+    
+    // 低いアイテムをベース層の上に配置（隙間埋め）
+    const availableLowerItems = lowerItems.filter(item => 
+        item.remaining > 0 && 
+        item.h <= (maxHeight - baseHeight) &&
+        item.h <= getMaxCartonHeight()
+    );
+    
+    if (availableLowerItems.length > 0) {
+        // 利用可能な隙間領域を計算
+        const availableSpaces = findAvailableSpaces(occupiedAreas, palletSize);
+        
+        // 各隙間に最適なアイテムを配置
+        availableSpaces.forEach(space => {
+            if (space.area < 100) return; // 小さすぎる隙間は無視
+            
+            // この隙間に最適なアイテムを選択
+            let bestItem = null;
+            let bestFit = 0;
+            
+            availableLowerItems.forEach(item => {
+                if (item.remaining <= 0) return;
+                
+                // 通常配置と回転配置を試行
+                const fits = [
+                    { width: item.l, depth: item.w, rotation: 'normal' },
+                    { width: item.w, depth: item.l, rotation: 'rotated' }
+                ];
+                
+                fits.forEach(fit => {
+                    if (fit.width <= space.width && fit.depth <= space.depth) {
+                        const fitArea = fit.width * fit.depth;
+                        if (fitArea > bestFit) {
+                            bestFit = fitArea;
+                            bestItem = { ...item, fit };
+                        }
+                    }
+                });
+            });
+            
+            if (bestItem && bestItem.remaining > 0) {
+                // アイテムを配置
+                const carton = {
+                    ...bestItem,
+                    position: {
+                        x: space.x,
+                        y: space.y,
+                        width: bestItem.fit.width,
+                        depth: bestItem.fit.depth,
+                        height: bestItem.h
+                    },
+                    rotation: bestItem.fit.rotation
+                };
+                
+                layerCartons.push(carton);
+                layerWeight += bestItem.weight;
+                maxLayerHeight = Math.max(maxLayerHeight, baseHeight + bestItem.h);
+                
+                // 在庫を更新
+                bestItem.remaining--;
+            }
+        });
+    }
+    
+    if (layerCartons.length === 0) return null;
+    
+    // 層の総面積を計算
+    const totalArea = layerCartons.reduce((sum, carton) => 
+        sum + (carton.position.width * carton.position.depth), 0);
+    
+    return {
+        cartons: layerCartons,
+        height: maxLayerHeight,
+        weight: layerWeight,
+        area: totalArea,
+        type: 'multi-height-3d'
+    };
+}
+
+// === 利用可能な隙間領域を検出 ===
+function findAvailableSpaces(occupiedAreas, palletSize) {
+    const spaces = [];
+    const gridSize = 5; // 5cmグリッド
+    
+    // パレットを5cmグリッドに分割
+    const gridWidth = Math.ceil(palletSize.width / gridSize);
+    const gridDepth = Math.ceil(palletSize.depth / gridSize);
+    
+    // 占有グリッドをマーク
+    const occupiedGrid = Array(gridDepth).fill().map(() => Array(gridWidth).fill(false));
+    
+    occupiedAreas.forEach(area => {
+        const startGridX = Math.floor(area.x / gridSize);
+        const endGridX = Math.ceil((area.x + area.width) / gridSize);
+        const startGridY = Math.floor(area.y / gridSize);
+        const endGridY = Math.ceil((area.y + area.depth) / gridSize);
+        
+        for (let gy = startGridY; gy < endGridY; gy++) {
+            for (let gx = startGridX; gx < endGridX; gx++) {
+                if (gy >= 0 && gy < gridDepth && gx >= 0 && gx < gridWidth) {
+                    occupiedGrid[gy][gx] = true;
+                }
+            }
+        }
+    });
+    
+    // 連続した空き領域を検出
+    for (let y = 0; y < gridDepth; y++) {
+        for (let x = 0; x < gridWidth; x++) {
+            if (!occupiedGrid[y][x]) {
+                // この位置から始まる最大の矩形領域を検索
+                const space = findMaxRectangle(occupiedGrid, x, y, gridWidth, gridDepth);
+                if (space.area > 25) { // 最小25cm²
+                    spaces.push({
+                        x: space.x * gridSize,
+                        y: space.y * gridSize,
+                        width: space.width * gridSize,
+                        depth: space.depth * gridSize,
+                        area: space.area * gridSize * gridSize
+                    });
+                }
+            }
+        }
+    }
+    
+    return spaces;
+}
+
+// === 最大矩形領域を検索 ===
+function findMaxRectangle(grid, startX, startY, maxWidth, maxDepth) {
+    let maxArea = 0;
+    let bestRect = { x: startX, y: startY, width: 1, depth: 1, area: 1 };
+    
+    // この位置から始まる最大の幅を計算
+    let maxW = 0;
+    for (let w = 1; startX + w <= maxWidth; w++) {
+        if (grid[startY][startX + w - 1]) break;
+        maxW = w;
+    }
+    
+    // 各幅について最大の深さを計算
+    for (let w = 1; w <= maxW; w++) {
+        let maxD = 0;
+        for (let d = 1; startY + d <= maxDepth; d++) {
+            // この幅×深さの矩形が全て空いているかチェック
+            let canExtend = true;
+            for (let dy = 0; dy < d; dy++) {
+                for (let dx = 0; dx < w; dx++) {
+                    if (grid[startY + dy][startX + dx]) {
+                        canExtend = false;
+                        break;
+                    }
+                }
+                if (!canExtend) break;
+            }
+            
+            if (canExtend) {
+                maxD = d;
+            } else {
+                break;
+            }
+        }
+        
+        const area = w * maxD;
+        if (area > maxArea) {
+            maxArea = area;
+            bestRect = { x: startX, y: startY, width: w, depth: maxD, area };
+        }
+    }
+    
+    return bestRect;
+}
+
+// === 動的層高さ最適化（改善6） ===
+function optimizeLayerHeights(layers, palletSize, maxHeight) {
+    if (layers.length <= 1) return layers;
+    
+    console.log(`\n🔧 動的層高さ最適化開始 (現在高さ: ${layers.reduce((sum, l) => sum + l.height, 0).toFixed(1)}cm)`);
+    
+    const optimizedLayers = [...layers];
+    let totalHeight = optimizedLayers.reduce((sum, layer) => sum + layer.height, 0);
+    let optimizationCount = 0;
+    
+    // 各層の高さを最適化
+    for (let i = 0; i < optimizedLayers.length; i++) {
+        const currentLayer = optimizedLayers[i];
+        const nextLayer = optimizedLayers[i + 1];
+        
+        // 現在の層の高さを最適化
+        const optimizedHeight = findOptimalLayerHeight(currentLayer, palletSize, maxHeight - totalHeight + currentLayer.height);
+        
+        if (optimizedHeight !== currentLayer.height) {
+            const heightDiff = optimizedHeight - currentLayer.height;
+            if (totalHeight + heightDiff <= maxHeight) {
+                currentLayer.height = optimizedHeight;
+                totalHeight += heightDiff;
+                optimizationCount++;
+                
+                console.log(`  層${i + 1}: ${currentLayer.height - heightDiff}cm → ${currentLayer.height}cm (${heightDiff > 0 ? '+' : ''}${heightDiff.toFixed(1)}cm)`);
+            }
+        }
+    }
+    
+    // 層間の隙間を最適化
+    const gapOptimized = optimizeLayerGaps(optimizedLayers, palletSize, maxHeight);
+    
+    if (gapOptimized) {
+        optimizationCount++;
+        console.log(`  層間隙間最適化完了`);
+    }
+    
+    const finalHeight = optimizedLayers.reduce((sum, layer) => sum + layer.height, 0);
+    console.log(`✅ 動的高さ最適化完了: ${finalHeight.toFixed(1)}cm (${optimizationCount}回の最適化)`);
+    
+    return optimizedLayers;
+}
+
+// === 最適層高さを計算 ===
+function findOptimalLayerHeight(layer, palletSize, availableHeight) {
+    if (!layer.cartons || layer.cartons.length === 0) return layer.height;
+    
+    // カートンの高さ分布を分析
+    const heightDistribution = {};
+    layer.cartons.forEach(carton => {
+        const height = carton.h || carton.height;
+        heightDistribution[height] = (heightDistribution[height] || 0) + 1;
+    });
+    
+    // 最頻高さを計算
+    let mostCommonHeight = layer.height;
+    let maxCount = 0;
+    
+    Object.entries(heightDistribution).forEach(([height, count]) => {
+        if (count > maxCount) {
+            maxCount = count;
+            mostCommonHeight = parseFloat(height);
+        }
+    });
+    
+    // 高さの範囲を計算
+    const heights = Object.keys(heightDistribution).map(h => parseFloat(h)).sort((a, b) => a - b);
+    const minHeight = heights[0];
+    const maxHeight = heights[heights.length - 1];
+    
+    // 最適高さを決定
+    let optimalHeight = mostCommonHeight;
+    
+    // 利用可能な高さを考慮
+    if (optimalHeight > availableHeight) {
+        optimalHeight = availableHeight;
+    }
+    
+    // 高さの分散が大きい場合は、より柔軟な高さを選択
+    if (maxHeight - minHeight > 5) {
+        // 中央値に近い高さを選択
+        const medianHeight = heights[Math.floor(heights.length / 2)];
+        if (medianHeight <= availableHeight && Math.abs(medianHeight - mostCommonHeight) <= 3) {
+            optimalHeight = medianHeight;
+        }
+    }
+    
+    // 最小高さ制限を適用
+    optimalHeight = Math.max(optimalHeight, minHeight);
+    
+    return Math.round(optimalHeight * 10) / 10; // 0.1cm単位で丸める
+}
+
+// === 層間隙間最適化 ===
+function optimizeLayerGaps(layers, palletSize, maxHeight) {
+    if (layers.length <= 1) return false;
+    
+    let totalHeight = layers.reduce((sum, layer) => sum + layer.height, 0);
+    let optimized = false;
+    
+    // 層間の隙間を検出して最適化
+    for (let i = 0; i < layers.length - 1; i++) {
+        const currentLayer = layers[i];
+        const nextLayer = layers[i + 1];
+        
+        // 現在の層の最適高さを再計算
+        const currentOptimalHeight = findOptimalLayerHeight(currentLayer, palletSize, maxHeight - totalHeight + currentLayer.height);
+        
+        if (currentOptimalHeight !== currentLayer.height) {
+            const heightDiff = currentOptimalHeight - currentLayer.height;
+            if (totalHeight + heightDiff <= maxHeight) {
+                currentLayer.height = currentOptimalHeight;
+                totalHeight += heightDiff;
+                optimized = true;
+            }
+        }
+    }
+    
+    return optimized;
+}
+
+// === 高さベース混載層作成（3D最適化対応） ===
+function createHeightBasedMixedLayer(remainingItems, palletSize, maxHeight) {
+    // 🔧 3D最適化を優先試行
+    const optimizedLayer = create3DOptimizedLayer(remainingItems, palletSize, maxHeight);
+    if (optimizedLayer && optimizedLayer.cartons.length > 0) {
+        console.log(`  3D最適化層作成成功: ${optimizedLayer.cartons.length}個, 高さ${optimizedLayer.height}cm`);
+        return optimizedLayer;
+    }
+    
+    // 従来の方法（フォールバック）
+    const layerCartons = [];
+    let layerWeight = 0;
+    
+    // 利用可能なアイテムを取得（高さ制限考慮）
+    const availableItems = remainingItems.filter(item => 
+        item.remaining > 0 && 
+        item.h <= maxHeight &&
+        item.h <= getMaxCartonHeight()
+    );
+    
+    if (availableItems.length === 0) {
+        return null;
+    }
+
+    // 高さでグループ化（±2cm許容）
+    const heightGroups = {};
+    availableItems.forEach(item => {
+        let groupFound = false;
+        
+        for (const [groupHeight, groupItems] of Object.entries(heightGroups)) {
+            if (Math.abs(item.h - parseFloat(groupHeight)) <= 2) {
+                groupItems.push(item);
+                groupFound = true;
+                break;
+            }
+        }
+        
+        if (!groupFound) {
+            heightGroups[item.h.toString()] = [item];
+        }
+    });
+
+    // 混載に最適なグループを選択
+    let bestGroup = null;
+    let bestGroupScore = 0;
+    
+    for (const [groupHeight, groupItems] of Object.entries(heightGroups)) {
+        const multipleTypes = groupItems.length > 1;
+        const smallQuantities = groupItems.every(item => item.remaining <= 4);
+        const totalQuantity = groupItems.reduce((sum, item) => sum + item.remaining, 0);
+        
+        // グループスコア計算
+        let groupScore = totalQuantity * 10;
+        if (multipleTypes) groupScore += 50;
+        if (smallQuantities) groupScore += 30;
+        
+        if (groupScore > bestGroupScore) {
+            bestGroupScore = groupScore;
+            bestGroup = { height: parseFloat(groupHeight), items: groupItems };
+        }
+    }
+    
+    if (!bestGroup) {
+        return null;
+    }
+    
+    // 最適グループで混載層を作成
+    const mixedLayer = createEfficientMixedLayer(bestGroup.items, palletSize, bestGroup.height);
+    
+    if (!mixedLayer || mixedLayer.cartons.length === 0) {
+        return null;
+    }
+    
+    // 層の総面積を計算
+    const totalArea = mixedLayer.cartons.reduce((sum, carton) => 
+        sum + (carton.position ? carton.position.width * carton.position.depth : carton.l * carton.w), 0);
+    
+    return {
+        cartons: mixedLayer.cartons,
+        height: mixedLayer.height,
+        weight: mixedLayer.weight,
+        area: totalArea,
+        type: 'mixed'
+    };
+}
+
+// === 3D最適化結果サマリー ===
+function display3DOptimizationSummary(pallets) {
+    if (!pallets || pallets.length === 0) return;
+    
+    console.log('\n🚀 === 3D最適化結果サマリー ===');
+    
+    let total3DLayers = 0;
+    let totalMultiHeightLayers = 0;
+    let totalHeightSaved = 0;
+    let totalVolumeImprovement = 0;
+    
+    pallets.forEach((pallet, index) => {
+        const pallet3DLayers = pallet.layers.filter(layer => 
+            layer.type === 'multi-height-3d' || layer.type === 'multi-height'
+        );
+        
+        if (pallet3DLayers.length > 0) {
+            console.log(`\n📦 パレット${index + 1} (${pallet.palletSize.name}):`);
+            
+            pallet3DLayers.forEach((layer, layerIndex) => {
+                const layerType = layer.type === 'multi-height-3d' ? '3D最適化' : '多段高さ';
+                const heightEfficiency = (layer.cartons.length / layer.height).toFixed(2);
+                
+                console.log(`  層${layerIndex + 1}: ${layerType} - ${layer.cartons.length}個, 高さ効率${heightEfficiency}`);
+                
+                if (layer.type === 'multi-height-3d') {
+                    total3DLayers++;
+                } else {
+                    totalMultiHeightLayers++;
+                }
+            });
+        }
+        
+        // 高さ最適化の効果を計算
+        const theoreticalHeight = pallet.layers.reduce((sum, layer) => {
+            const maxHeight = Math.max(...layer.cartons.map(c => c.h || c.height));
+            return sum + maxHeight;
+        }, 0);
+        
+        const heightSaved = theoreticalHeight - pallet.height;
+        if (heightSaved > 0) {
+            totalHeightSaved += heightSaved;
+            console.log(`  📏 高さ最適化効果: ${heightSaved.toFixed(1)}cm節約`);
+        }
+        
+        // 体積改善を計算
+        const actualVolume = pallet.cartons.reduce((sum, c) => sum + (c.l * c.w * c.h), 0);
+        const theoreticalVolume = pallet.palletSize.width * pallet.palletSize.depth * theoreticalHeight;
+        const volumeImprovement = (actualVolume / theoreticalVolume - 1) * 100;
+        
+        if (volumeImprovement > 0) {
+            totalVolumeImprovement += volumeImprovement;
+            console.log(`  📦 体積改善: +${volumeImprovement.toFixed(1)}%`);
+        }
+    });
+    
+    // 総合サマリー
+    console.log('\n📊 === 総合最適化効果 ===');
+    console.log(`3D最適化層: ${total3DLayers}層`);
+    console.log(`多段高さ層: ${totalMultiHeightLayers}層`);
+    console.log(`総高さ節約: ${totalHeightSaved.toFixed(1)}cm`);
+    console.log(`平均体積改善: ${(totalVolumeImprovement / pallets.length).toFixed(1)}%`);
+    
+    if (total3DLayers > 0 || totalMultiHeightLayers > 0) {
+        console.log('✅ 3D最適化が効果的に適用されました！');
+    } else {
+        console.log('ℹ️ 3D最適化の適用機会がありませんでした');
+    }
+}
+
+// === パレット結果表示（3D最適化対応） ===
