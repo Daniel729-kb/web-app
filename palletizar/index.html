@@ -1895,7 +1895,17 @@
                     }
 
                     window.currentPallets = pallets;
-                    displayResults(pallets);
+                    
+                    // script.js の displayResults を使用（読み込まれていない場合はカスタム版を使用）
+                    if (typeof displayResults === 'function') {
+                        displayResults(pallets);
+                    } else if (typeof displayResultsWithDiagram === 'function') {
+                        displayResultsWithDiagram(pallets);
+                        // サマリーテーブルも更新
+                        if (typeof updateSummaryTable === 'function') {
+                            updateSummaryTable(pallets);
+                        }
+                    }
                     
                 } catch (error) {
                     console.error('計算エラー:', error);
@@ -2745,7 +2755,9 @@
         }
 
         // === 結果表示関数（高さ制限表示付き） ===
-        function displayResults(pallets) {
+        // この関数は index.html 内で定義されているカスタム版
+        // script.js の displayResults と競合しないように別名にする
+        function displayResultsWithDiagram(pallets) {
             const results = document.getElementById('results');
             const resultSummary = document.getElementById('resultSummary');
             const palletResults = document.getElementById('palletResults');
@@ -3097,7 +3109,16 @@
                                 console.log(`✅ 結合完了: 高さ${bestCombinedPallet.height.toFixed(1)}cm ≤ 制限${maxHeightLimit}cm`);
                                 
                                                     maxHeightLimit = originalLimit;
-                    displayResults(window.currentPallets);
+                    
+                    // script.js の displayResults を使用
+                    if (typeof displayResults === 'function') {
+                        displayResults(window.currentPallets);
+                    } else if (typeof displayResultsWithDiagram === 'function') {
+                        displayResultsWithDiagram(window.currentPallets);
+                        if (typeof updateSummaryTable === 'function') {
+                            updateSummaryTable(window.currentPallets);
+                        }
+                    }
                                 updatePalletSelectors();
                                 
                                 const successDiv = document.createElement('div');
@@ -3808,5 +3829,8 @@
         window.scrollToPallet = scrollToPallet;
         window.setHeightLimit = setHeightLimit;
     </script>
+    
+    <!-- 外部JavaScriptファイルの読み込み -->
+    <script src="script.js"></script>
 </body>
 </html>
