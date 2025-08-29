@@ -228,6 +228,12 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Modular JavaScript Architecture -->
+    <script type="module" src="js/main.js"></script>
+    
+    <!-- Fallback for older browsers without module support -->
+    <script nomodule>
+        alert('このブラウザはES6モジュールに対応していません。最新のブラウザをご利用ください。');
+    </script>
 </body>
 </html>
