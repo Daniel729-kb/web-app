@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>業務用アプリ一覧</title>
-
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DV9LBPYG0F"></script>
   <script>
@@ -16,107 +15,793 @@
       page_location: window.location.href
     });
   </script>
-
-  <link rel="stylesheet" href="styles/theme.css">
-  <link rel="stylesheet" href="styles/home.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+ 
+  <style>
+    :root {
+      --navy-blue: #1e40af;
+      --navy-dark: #1e3a8a;
+      --navy-light: #3b82f6;
+      --fresh-green: #22c55e;
+      --green-light: #34d399;
+      --green-dark: #16a34a;
+      --white: #ffffff;
+      --black: #000000;
+      --light-bg: #f8fafc;
+      --light-card: #ffffff;
+      --light-border: #e2e8f0;
+      --gray-100: #f1f5f9;
+      --gray-200: #e2e8f0;
+      --gray-300: #cbd5e1;
+      --text-dark: #0f172a;
+      --text-medium: #334155;
+      --text-muted: #64748b;
+      --gradient-navy: linear-gradient(135deg, var(--navy-blue) 0%, var(--navy-dark) 100%);
+      --gradient-green: linear-gradient(135deg, var(--fresh-green) 0%, var(--green-dark) 100%);
+      --gradient-cyber: linear-gradient(45deg, var(--navy-blue), var(--navy-blue), var(--navy-light), var(--navy-light));
+      --gradient-bg: linear-gradient(135deg, var(--light-bg) 0%, var(--white) 50%, var(--gray-100) 100%);
+      --shadow-navy: 0 0 20px rgba(30, 64, 175, 0.15);
+      --shadow-green: 0 0 20px rgba(34, 197, 94, 0.15);
+      --shadow-light: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--gradient-bg);
+      color: var(--text-dark);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    /* Cyber grid background */
+    .cyber-grid {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.08;
+      background-image:
+        linear-gradient(var(--navy-blue) 1px, transparent 1px),
+        linear-gradient(90deg, var(--navy-blue) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: grid-move 20s linear infinite;
+      z-index: -1;
+    }
+    @keyframes grid-move {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(50px, 50px); }
+    }
+    /* Floating orbs */
+    .floating-orbs {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: -1;
+      overflow: hidden;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.06;
+    }
+    .orb-1 {
+      width: 200px;
+      height: 200px;
+      background: var(--navy-blue);
+      top: 20%;
+      left: 10%;
+      animation: float-1 15s ease-in-out infinite;
+    }
+    .orb-2 {
+      width: 150px;
+      height: 150px;
+      background: var(--navy-blue);
+      top: 60%;
+      right: 20%;
+      animation: float-2 12s ease-in-out infinite reverse;
+    }
+    .orb-3 {
+      width: 100px;
+      height: 100px;
+      background: var(--navy-light);
+      bottom: 30%;
+      left: 60%;
+      animation: float-3 18s ease-in-out infinite;
+    }
+    @keyframes float-1 {
+      0%, 100% { transform: translateY(0px) translateX(0px) scale(1); }
+      33% { transform: translateY(-30px) translateX(20px) scale(1.1); }
+      66% { transform: translateY(20px) translateX(-15px) scale(0.9); }
+    }
+    @keyframes float-2 {
+      0%, 100% { transform: translateY(0px) translateX(0px) scale(1); }
+      50% { transform: translateY(-40px) translateX(-25px) scale(1.2); }
+    }
+    @keyframes float-3 {
+      0%, 100% { transform: translateY(0px) translateX(0px) scale(1); }
+      25% { transform: translateY(15px) translateX(30px) scale(0.8); }
+      75% { transform: translateY(-25px) translateX(-20px) scale(1.1); }
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+      position: relative;
+    }
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 5rem;
+      position: relative;
+    }
+    .header h1 {
+      font-size: clamp(3rem, 6vw, 5rem);
+      font-weight: 900;
+      background: linear-gradient(45deg, var(--text-dark), var(--navy-blue), var(--navy-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 2rem;
+      opacity: 0;
+      transform: translateY(50px);
+    }
+    .tech-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+      opacity: 0;
+    }
+    .tech-stat {
+      text-align: center;
+      padding: 1.5rem;
+      background: var(--light-card); /* Fixed potential typo from dark-card */
+      border-radius: 20px;
+      border: 1px solid var(--light-border); /* Fixed potential typo from dark-border */
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .tech-stat::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--gradient-navy);
+      transform: scaleX(0);
+      animation: progress-bar 2s ease-out forwards;
+    }
+    .tech-stat:nth-child(2)::before {
+      background: var(--gradient-navy);
+      animation-delay: 0.3s;
+    }
+    .tech-stat:nth-child(3)::before {
+      background: var(--gradient-navy);
+      animation-delay: 0.6s;
+    }
+    .tech-stat:hover {
+      border-color: var(--navy-light);
+      box-shadow: var(--shadow-navy);
+    }
+    @keyframes progress-bar {
+      to { transform: scaleX(1); }
+    }
+    .stat-number {
+      font-size: 2.2rem;
+      font-weight: 800;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+    .tech-stat:nth-child(1) .stat-number {
+      color: var(--navy-light);
+      text-shadow: var(--shadow-navy);
+    }
+    .tech-stat:nth-child(2) .stat-number {
+      color: var(--navy-light);
+      text-shadow: var(--shadow-navy);
+    }
+    .tech-stat:nth-child(3) .stat-number {
+      color: var(--navy-light);
+      text-shadow: var(--shadow-navy);
+    }
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 500;
+    }
+    /* Apps Grid */
+    .apps-container {
+      position: relative;
+    }
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 2rem;
+      margin-bottom: 4rem;
+    }
+    /* For desktop, force 3 columns */
+    @media (min-width: 1200px) {
+      .apps-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+      }
+    }
+    .app-card {
+      background: var(--white);
+      border: 1px solid var(--light-border);
+      border-radius: 24px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      opacity: 0;
+      transform: translateY(80px) rotateX(20deg);
+      box-shadow: var(--shadow-lg);
+    }
+    .app-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--gradient-navy);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: -1;
+    }
+    .app-card:hover::before {
+      opacity: 0.03;
+    }
+    .app-card:hover {
+      transform: translateY(-15px) rotateX(0deg) scale(1.02);
+      border-color: var(--navy-light);
+      box-shadow: 0 25px 50px -12px rgba(30, 64, 175, 0.25);
+    }
+    .app-card.beta::before {
+      background: var(--gradient-green);
+    }
+    .app-card.beta:hover {
+      border-color: var(--fresh-green);
+      box-shadow: 0 25px 50px -12px rgba(34, 197, 94, 0.25);
+    }
+    .app-card.beta::after {
+      content: 'BETA';
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: var(--gradient-green);
+      color: var(--white);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.4rem 0.8rem;
+      border-radius: 50px;
+      box-shadow: 0 4px 15px rgba(34, 197, 94, 0.2);
+      animation: pulse-beta 2s ease-in-out infinite;
+    }
+    @keyframes pulse-beta {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    .app-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    .app-icon {
+      font-size: 3rem;
+      margin-right: 1rem;
+      filter: drop-shadow(0 0 8px rgba(30, 64, 175, 0.3));
+      animation: icon-glow-navy 3s ease-in-out infinite alternate;
+    }
+    .app-card.beta .app-icon {
+      animation: icon-glow-green 3s ease-in-out infinite alternate;
+    }
+    @keyframes icon-glow-navy {
+      0% { filter: drop-shadow(0 0 8px rgba(30, 64, 175, 0.3)); }
+      100% { filter: drop-shadow(0 0 15px rgba(30, 64, 175, 0.5)); }
+    }
+    @keyframes icon-glow-green {
+      0% { filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.3)); }
+      100% { filter: drop-shadow(0 0 15px rgba(34, 197, 94, 0.5)); }
+    }
+    .app-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      line-height: 1.2;
+    }
+    .app-description {
+      color: var(--text-medium);
+      font-size: 1rem;
+      line-height: 1.7;
+      margin-bottom: 2rem;
+    }
+    .app-features {
+      list-style: none;
+      margin-bottom: 2.5rem;
+    }
+    .app-features li {
+      font-size: 0.9rem;
+      color: var(--text-medium);
+      margin-bottom: 1rem;
+      position: relative;
+      padding-left: 2rem;
+      transition: all 0.3s ease;
+    }
+    .app-features li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--fresh-green);
+      font-size: 1rem;
+      font-weight: 700;
+      transition: all 0.3s ease;
+    }
+    .app-card.beta .app-features li::before {
+      color: var(--navy-light);
+    }
+    .app-features li:hover::before {
+      transform: translateX(5px);
+    }
+    .app-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 1.2rem 2.5rem;
+      background: var(--gradient-navy);
+      color: var(--white);
+      text-decoration: none;
+      font-weight: 700;
+      border-radius: 50px;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      position: relative;
+      overflow: hidden;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: var(--shadow-navy);
+    }
+    .app-card.beta .app-link {
+      background: var(--gradient-green);
+      box-shadow: var(--shadow-green);
+    }
+    .app-link::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: all 0.6s ease;
+    }
+    .app-link:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+    .app-link:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 35px rgba(30, 64, 175, 0.4);
+    }
+    .app-card.beta .app-link:hover {
+      box-shadow: 0 15px 35px rgba(34, 197, 94, 0.4);
+    }
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 4rem 0;
+      border-top: 1px solid var(--light-border);
+      margin-top: 5rem;
+      position: relative;
+    }
+    .footer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 100px;
+      height: 1px;
+      background: var(--gradient-navy);
+      transform: translateX(-50%);
+    }
+    .footer-content {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      opacity: 0;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    /* Loading screen */
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--white);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      transition: opacity 0.8s ease;
+    }
+    .loading-logo {
+      font-size: 4rem;
+      margin-bottom: 2rem;
+      background: var(--gradient-cyber);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      background-size: 400% 400%;
+      animation: gradient-shift 2s ease infinite;
+    }
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .loading-bar {
+      width: 200px;
+      height: 4px;
+      background: var(--gray-200);
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+    .loading-progress {
+      height: 100%;
+      background: var(--gradient-navy);
+      border-radius: 2px;
+      transform: translateX(-100%);
+      animation: loading-progress 2s ease-out forwards;
+    }
+    @keyframes loading-progress {
+      to { transform: translateX(0); }
+    }
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+     
+      .apps-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+     
+      .app-card {
+        padding: 2rem;
+      }
+     
+      .tech-stats {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+     
+      .app-header {
+        flex-direction: column;
+        text-align: center;
+      }
+     
+      .app-icon {
+        margin-right: 0;
+        margin-bottom: 1rem;
+      }
+    }
+  </style>
 </head>
 <body>
+  <!-- Loading Screen -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-logo">📦</div>
+    <div class="loading-bar">
+      <div class="loading-progress"></div>
+    </div>
+  </div>
+  <!-- Background Effects -->
+  <div class="cyber-grid"></div>
+  <div class="floating-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
   <div class="container">
+    <!-- Header -->
     <div class="header">
       <h1>業務用アプリ一覧</h1>
+     
+      <div class="tech-stats">
+        <div class="tech-stat">
+          <span class="stat-number">6</span>
+          <div class="stat-label">Apps</div>
+        </div>
+        <div class="tech-stat">
+          <span class="stat-number">∞</span>
+          <div class="stat-label">Possibilities</div>
+        </div>
+        <div class="tech-stat">
+          <span class="stat-number">24/7</span>
+          <div class="stat-label">Active</div>
+        </div>
+      </div>
     </div>
-
-    <div class="apps-grid">
-      <div class="app-card" loading="lazy">
-        <span class="app-icon" aria-label="コンテナアイコン">📦</span>
-        <h2 class="app-title">コンテナローディングプランナー</h2>
-        <p class="app-description">
-          コンテナへのパレット積み込みプランを自動最適化。20ft/40ftコンテナに対応し、効率的な積載計画を瞬時に生成します。
-        </p>
-        <ul class="app-features">
-          <li>自動配置計算とマニュアル調整</li>
-          <li>積載率・床面効率のリアルタイム表示</li>
-          <li>ドラッグ&ドロップによる直感的操作</li>
-          <li>配置図の画像エクスポート機能</li>
-        </ul>
-        <a href="automateclp/index.html" class="app-link" aria-label="コンテナローディングプランナーを開く">アプリを開く →</a>
+    <!-- Apps Grid -->
+    <div class="apps-container">
+      <div class="apps-grid">
+        <div class="app-card">
+          <div class="app-header">
+            <span class="app-icon" aria-label="コンテナアイコン">📦</span>
+            <h2 class="app-title">コンテナローディングプランナー</h2>
+          </div>
+          <p class="app-description">
+            コンテナへのパレット積み込みプランを自動最適化。20ft/40ftコンテナに対応し、効率的な積載計画を瞬時に生成します。
+          </p>
+          <ul class="app-features">
+            <li>自動配置計算とマニュアル調整</li>
+            <li>積載率・床面効率のリアルタイム表示</li>
+            <li>ドラッグ&ドロップによる直感的操作</li>
+            <li>配置図の画像エクスポート機能</li>
+          </ul>
+          <a href="automateclp/index.html" class="app-link" aria-label="コンテナローディングプランナーを開く">アプリを開く →</a>
+        </div>
+        <div class="app-card">
+          <div class="app-header">
+            <span class="app-icon">📚</span>
+            <h2 class="app-title">パレタイズ最適化計算機</h2>
+          </div>
+          <p class="app-description">
+            複数の貨物サイズに対応した最適なパレット配置を自動計算。層別配置図と側面図で視覚的に確認できます。
+          </p>
+          <ul class="app-features">
+            <li>CSVデータインポート・エクスポート</li>
+            <li>高さ制限設定と制限チェック機能</li>
+            <li>理論配置数との比較分析</li>
+            <li>段階的配置戦略による最適化</li>
+          </ul>
+          <a href="palletizar/index.html" class="app-link">アプリを開く →</a>
+        </div>
+        <div class="app-card">
+          <div class="app-header">
+            <span class="app-icon">👥</span>
+            <h2 class="app-title">オペレーションホワイトボード</h2>
+          </div>
+          <p class="app-description">
+            作業員の配置と進捗をリアルタイムで管理するデジタルホワイトボード。時間管理と作業履歴を自動記録します。
+          </p>
+          <ul class="app-features">
+            <li>ドラッグ&ドロップによる作業員配置</li>
+            <li>自動時間計測とタイマー機能</li>
+            <li>詳細な作業ログ記録・CSV出力</li>
+            <li>カスタマイズ可能な作業エリア</li>
+          </ul>
+          <a href="opwhiteboard/index.html" class="app-link">アプリを開く →</a>
+        </div>
+        <div class="app-card">
+          <div class="app-header">
+            <span class="app-icon">🗺️</span>
+            <h2 class="app-title">販売可能面積可視化マップ</h2>
+          </div>
+          <p class="app-description">
+            世界中の倉庫データを地図上で可視化。面積・使用率・空き状況を一目で把握し、効率的な倉庫選択を支援します。
+          </p>
+          <ul class="app-features">
+            <li>インタラクティブな世界地図表示</li>
+            <li>面積・使用率によるカラーコード表示</li>
+            <li>国・州別フィルタリング機能</li>
+            <li>統計サマリーと空き順リスト表示</li>
+          </ul>
+          <a href="warehousemap/index.html" class="app-link">アプリを開く →</a>
+        </div>
+        <div class="app-card beta">
+          <div class="app-header">
+            <span class="app-icon">🌐</span>
+            <h2 class="app-title">物流マップ生成アプリ</h2>
+          </div>
+          <p class="app-description">
+            調達先・倉庫・輸送ルートを含む物流ネットワークを自動で可視化。複雑な物流網を分かりやすいマップで表現します。
+          </p>
+          <ul class="app-features">
+            <li>調達先・倉庫・輸送ルートの統合管理</li>
+            <li>自動マップ生成と編集モード</li>
+            <li>温度管理倉庫の詳細設定対応</li>
+            <li>多言語対応とCSVデータ管理</li>
+          </ul>
+          <a href="logimap/index.html" class="app-link">ベータ版を試す →</a>
+        </div>
+        <div class="app-card">
+          <div class="app-header">
+            <span class="app-icon">📊</span>
+            <h2 class="app-title">ガントチャート プロジェクト管理</h2>
+          </div>
+          <p class="app-description">
+            プロジェクトのタスク管理と進捗可視化を実現するガントチャートアプリ。依存関係管理と詳細な進捗追跡が可能です。
+          </p>
+          <ul class="app-features">
+            <li>視覚的なガントチャート表示</li>
+            <li>タスクの依存関係管理・ドラッグ操作</li>
+            <li>進捗率・優先度設定機能</li>
+            <li>データのインポート/エクスポート</li>
+          </ul>
+          <a href="ganttchart/index.html" class="app-link">アプリを開く →</a>
+        </div>
       </div>
-
-      <div class="app-card">
-        <span class="app-icon">📚</span>
-        <h2 class="app-title">パレタイズ最適化計算機</h2>
-        <p class="app-description">
-          複数の貨物サイズに対応した最適なパレット配置を自動計算。層別配置図と側面図で視覚的に確認できます。
-        </p>
-        <ul class="app-features">
-          <li>CSVデータインポート・エクスポート</li>
-          <li>高さ制限設定と制限チェック機能</li>
-          <li>理論配置数との比較分析</li>
-          <li>段階的配置戦略による最適化</li>
-        </ul>
-        <a href="palletizar/index.html" class="app-link">アプリを開く →</a>
-      </div>
-
-      <div class="app-card">
-        <span class="app-icon">👥</span>
-        <h2 class="app-title">オペレーションホワイトボード</h2>
-        <p class="app-description">
-          作業員の配置と進捗をリアルタイムで管理するデジタルホワイトボード。時間管理と作業履歴を自動記録します。
-        </p>
-        <ul class="app-features">
-          <li>ドラッグ&ドロップによる作業員配置</li>
-          <li>自動時間計測とタイマー機能</li>
-          <li>詳細な作業ログ記録・CSV出力</li>
-          <li>カスタマイズ可能な作業エリア</li>
-        </ul>
-        <a href="opwhiteboard/index.html" class="app-link">アプリを開く →</a>
-      </div>
-
-      <div class="app-card">
-        <span class="app-icon">🗺️</span>
-        <h2 class="app-title">販売可能面積可視化マップ</h2>
-        <p class="app-description">
-          世界中の倉庫データを地図上で可視化。面積・使用率・空き状況を一目で把握し、効率的な倉庫選択を支援します。
-        </p>
-        <ul class="app-features">
-          <li>インタラクティブな世界地図表示</li>
-          <li>面積・使用率によるカラーコード表示</li>
-          <li>国・州別フィルタリング機能</li>
-          <li>統計サマリーと空き順リスト表示</li>
-        </ul>
-        <a href="warehousemap/index.html" class="app-link">アプリを開く →</a>
-      </div>
-
-      <div class="app-card beta">
-        <span class="app-icon">🌐</span>
-        <h2 class="app-title">物流マップ生成アプリ</h2>
-        <p class="app-description">
-          調達先・倉庫・輸送ルートを含む物流ネットワークを自動で可視化。複雑な物流網を分かりやすいマップで表現します。
-        </p>
-        <ul class="app-features">
-          <li>調達先・倉庫・輸送ルートの統合管理</li>
-          <li>自動マップ生成と編集モード</li>
-          <li>温度管理倉庫の詳細設定対応</li>
-          <li>多言語対応とCSVデータ管理</li>
-        </ul>
-        <a href="logimap/index.html" class="app-link">ベータ版を試す →</a>
-      </div>
-
-      <div class="app-card">
-        <span class="app-icon">📊</span>
-        <h2 class="app-title">ガントチャート プロジェクト管理</h2>
-        <p class="app-description">
-          プロジェクトのタスク管理と進捗可視化を実現するガントチャートアプリ。依存関係管理と詳細な進捗追跡が可能です。
-        </p>
-        <ul class="app-features">
-          <li>視覚的なガントチャート表示（日/週/月切り替え）</li>
-          <li>タスクの依存関係管理・ドラッグ操作</li>
-          <li>進捗率・優先度設定機能</li>
-          <li>プロジェクトデータのインポート/エクスポート</li>
-        </ul>
-        <a href="ganttchart/index.html" class="app-link">アプリを開く →</a>
+    </div>
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-content">
+        © 2025 Created by Daniel. All rights reserved.
       </div>
     </div>
   </div>
+  <script>
+    // Loading sequence
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        document.getElementById('loadingScreen').style.opacity = '0';
+        setTimeout(() => {
+          document.getElementById('loadingScreen').style.display = 'none';
+          startMainAnimations();
+        }, 800);
+      }, 2500);
+    });
+    function startMainAnimations() {
+      // Header animations
+      anime.timeline()
+        .add({
+          targets: '.header h1',
+          opacity: [0, 1],
+          translateY: [50, 0],
+          duration: 1200,
+          easing: 'easeOutExpo'
+        })
+        .add({
+          targets: '.tech-stats',
+          opacity: [0, 1],
+          translateY: [40, 0],
+          duration: 1000,
+          easing: 'easeOutQuart',
+          offset: '-=800'
+        })
+        .add({
+          targets: '.app-card',
+          opacity: [0, 1],
+          translateY: [80, 0],
+          rotateX: [20, 0],
+          duration: 1200,
+          delay: anime.stagger(200),
+          easing: 'easeOutExpo',
+          offset: '-=200'
+        })
+        .add({
+          targets: '.footer-content',
+          opacity: [0, 1],
+          translateY: [20, 0],
+          duration: 800,
+          easing: 'easeOutQuad',
+          offset: '-=400'
+        });
+      // Animate stat numbers
+      setTimeout(() => {
+        document.querySelectorAll('.stat-number').forEach((stat, index) => {
+          const finalValue = stat.textContent;
+         
+          if (finalValue === '∞') {
+            // Keep infinity symbol as is, just fade in
+            anime({
+              targets: stat,
+              scale: [0, 1.2, 1],
+              duration: 1000,
+              delay: index * 200,
+              easing: 'easeOutElastic(1, .6)'
+            });
+          } else if (finalValue === '24/7') {
+            setTimeout(() => {
+              anime({
+                targets: stat,
+                scale: [0, 1],
+                duration: 800,
+                easing: 'easeOutBounce'
+              });
+            }, index * 200);
+          } else {
+            stat.textContent = '0';
+            anime({
+              targets: stat,
+              textContent: [0, parseInt(finalValue)],
+              duration: 1500,
+              delay: index * 200,
+              round: 1,
+              easing: 'easeOutQuad'
+            });
+          }
+        });
+      }, 1000);
+      // Setup interactive effects after main animations
+      setTimeout(() => {
+        setupInteractiveEffects();
+      }, 2000);
+    }
+    function setupInteractiveEffects() {
+      // Card hover effects
+      document.querySelectorAll('.app-card').forEach(card => {
+        card.addEventListener('mouseenter', () => {
+          anime({
+            targets: card.querySelector('.app-icon'),
+            scale: [1, 1.2],
+            rotate: [0, 360],
+            duration: 600,
+            easing: 'easeOutElastic(1, .6)'
+          });
+          anime({
+            targets: card.querySelectorAll('.app-features li'),
+            translateX: [0, 10, 0],
+            opacity: [0.7, 1],
+            duration: 300,
+            delay: anime.stagger(50),
+            easing: 'easeOutQuad'
+          });
+        });
+        card.addEventListener('mouseleave', () => {
+          anime({
+            targets: card.querySelector('.app-icon'),
+            scale: 1,
+            rotate: 0,
+            duration: 400,
+            easing: 'easeOutQuad'
+          });
+        });
+      });
+      // Button click effects
+      document.querySelectorAll('.app-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+          const rect = link.getBoundingClientRect();
+          const ripple = document.createElement('div');
+          const size = Math.max(rect.width, rect.height);
+         
+          ripple.style.width = ripple.style.height = size + 'px';
+          ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+          ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+          ripple.style.position = 'absolute';
+          ripple.style.borderRadius = '50%';
+          ripple.style.background = 'rgba(255, 255, 255, 0.6)';
+          ripple.style.transform = 'scale(0)';
+          ripple.style.pointerEvents = 'none';
+         
+          link.style.position = 'relative';
+          link.appendChild(ripple);
+         
+          anime({
+            targets: ripple,
+            scale: [0, 2],
+            opacity: [0.6, 0],
+            duration: 600,
+            easing: 'easeOutQuart',
+            complete: () => ripple.remove()
+          });
+        });
+      });
+    }
+    // Disabled scroll observer to prevent animation conflicts
+    // Cards now animate in sequence with the main timeline
+    // Scroll effects are handled by the hover animations instead
+  </script>
 </body>
 </html>
