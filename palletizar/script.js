@@ -2226,6 +2226,16 @@ function drawSideView(palletIndex) {
     
     ctx.fillStyle = '#333';
     ctx.fillText(`${pallet.palletSize.width}cm × ${pallet.palletSize.depth}cm`, canvas.width / 2, canvas.height - 5);
+
+    // ベースイメージをキャッシュ（ホバーアウトライン用）
+    try {
+        const img = new Image();
+        img.src = canvas.toDataURL();
+        canvas._baseImage = img;
+    } catch (_) {}
+
+    // 側面図ホバーイベントをバインド
+    bindSideCanvasEvents(canvas, palletIndex);
 }
 
 // === 層別詳細描画（高さ制限情報付き） ===
@@ -2562,6 +2572,78 @@ function resetCanvasParallax(canvas) {
     if (!window.anime) return;
     anime.remove(canvas);
     anime({ targets: canvas, translateX: 0, translateY: 0, scale: 1, duration: 220, easing: 'easeOutQuad' });
+}
+
+// === 側面図ホバーイベント ===
+function bindSideCanvasEvents(canvas, palletIndex) {
+    const pallet = window.currentPallets[palletIndex];
+    if (!pallet) return;
+    const regions = buildSideRegions(canvas, pallet);
+
+    const onMove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        let found = null;
+        for (let i = 0; i < regions.length; i++) {
+            const r = regions[i];
+            if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
+                found = r;
+                break;
+            }
+        }
+        if (found) {
+            const c = found.carton;
+            const content = `
+                <div style="font-weight:bold; margin-bottom:4px;">${c.code}</div>
+                <div>層: 第${found.layer + 1}層</div>
+                <div>高さ: ${c.h}cm</div>
+            `;
+            showTooltip(e.clientX + 8, e.clientY + 8, content);
+            animateCartonHover(canvas, found);
+            applyCanvasParallax(canvas, e);
+        } else {
+            hideTooltip();
+            clearCartonHover(canvas, true);
+            resetCanvasParallax(canvas);
+        }
+    };
+    const onLeave = () => {
+        hideTooltip();
+        clearCartonHover(canvas, true);
+        resetCanvasParallax(canvas);
+    };
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseleave', onLeave);
+}
+
+function buildSideRegions(canvas, pallet) {
+    const margin = 60;
+    const maxWidth = canvas.width - 2 * margin;
+    const maxHeight = canvas.height - 2 * margin;
+    const scaleX = maxWidth / pallet.palletSize.width;
+    const scaleY = maxHeight / maxHeightLimit;
+    const scale = Math.min(scaleX, scaleY);
+    const palletW = pallet.palletSize.width * scale;
+    const limitH = maxHeightLimit * scale;
+    const startX = (canvas.width - palletW) / 2;
+    let currentY = (canvas.height - limitH) / 2 + limitH - 14 * scale;
+    const regions = [];
+    for (let i = 0; i < pallet.layers.length; i++) {
+        const layer = pallet.layers[i];
+        const layerH = layer.height * scale;
+        currentY -= layerH;
+        // 層内のセグメント幅を配分
+        const total = layer.cartons.length;
+        let segStart = startX;
+        const counts = layer.cartons.reduce((a,c)=>{a[c.code]=(a[c.code]||0)+1;return a;},{});
+        for (const [code, count] of Object.entries(counts)) {
+            const segW = (count / total) * palletW;
+            regions.push({ x: segStart, y: currentY, w: segW, h: layerH, carton: { code, h: layer.height }, layer: i });
+            segStart += segW;
+        }
+    }
+    return regions;
 }
 
 // グローバル関数として定義
