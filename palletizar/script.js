@@ -2405,12 +2405,40 @@ function showTooltip(x, y, html) {
     tip.innerHTML = html;
     tip.style.left = `${x}px`;
     tip.style.top = `${y}px`;
-    tip.style.display = 'block';
+    if (tip.style.display !== 'block') {
+        tip.style.opacity = '0';
+        tip.style.transform = 'translate(8px, 8px) scale(0.98)';
+        tip.style.display = 'block';
+    }
+    if (window.anime) {
+        anime.remove(tip);
+        anime({
+            targets: tip,
+            opacity: 1,
+            translateX: 8,
+            translateY: 8,
+            scale: 1,
+            duration: 160,
+            easing: 'easeOutQuad'
+        });
+    }
 }
 
 function hideTooltip() {
     const tip = ensureTooltip();
-    tip.style.display = 'none';
+    if (window.anime) {
+        anime.remove(tip);
+        anime({
+            targets: tip,
+            opacity: 0,
+            translateY: 12,
+            duration: 140,
+            easing: 'easeOutQuad',
+            complete: () => { tip.style.display = 'none'; tip.style.transform = 'translate(8px, 8px)'; }
+        });
+    } else {
+        tip.style.display = 'none';
+    }
 }
 
 function bindLayerCanvasEvents(canvas, hitmap) {
