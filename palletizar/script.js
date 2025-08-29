@@ -223,9 +223,8 @@ function initializePalletSelection() {
         const option = document.createElement('div');
         const isDisabled = pallet.disabled;
         option.className = `pallet-option ${isDisabled ? 'disabled' : 'selected'}`;
-        if (!isDisabled) {
-            option.onclick = () => togglePalletSelection(index);
-        }
+        // 無効化されたパレットもクリック可能にして有効化できるようにする
+        option.onclick = () => togglePalletSelection(index);
         
         option.innerHTML = `
             <input type="checkbox" class="pallet-checkbox" ${isDisabled ? 'disabled' : 'checked'}>
@@ -244,6 +243,7 @@ function initializePalletSelection() {
 function togglePalletSelection(index) {
     const option = document.querySelectorAll('.pallet-option')[index];
     const checkbox = option.querySelector('.pallet-checkbox');
+    const pallet = allPalletSizes[index];
     
     if (option.classList.contains('selected')) {
         option.classList.remove('selected');
@@ -251,6 +251,13 @@ function togglePalletSelection(index) {
     } else {
         option.classList.add('selected');
         checkbox.checked = true;
+    }
+    
+    // 無効化されたパレットを有効化
+    if (pallet.disabled) {
+        pallet.disabled = false;
+        option.classList.remove('disabled');
+        checkbox.disabled = false;
     }
     
     if (window.anime) {
