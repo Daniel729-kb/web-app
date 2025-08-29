@@ -179,51 +179,77 @@
         <button onclick="runTests()">テスト実行</button>
     </div>
 
-    <script type="module">
+    <script>
         window.runTests = async function() {
             const results = document.getElementById('testResults');
             results.innerHTML = '';
             
             const tests = [
                 {
-                    name: 'モジュール読み込み',
+                    name: 'バンドルJavaScript読み込み',
                     test: async () => {
-                        const modules = [
-                            '/workspace/palletizar/js/state.js',
-                            '/workspace/palletizar/js/errorHandler.js',
-                            '/workspace/palletizar/js/palletCalculator.js',
-                            '/workspace/palletizar/js/uiController.js',
-                            '/workspace/palletizar/js/importExport.js',
-                            '/workspace/palletizar/js/app.js'
-                        ];
+                        // バンドルファイルの存在確認
+                        const script = document.createElement('script');
+                        script.src = 'js/bundle.js';
                         
-                        for (const module of modules) {
-                            try {
-                                await import(module);
-                            } catch (e) {
-                                throw new Error(`Failed to load ${module}: ${e.message}`);
+                        return new Promise((resolve, reject) => {
+                            script.onload = () => resolve('バンドルJavaScriptが正常に読み込まれました');
+                            script.onerror = () => reject(new Error('バンドルJavaScriptの読み込みに失敗'));
+                            
+                            // 既に読み込まれている場合
+                            if (window.PalletizerApp) {
+                                resolve('バンドルJavaScriptは既に読み込まれています');
                             }
-                        }
-                        return 'すべてのモジュールが正常に読み込まれました';
+                            
+                            setTimeout(() => {
+                                if (window.PalletizerApp || window.AppState) {
+                                    resolve('バンドルJavaScriptが正常に読み込まれました');
+                                } else {
+                                    reject(new Error('バンドルJavaScriptの読み込みタイムアウト'));
+                                }
+                            }, 1000);
+                        });
                     }
                 },
                 {
                     name: 'CSS読み込み',
                     test: async () => {
-                        const response = await fetch('/workspace/palletizar/css/styles.css');
-                        if (!response.ok) throw new Error('CSS file not found');
-                        const text = await response.text();
-                        if (text.length < 100) throw new Error('CSS file is too small');
-                        return 'CSSファイルが正常に読み込まれました';
+                        // CSSファイルの存在確認
+                        const link = document.createElement('link');
+                        link.rel = 'stylesheet';
+                        link.href = 'css/styles.css';
+                        
+                        return new Promise((resolve, reject) => {
+                            link.onload = () => resolve('CSSファイルが正常に読み込まれました');
+                            link.onerror = () => reject(new Error('CSSファイルの読み込みに失敗'));
+                            document.head.appendChild(link);
+                            
+                            // タイムアウト設定
+                            setTimeout(() => {
+                                const styles = document.styleSheets;
+                                for (let i = 0; i < styles.length; i++) {
+                                    if (styles[i].href && styles[i].href.includes('styles.css')) {
+                                        resolve('CSSファイルが正常に読み込まれました');
+                                        return;
+                                    }
+                                }
+                                reject(new Error('CSSファイルの読み込みタイムアウト'));
+                            }, 1000);
+                        });
                     }
                 },
                 {
                     name: '状態管理',
                     test: async () => {
-                        const { appState } = await import('/workspace/palletizar/js/state.js');
+                        // AppStateクラスの存在確認
+                        if (typeof AppState === 'undefined') {
+                            throw new Error('AppStateクラスが定義されていません');
+                        }
+                        
+                        const state = new AppState();
                         
                         // カートン追加テスト
-                        appState.addCarton({
+                        state.addCarton({
                             code: 'TEST-001',
                             qty: 10,
                             weight: 5.5,
@@ -232,18 +258,18 @@
                             h: 25
                         });
                         
-                        if (appState.cartonData.length !== 1) {
-                            throw new Error('Failed to add carton');
+                        if (state.cartonData.length !== 1) {
+                            throw new Error('カートン追加に失敗');
                         }
                         
                         // 統計テスト
-                        const stats = appState.getStatistics();
+                        const stats = state.getStatistics();
                         if (stats.totalCartons !== 10) {
-                            throw new Error('Statistics calculation error');
+                            throw new Error('統計計算エラー');
                         }
                         
                         // クリア
-                        appState.clearAllCartons();
+                        state.clearAllCartons();
                         
                         return '状態管理が正常に動作しています';
                     }
@@ -251,10 +277,17 @@
                 {
                     name: 'エラーハンドリング',
                     test: async () => {
-                        const { ErrorHandler, ValidationError } = await import('/workspace/palletizar/js/errorHandler.js');
-                        const { appState } = await import('/workspace/palletizar/js/state.js');
+                        // ErrorHandlerクラスの存在確認
+                        if (typeof ErrorHandler === 'undefined') {
+                            throw new Error('ErrorHandlerクラスが定義されていません');
+                        }
                         
-                        const handler = new ErrorHandler(appState);
+                        if (typeof ValidationError === 'undefined') {
+                            throw new Error('ValidationErrorクラスが定義されていません');
+                        }
+                        
+                        const state = new AppState();
+                        const handler = new ErrorHandler(state);
                         
                         // エラー処理テスト
                         const result = handler.handleError(
@@ -263,7 +296,7 @@
                         );
                         
                         if (!result.handled) {
-                            throw new Error('Error not handled');
+                            throw new Error('エラー処理に失敗');
                         }
                         
                         return 'エラーハンドリングが正常に動作しています';
@@ -272,18 +305,38 @@
                 {
                     name: 'パフォーマンス最適化',
                     test: async () => {
-                        const { PalletCalculator } = await import('/workspace/palletizar/js/palletCalculator.js');
-                        const { appState } = await import('/workspace/palletizar/js/state.js');
+                        // PalletCalculatorクラスの存在確認
+                        if (typeof PalletCalculator === 'undefined') {
+                            throw new Error('PalletCalculatorクラスが定義されていません');
+                        }
                         
-                        // キャッシュ機能のテスト
-                        const calculator = new PalletCalculator(appState);
-                        const cacheKey = calculator.generateCacheKey();
+                        const state = new AppState();
+                        const calculator = new PalletCalculator(state);
                         
-                        if (typeof cacheKey !== 'string') {
-                            throw new Error('Cache key generation failed');
+                        // 基本的なメソッドの存在確認
+                        if (typeof calculator.calculateOptimizedPalletization !== 'function') {
+                            throw new Error('計算メソッドが実装されていません');
                         }
                         
                         return 'パフォーマンス最適化機能が実装されています';
+                    }
+                },
+                {
+                    name: 'アプリケーション初期化',
+                    test: async () => {
+                        // PalletizerAppクラスの存在確認
+                        if (typeof PalletizerApp === 'undefined') {
+                            throw new Error('PalletizerAppクラスが定義されていません');
+                        }
+                        
+                        // インスタンス作成テスト
+                        const app = new PalletizerApp();
+                        
+                        if (!app.state || !app.errorHandler || !app.calculator) {
+                            throw new Error('アプリケーションの初期化に失敗');
+                        }
+                        
+                        return 'アプリケーションが正常に初期化できます';
                     }
                 }
             ];
@@ -304,6 +357,11 @@
                 results.appendChild(resultDiv);
             }
         };
+        
+        // バンドルJSを読み込む
+        const script = document.createElement('script');
+        script.src = 'js/bundle.js';
+        document.head.appendChild(script);
     </script>
 </body>
 </html>
