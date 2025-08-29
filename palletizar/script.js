@@ -1208,6 +1208,17 @@ function generateMixedLayers(orient1, orient2, layers1, layers2, qty1, qty2) {
 function displayResults(results) {
     window.currentPallets = results;
     
+    // デバッグ: 効率データの確認
+    console.log('=== 効率データ確認 ===');
+    results.forEach((result, index) => {
+        console.log(`パレット${index + 1}:`, {
+            総合効率: result.efficiency,
+            体積効率: result.volumeEfficiency,
+            重量効率: result.weightEfficiency,
+            安定性効率: result.stabilityEfficiency
+        });
+    });
+    
     document.getElementById('results').classList.remove('hidden');
     document.getElementById('summarySection').classList.remove('hidden');
     document.getElementById('combineSection').classList.remove('hidden');
@@ -1665,6 +1676,10 @@ function generateColors(count) {
 // サマリーテーブル更新
 function updateSummaryTable(results) {
     const tbody = document.getElementById('summaryBody');
+    
+    console.log('=== updateSummaryTable 呼び出し ===');
+    console.log('結果数:', results.length);
+    
     tbody.innerHTML = results.map((result, index) => {
         // 貨物情報の取得
         let cargoInfo = '';
@@ -1678,6 +1693,13 @@ function updateSummaryTable(results) {
         const volumeEfficiency = result.volumeEfficiency || 0;
         const weightEfficiency = result.weightEfficiency || 0;
         const stabilityEfficiency = result.stabilityEfficiency || 0;
+        
+        console.log(`パレット${index + 1} 効率データ:`, {
+            総合: result.efficiency,
+            体積: volumeEfficiency,
+            重量: weightEfficiency,
+            安定性: stabilityEfficiency
+        });
         
         return `
             <tr>
@@ -1886,16 +1908,30 @@ function exportSummaryCsv() {
         return;
     }
     
-    const headers = ['パレットNo', '寸法(cm)', '重量(kg)', '貨物コード', '数量', '効率(%)', '高さ制限適合'];
-    const rows = window.currentPallets.map((result, index) => [
-        index + 1,
-        `${result.palletSize.width}×${result.palletSize.depth}×${result.height.toFixed(1)}`,
-        result.weight.toFixed(1),
-        result.carton.code,
-        result.quantity,
-        result.efficiency.toFixed(1),
-        result.height <= maxHeightLimit ? '適合' : '超過'
-    ]);
+    const headers = ['パレットNo', '寸法(cm)', '重量(kg)', '貨物コード', '数量', 
+                     '総合効率(%)', '体積効率(%)', '重量効率(%)', '安定性効率(%)', '高さ制限適合'];
+    const rows = window.currentPallets.map((result, index) => {
+        // 貨物コードの処理（単一または複数）
+        let cargoCode = '';
+        if (Array.isArray(result.carton)) {
+            cargoCode = result.carton.map(c => c.code).join('+');
+        } else {
+            cargoCode = result.carton.code;
+        }
+        
+        return [
+            index + 1,
+            `${result.palletSize.width}×${result.palletSize.depth}×${result.height.toFixed(1)}`,
+            result.weight.toFixed(1),
+            cargoCode,
+            result.quantity,
+            (result.efficiency || 0).toFixed(1),
+            (result.volumeEfficiency || 0).toFixed(1),
+            (result.weightEfficiency || 0).toFixed(1),
+            (result.stabilityEfficiency || 0).toFixed(1),
+            result.height <= maxHeightLimit ? '適合' : '超過'
+        ];
+    });
     
     const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
