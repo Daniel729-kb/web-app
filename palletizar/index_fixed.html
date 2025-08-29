@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>パレタイズ最適化計算機 v2.0</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* 可視化用の追加スタイル */
+        .visualization-canvas {
+            border: 2px solid #374151;
+            margin: 10px auto;
+            display: block;
+            background: white;
+        }
+        
+        .layer-visualization {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .layer-grid {
+            display: grid;
+            gap: 2px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+        }
+        
+        .carton-box {
+            padding: 5px;
+            text-align: center;
+            font-size: 0.8rem;
+            border: 1px solid #9ca3af;
+            background: #f3f4f6;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>パレタイズ最適化計算機 v2.0</h1>
+        <p class="subtitle">改善版 - 統合バンドル版</p>
+
+        <div class="improvement-note">
+            <h3>📋 使用方法</h3>
+            <ol style="margin-left: 20px;">
+                <li><strong>貨物データの入力</strong>：「➕ 新規追加」で個別入力、または「📄 CSVインポート」で一括追加</li>
+                <li><strong>高さ制限設定</strong>：用途に応じて積載高さの上限を調整</li>
+                <li><strong>パレット種類選択</strong>：使用するパレットサイズを選択</li>
+                <li><strong>パレタイズ計算</strong>：「🔢 パレタイズ計算を実行」で最適配置を自動計算</li>
+                <li><strong>結果確認</strong>：配置結果を確認し、必要に応じてCSVエクスポート</li>
+            </ol>
+        </div>
+
+        <!-- エラー表示エリア -->
+        <div id="errors"></div>
+
+        <!-- 貨物情報サマリー -->
+        <div class="summary-grid">
+            <div class="summary-card blue">
+                <h3>総カートン数</h3>
+                <p id="totalCartons">0</p>
+            </div>
+            <div class="summary-card green">
+                <h3>総重量</h3>
+                <p id="totalWeight">0 kg</p>
+            </div>
+            <div class="summary-card purple">
+                <h3>品目数</h3>
+                <p id="itemCount">0</p>
+            </div>
+        </div>
+
+        <!-- 貨物詳細テーブル -->
+        <div class="section">
+            <div class="section-header">
+                <h2>貨物詳細</h2>
+                <div class="flex gap-2">
+                    <button id="downloadTemplateButton" class="btn btn-secondary">📥 CSVテンプレート</button>
+                    <button id="importButton" class="btn btn-primary">📄 CSVインポート</button>
+                    <button id="clearAllButton" class="btn btn-danger">🗑️ 一括削除</button>
+                    <button id="addButton" class="btn btn-success">➕ 新規追加</button>
+                </div>
+            </div>
+            
+            <!-- CSVインポートエリア -->
+            <div id="importArea" class="add-form hidden">
+                <h3>CSVファイルをインポート</h3>
+                <div style="margin-bottom: 15px;">
+                    <input type="file" id="csvFileInput" accept=".csv" class="form-input" style="margin-bottom: 10px;">
+                    <div style="font-size: 0.9rem; color: #666;">
+                        <strong>CSV形式:</strong> 貨物コード, 数量, 重量(kg), 長さ(cm), 幅(cm), 高さ(cm)<br>
+                        <strong>例:</strong> SAMPLE-A, 100, 5.5, 40.0, 30.0, 25.0
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="executeImportButton" class="btn btn-primary">📥 インポート実行</button>
+                    <button id="cancelImportButton" class="btn btn-secondary">❌ キャンセル</button>
+                </div>
+            </div>
+            
+            <!-- 新規追加フォーム -->
+            <div id="addForm" class="add-form hidden">
+                <h3>新規貨物追加</h3>
+                <div class="form-grid">
+                    <input type="text" id="addCode" placeholder="貨物コード" class="form-input" required>
+                    <input type="number" id="addQty" placeholder="数量" class="form-input" min="1" required>
+                    <input type="number" id="addWeight" placeholder="重量(kg)" class="form-input" step="0.1" min="0.1" required>
+                    <input type="number" id="addLength" placeholder="長さ(cm)" class="form-input" step="0.1" min="1" required>
+                    <input type="number" id="addWidth" placeholder="幅(cm)" class="form-input" step="0.1" min="1" required>
+                    <input type="number" id="addHeight" placeholder="高さ(cm)" class="form-input" step="0.1" min="1" required>
+                </div>
+                <div class="flex gap-2">
+                    <button id="saveAddButton" class="btn btn-primary">💾 保存</button>
+                    <button id="cancelAddButton" class="btn btn-secondary">❌ キャンセル</button>
+                </div>
+            </div>
+            
+            <!-- 貨物テーブル -->
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>貨物コード</th>
+                            <th>数量</th>
+                            <th>重量(kg)</th>
+                            <th>寸法(cm)</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cartonTableBody">
+                        <!-- 動的に生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 高さ制限設定 -->
+        <div class="height-limit-setting">
+            <h3>📏 高さ制限設定</h3>
+            <div class="height-limit-controls">
+                <div class="height-input-group">
+                    <label>最大積載高さ（パレット含む）</label>
+                    <div class="height-input-wrapper">
+                        <input type="number" id="heightLimitInput" min="50" max="300" value="158" class="form-input">
+                        <span class="height-unit">cm</span>
+                    </div>
+                    <div class="height-presets">
+                        <button class="height-preset-btn" onclick="setHeightLimit(100)">100cm</button>
+                        <button class="height-preset-btn" onclick="setHeightLimit(120)">120cm</button>
+                        <button class="height-preset-btn" onclick="setHeightLimit(140)">140cm</button>
+                        <button class="height-preset-btn active" onclick="setHeightLimit(158)">158cm</button>
+                        <button class="height-preset-btn" onclick="setHeightLimit(180)">180cm</button>
+                        <button class="height-preset-btn" onclick="setHeightLimit(200)">200cm</button>
+                    </div>
+                </div>
+                <div class="height-info">
+                    <h4>現在の設定</h4>
+                    <div class="height-current-display">
+                        高さ制限: <span id="heightLimitDisplay">158</span>cm
+                    </div>
+                    <ul>
+                        <li>パレット台座: 14cm（固定）</li>
+                        <li>カートン配置可能高さ: <span id="availableHeight">144</span>cm</li>
+                    </ul>
+                </div>
+            </div>
+            <div id="heightWarning" class="height-warning hidden">
+                ⚠️ 180cmを超える設定は特殊な輸送手段が必要な場合があります
+            </div>
+        </div>
+
+        <!-- パレット種類選択 -->
+        <div class="pallet-selection">
+            <h3>📦 使用パレット種類</h3>
+            <div id="palletOptions" class="pallet-options">
+                <!-- 動的に生成 -->
+            </div>
+            <div class="pallet-selection-actions">
+                <button id="selectAllPallets" class="btn btn-secondary btn-sm">すべて選択</button>
+                <button id="deselectAllPallets" class="btn btn-secondary btn-sm">すべて解除</button>
+                <span id="selectedPalletsInfo" style="margin-left: 10px; color: #16a34a;">✅ 5種類のパレットで最適化計算</span>
+            </div>
+        </div>
+
+        <!-- 計算実行ボタン -->
+        <div class="center" style="margin: 30px 0;">
+            <button id="calculateButton" class="btn btn-primary btn-lg">
+                🔢 パレタイズ計算を実行
+            </button>
+            <div id="loadingIndicator" class="loading">
+                <div class="spinner"></div>
+                <span style="margin-left: 10px;">計算中...</span>
+            </div>
+        </div>
+
+        <!-- 計算結果 -->
+        <div id="results" class="result-section hidden">
+            <div class="result-header">
+                <h2>📊 パレタイズ結果</h2>
+                <div class="flex gap-2">
+                    <button id="exportButton" class="btn btn-success">📥 CSVエクスポート</button>
+                </div>
+            </div>
+
+            <!-- サマリーテーブル -->
+            <div id="summarySection" class="section">
+                <h3>パレット一覧</h3>
+                <div class="table-container">
+                    <table class="summary-table">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>寸法(cm)</th>
+                                <th>重量(kg)</th>
+                                <th>貨物コード</th>
+                                <th>数量</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryBody">
+                            <!-- 動的に生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- パレット詳細 -->
+            <div id="palletResults">
+                <!-- 動的に生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 直接埋め込み版 -->
+    <script src="js/bundle.js"></script>
+    
+    <!-- 可視化機能の追加 -->
+    <script>
+        // 簡易的な可視化機能を追加
+        window.drawPalletVisualization = function(pallet, container) {
+            if (!pallet || !container) return;
+            
+            // Canvas要素を作成
+            const canvas = document.createElement('canvas');
+            canvas.className = 'visualization-canvas';
+            canvas.width = 400;
+            canvas.height = 300;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // 背景
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // パレット台座を描画
+            ctx.fillStyle = '#8b7355';
+            ctx.fillRect(50, 250, 300, 20);
+            
+            // スケール計算
+            const scale = 250 / pallet.height;
+            const palletWidth = 300;
+            const startX = 50;
+            let currentY = 250;
+            
+            // 各層を描画
+            if (pallet.layers && pallet.layers.length > 0) {
+                pallet.layers.forEach((layer, index) => {
+                    const layerHeight = layer.height * scale;
+                    currentY -= layerHeight;
+                    
+                    // 層の背景
+                    ctx.fillStyle = `hsl(${index * 30}, 70%, 85%)`;
+                    ctx.fillRect(startX, currentY, palletWidth, layerHeight);
+                    
+                    // 層の枠線
+                    ctx.strokeStyle = '#374151';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(startX, currentY, palletWidth, layerHeight);
+                    
+                    // 層のラベル
+                    ctx.fillStyle = '#374151';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(`層${index + 1}: ${layer.cartons.length}個`, startX + 5, currentY + 15);
+                });
+            }
+            
+            // 高さ表示
+            ctx.fillStyle = '#2563eb';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(`総高さ: ${pallet.height.toFixed(1)}cm`, startX, 30);
+            
+            // 高さ制限ライン
+            if (window.palletizerApp && window.palletizerApp.state) {
+                const maxHeight = window.palletizerApp.state.palletConfig.maxHeightLimit;
+                const limitY = 250 - (maxHeight - 14) * scale;
+                
+                ctx.strokeStyle = '#dc2626';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(30, limitY);
+                ctx.lineTo(370, limitY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                ctx.fillStyle = '#dc2626';
+                ctx.font = '12px Arial';
+                ctx.fillText(`制限: ${maxHeight}cm`, 375, limitY + 4);
+            }
+            
+            container.appendChild(canvas);
+        };
+        
+        // 結果表示時に可視化を追加
+        const originalUpdateResults = window.palletizerApp ? window.palletizerApp.updateResults : null;
+        if (window.palletizerApp) {
+            window.palletizerApp.updateResults = function() {
+                if (originalUpdateResults) {
+                    originalUpdateResults.call(this);
+                }
+                
+                // 各パレットカードに可視化を追加
+                setTimeout(() => {
+                    const pallets = this.state.results.currentPallets;
+                    if (pallets) {
+                        pallets.forEach((pallet, index) => {
+                            const card = document.getElementById(`pallet-${index}`);
+                            if (card) {
+                                const vizContainer = card.querySelector('.pallet-visualization');
+                                if (vizContainer && !vizContainer.querySelector('canvas')) {
+                                    drawPalletVisualization(pallet, vizContainer);
+                                }
+                            }
+                        });
+                    }
+                }, 100);
+            };
+        }
+    </script>
+</body>
+</html>

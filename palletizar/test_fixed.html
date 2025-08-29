@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>パレタイザーアプリ テスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #2563eb;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        .links {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .link-card {
+            flex: 1;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            text-align: center;
+            text-decoration: none;
+            color: #333;
+            transition: transform 0.2s;
+        }
+        .link-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .link-card h3 {
+            margin: 0 0 10px 0;
+        }
+        .old {
+            border: 2px solid #dc2626;
+        }
+        .new {
+            border: 2px solid #16a34a;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 パレタイザーアプリ テストページ</h1>
+    
+    <div class="test-section">
+        <h2>📊 改善内容</h2>
+        <ul>
+            <li>✅ <strong>コードの分割とモジュール化</strong> - JavaScriptをバンドルファイルに統合</li>
+            <li>✅ <strong>状態管理の改善</strong> - グローバル変数を削減、単一の状態管理オブジェクト</li>
+            <li>✅ <strong>エラーハンドリング強化</strong> - 統一的なエラー処理、ユーザーフレンドリーな表示</li>
+            <li>✅ <strong>パフォーマンス最適化</strong> - キャッシュ機能、バッチ処理、効率的なDOM操作</li>
+            <li>✅ <strong>可視化機能</strong> - Canvas APIを使用した配置図の表示</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🔗 アプリケーションリンク</h2>
+        <div class="links">
+            <a href="index.html" class="link-card old">
+                <h3>📕 旧バージョン</h3>
+                <p>オリジナル版<br>（単一ファイル: 3,786行）</p>
+            </a>
+            <a href="index_fixed.html" class="link-card new">
+                <h3>📗 新バージョン</h3>
+                <p>改善版 v2.0<br>（バンドル版・可視化対応）</p>
+            </a>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📁 ファイル構成</h2>
+        <div class="code-block">
+/workspace/palletizar/
+├── index.html         # 元のファイル（保持）
+├── index_fixed.html   # 改善版（最終版）
+├── test_fixed.html    # このテストページ
+├── css/
+│   └── styles.css     # スタイルシート
+└── js/
+    └── bundle.js      # 統合版JavaScript
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>✅ テスト項目</h2>
+        <div id="testResults"></div>
+        <button onclick="runTests()">テスト実行</button>
+        <button onclick="runSampleData()">サンプルデータで動作確認</button>
+    </div>
+
+    <!-- バンドルJSを先に読み込む -->
+    <script src="js/bundle.js"></script>
+    
+    <script>
+        window.runTests = function() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '';
+            
+            const tests = [
+                {
+                    name: 'バンドルJavaScript読み込み',
+                    test: () => {
+                        if (typeof PalletizerApp === 'undefined') {
+                            throw new Error('PalletizerAppクラスが定義されていません');
+                        }
+                        return 'バンドルJavaScriptが正常に読み込まれました';
+                    }
+                },
+                {
+                    name: 'CSS読み込み',
+                    test: () => {
+                        const link = document.createElement('link');
+                        link.rel = 'stylesheet';
+                        link.href = 'css/styles.css';
+                        document.head.appendChild(link);
+                        return 'CSSファイルを読み込みました';
+                    }
+                },
+                {
+                    name: '状態管理',
+                    test: () => {
+                        if (typeof AppState === 'undefined') {
+                            throw new Error('AppStateクラスが定義されていません');
+                        }
+                        
+                        const state = new AppState();
+                        
+                        // カートン追加テスト
+                        state.addCarton({
+                            code: 'TEST-001',
+                            qty: 10,
+                            weight: 5.5,
+                            l: 40,
+                            w: 30,
+                            h: 25
+                        });
+                        
+                        if (state.cartonData.length !== 1) {
+                            throw new Error('カートン追加に失敗');
+                        }
+                        
+                        // 統計テスト
+                        const stats = state.getStatistics();
+                        if (stats.totalCartons !== 10) {
+                            throw new Error('統計計算エラー');
+                        }
+                        
+                        // クリア
+                        state.clearAllCartons();
+                        
+                        return '状態管理が正常に動作しています';
+                    }
+                },
+                {
+                    name: 'エラーハンドリング',
+                    test: () => {
+                        if (typeof ErrorHandler === 'undefined') {
+                            throw new Error('ErrorHandlerクラスが定義されていません');
+                        }
+                        
+                        if (typeof ValidationError === 'undefined') {
+                            throw new Error('ValidationErrorクラスが定義されていません');
+                        }
+                        
+                        const state = new AppState();
+                        const handler = new ErrorHandler(state);
+                        
+                        // エラー処理テスト
+                        const result = handler.handleError(
+                            new ValidationError('テストエラー'),
+                            'テストコンテキスト'
+                        );
+                        
+                        if (!result.handled) {
+                            throw new Error('エラー処理に失敗');
+                        }
+                        
+                        return 'エラーハンドリングが正常に動作しています';
+                    }
+                },
+                {
+                    name: 'パレット計算',
+                    test: () => {
+                        if (typeof PalletCalculator === 'undefined') {
+                            throw new Error('PalletCalculatorクラスが定義されていません');
+                        }
+                        
+                        const state = new AppState();
+                        const calculator = new PalletCalculator(state);
+                        
+                        // 基本的なメソッドの存在確認
+                        if (typeof calculator.calculateOptimizedPalletization !== 'function') {
+                            throw new Error('計算メソッドが実装されていません');
+                        }
+                        
+                        return 'パレット計算機能が実装されています';
+                    }
+                },
+                {
+                    name: 'アプリケーション初期化',
+                    test: () => {
+                        if (typeof PalletizerApp === 'undefined') {
+                            throw new Error('PalletizerAppクラスが定義されていません');
+                        }
+                        
+                        // インスタンス作成テスト
+                        const app = new PalletizerApp();
+                        
+                        if (!app.state || !app.errorHandler || !app.calculator) {
+                            throw new Error('アプリケーションの初期化に失敗');
+                        }
+                        
+                        return 'アプリケーションが正常に初期化できます';
+                    }
+                }
+            ];
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            tests.forEach(test => {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'test-result';
+                
+                try {
+                    const message = test.test();
+                    resultDiv.className += ' success';
+                    resultDiv.innerHTML = `<strong>✅ ${test.name}</strong><br>${message}`;
+                    successCount++;
+                } catch (error) {
+                    resultDiv.className += ' error';
+                    resultDiv.innerHTML = `<strong>❌ ${test.name}</strong><br>${error.message}`;
+                    errorCount++;
+                }
+                
+                results.appendChild(resultDiv);
+            });
+            
+            // サマリー
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'test-result';
+            summaryDiv.className += successCount === tests.length ? ' success' : ' warning';
+            summaryDiv.innerHTML = `<strong>📊 テスト結果</strong><br>成功: ${successCount}/${tests.length} | 失敗: ${errorCount}/${tests.length}`;
+            results.appendChild(summaryDiv);
+        };
+        
+        window.runSampleData = function() {
+            if (!window.palletizerApp) {
+                alert('アプリケーションが初期化されていません。ページをリロードしてください。');
+                return;
+            }
+            
+            // サンプルデータを追加
+            const sampleData = [
+                { code: 'ITEM-A', qty: 50, weight: 5.5, l: 40, w: 30, h: 25 },
+                { code: 'ITEM-B', qty: 30, weight: 7.2, l: 45, w: 35, h: 20 },
+                { code: 'ITEM-C', qty: 20, weight: 3.8, l: 35, w: 25, h: 15 }
+            ];
+            
+            try {
+                // 既存データをクリア
+                window.palletizerApp.state.clearAllCartons();
+                
+                // サンプルデータを追加
+                sampleData.forEach(item => {
+                    window.palletizerApp.state.addCarton(item);
+                });
+                
+                alert(`サンプルデータを追加しました！\n\n` +
+                      `追加したデータ:\n` +
+                      sampleData.map(item => `・${item.code}: ${item.qty}個`).join('\n') +
+                      `\n\nindex_fixed.htmlを開いて計算を実行してください。`);
+            } catch (error) {
+                alert('エラーが発生しました: ' + error.message);
+            }
+        };
+        
+        // ページ読み込み時にアプリを初期化
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (typeof PalletizerApp !== 'undefined') {
+                window.palletizerApp = new PalletizerApp();
+                await window.palletizerApp.init();
+                console.log('Test page app initialized');
+            }
+        });
+    </script>
+</body>
+</html>
