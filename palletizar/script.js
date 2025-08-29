@@ -122,6 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     initializePalletSelection();
     initializeHeightLimit();
+    initializeTheme();
 });
 
 function initializeHeightLimit() {
@@ -161,6 +162,42 @@ function setupEventListeners() {
     // パレット選択機能
     document.getElementById('selectAllPallets').addEventListener('click', selectAllPallets);
     document.getElementById('deselectAllPallets').addEventListener('click', deselectAllPallets);
+
+    // テーマ切替
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+    }
+}
+
+function initializeTheme() {
+    try {
+        const stored = localStorage.getItem('palletizar_theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = stored || (prefersDark ? 'dark' : 'light');
+        applyTheme(theme);
+    } catch (_) {
+        applyTheme('light');
+    }
+}
+
+function toggleTheme() {
+    const isDark = document.body.classList.toggle('dark');
+    const theme = isDark ? 'dark' : 'light';
+    applyTheme(theme);
+    try { localStorage.setItem('palletizar_theme', theme); } catch (_) {}
+}
+
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.body.classList.add('dark');
+        const btn = document.getElementById('themeToggle');
+        if (btn) btn.textContent = '☀️ ライト';
+    } else {
+        document.body.classList.remove('dark');
+        const btn = document.getElementById('themeToggle');
+        if (btn) btn.textContent = '🌙 ダーク';
+    }
 }
 
 // === パレット選択機能 ===
