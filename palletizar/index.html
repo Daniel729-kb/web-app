@@ -228,12 +228,28 @@
         </div>
     </div>
 
-    <!-- Modular JavaScript Architecture -->
-    <script type="module" src="js/main.js"></script>
+    <!-- 
+    DUAL MODE JAVASCRIPT LOADING:
+    1. ES6 Modules (modern browsers with web server): js/main.js
+    2. Standalone (file:// protocol or older browsers): script.js
+    -->
     
-    <!-- Fallback for older browsers without module support -->
-    <script nomodule>
-        alert('このブラウザはES6モジュールに対応していません。最新のブラウザをご利用ください。');
+    <!-- ES6 Modules version (requires web server) -->
+    <script type="module">
+        // Test if we can load modules
+        try {
+            import('./js/main.js');
+            console.log('✅ Loading ES6 modules version');
+        } catch (error) {
+            console.warn('⚠️ ES6 modules failed, falling back to standalone version');
+            // Modules failed, load standalone script
+            const script = document.createElement('script');
+            script.src = 'script.js';
+            document.head.appendChild(script);
+        }
     </script>
+    
+    <!-- Fallback for browsers without module support -->
+    <script nomodule src="script.js"></script>
 </body>
 </html>
