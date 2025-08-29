@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>パレタイズ最適化計算機</title>
+    
+    <!-- Include the enhanced CSS -->
+    <link rel="stylesheet" href="palletizar-enhanced.css">
+    
+    <style>
+        /* Additional inline styles for immediate functionality */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            min-height: 100vh;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Dark mode styles */
+        body.dark-mode {
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+        
+        body.dark-mode .container {
+            background-color: #2a2a2a;
+        }
+        
+        body.dark-mode .summary-card {
+            background-color: #3a3a3a;
+        }
+        
+        body.dark-mode .btn-primary {
+            background-color: #4a6fa5;
+        }
+        
+        body.dark-mode .table {
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+        }
+        
+        body.dark-mode .table th {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+        }
+        
+        body.dark-mode .table td {
+            border-color: #444;
+        }
+        
+        body.dark-mode .form-input {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+        
+        body.dark-mode .add-form {
+            background-color: #3a3a3a;
+            border-color: #555;
+        }
+        
+        body.dark-mode .height-warning {
+            background-color: #4a3030;
+            border-color: #8a5050;
+        }
+        
+        body.dark-mode .info {
+            background-color: #3a3a3a;
+            border-color: #555;
+        }
+        
+        body.dark-mode .result-card {
+            background-color: #3a3a3a;
+            border-color: #555;
+        }
+        
+        body.dark-mode .pallet-item {
+            background-color: #3a3a3a;
+            border-color: #555;
+        }
+        
+        body.dark-mode .layer-info {
+            background-color: #4a4a4a;
+        }
+        
+        /* Loading spinner */
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+        
+        .loading-spinner.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Error message styles */
+        .error-message {
+            background-color: #fee;
+            border: 1px solid #fcc;
+            color: #c00;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .success-message {
+            background-color: #efe;
+            border: 1px solid #cfc;
+            color: #060;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>パレタイズ最適化計算機</h1>
+                <p class="subtitle">カートンの最適な積載パターンを自動計算</p>
+            </div>
+            <button class="btn btn-secondary dark-mode-icon" onclick="toggleDarkMode()">🌙</button>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+            <div class="summary-card blue">
+                <h3>総カートン数</h3>
+                <p id="totalCartons">0</p>
+            </div>
+            <div class="summary-card green">
+                <h3>総重量</h3>
+                <p id="totalWeight">0 kg</p>
+            </div>
+            <div class="summary-card purple">
+                <h3>アイテム数</h3>
+                <p id="itemCount">0 種類</p>
+            </div>
+            <div class="summary-card orange">
+                <h3>総体積</h3>
+                <p id="totalVolume">0 m³</p>
+            </div>
+        </div>
+
+        <!-- Height Limit Section -->
+        <div class="height-limit-section">
+            <h3>高さ制限設定</h3>
+            <div class="height-limit-controls">
+                <input type="range" id="heightLimitInput" min="50" max="250" value="158" class="form-input">
+                <span class="height-limit-display" id="heightLimitDisplay">158cm</span>
+            </div>
+            <div id="heightWarning" class="height-warning hidden"></div>
+        </div>
+
+        <!-- Pallet Selection -->
+        <div class="pallet-selection">
+            <h3>パレットサイズ選択</h3>
+            <div id="palletOptions"></div>
+            <div id="selectedPalletsInfo" class="info"></div>
+        </div>
+
+        <!-- Carton Management Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2>カートンデータ管理</h2>
+                <div class="btn-group">
+                    <button id="addButton" class="btn btn-primary" onclick="toggleAddForm()">+ カートン追加</button>
+                    <button id="importButton" class="btn btn-secondary" onclick="toggleImportArea()">📥 インポート</button>
+                    <button id="exportButton" class="btn btn-secondary" onclick="exportData()">📤 エクスポート</button>
+                    <button id="clearAllButton" class="btn btn-danger btn-sm" onclick="clearAllCartons()">🗑️ 全削除</button>
+                </div>
+            </div>
+
+            <!-- Add Form (Hidden by default) -->
+            <div id="addForm" class="add-form hidden">
+                <div class="form-grid">
+                    <input type="text" id="cartonCode" placeholder="カートンコード" class="form-input">
+                    <input type="number" id="cartonQty" placeholder="数量" class="form-input" min="1">
+                    <input type="number" id="cartonWeight" placeholder="重量(kg)" class="form-input" step="0.1">
+                    <input type="number" id="cartonLength" placeholder="長さ(cm)" class="form-input" step="0.1">
+                    <input type="number" id="cartonWidth" placeholder="幅(cm)" class="form-input" step="0.1">
+                    <input type="number" id="cartonHeight" placeholder="高さ(cm)" class="form-input" step="0.1">
+                </div>
+                <div class="btn-group">
+                    <button id="saveAddButton" class="btn btn-success" onclick="addCarton()">保存</button>
+                    <button id="cancelAddButton" class="btn btn-secondary" onclick="cancelAdd()">キャンセル</button>
+                </div>
+            </div>
+
+            <!-- Import Area (Hidden by default) -->
+            <div id="importArea" class="add-form hidden">
+                <p>CSVファイルをアップロードしてください（形式: カートンコード,数量,重量,長さ,幅,高さ）</p>
+                <input type="file" accept=".csv" id="csvFileInput" class="form-input">
+                <div class="btn-group mt-2">
+                    <button id="executeImportButton" class="btn btn-success" onclick="executeImport()">インポート実行</button>
+                    <button id="cancelImportButton" class="btn btn-secondary" onclick="cancelImport()">キャンセル</button>
+                </div>
+            </div>
+
+            <!-- Carton Table -->
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>カートンコード</th>
+                            <th class="center">数量</th>
+                            <th class="center">重量(kg)</th>
+                            <th class="center">長さ(cm)</th>
+                            <th class="center">幅(cm)</th>
+                            <th class="center">高さ(cm)</th>
+                            <th class="center">体積(m³)</th>
+                            <th class="center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cartonTableBody">
+                        <!-- Rows will be added dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Calculate Button -->
+        <div class="section text-center">
+            <button id="calculateButton" class="btn btn-primary btn-lg" onclick="calculate()">
+                🧮 最適化計算を実行
+            </button>
+        </div>
+
+        <!-- Results Container -->
+        <div id="resultsContainer" class="section hidden">
+            <!-- Results will be displayed here -->
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loadingSpinner">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        // =====================================
+        // Configuration
+        // =====================================
+        const PalletizerConfig = {
+            DEBUG_MODE: false,
+            
+            constraints: {
+                MAX_PALLET_WEIGHT: 1000, // kg
+                PALLET_BASE_HEIGHT: 14, // cm
+                DEFAULT_HEIGHT_LIMIT: 158, // cm (including pallet base)
+                MIN_HEIGHT_LIMIT: 50, // cm
+                MAX_HEIGHT_LIMIT: 250, // cm
+                MAX_CARTON_WEIGHT: 50, // kg per carton
+                MIN_CARTON_DIMENSION: 1, // cm
+                MAX_CARTON_DIMENSION: 200 // cm
+            },
+            
+            palletSizes: [
+                { 
+                    name: '1100×1000', 
+                    width: 110.0, 
+                    depth: 100.0, 
+                    description: '標準パレット',
+                    maxWeight: 1000
+                },
+                { 
+                    name: '1100×1100', 
+                    width: 110.0, 
+                    depth: 110.0, 
+                    description: '正方形パレット',
+                    maxWeight: 1000
+                },
+                { 
+                    name: '1200×1000', 
+                    width: 120.0, 
+                    depth: 100.0, 
+                    description: '大型パレット',
+                    maxWeight: 1200
+                },
+                { 
+                    name: '1200×1100', 
+                    width: 120.0, 
+                    depth: 110.0, 
+                    description: '特大パレット',
+                    maxWeight: 1200
+                }
+            ],
+            
+            ui: {
+                ANIMATION_DURATION: 300,
+                DEBOUNCE_DELAY: 300,
+                MAX_DISPLAY_ITEMS: 1000,
+                CHART_COLORS: [
+                    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', 
+                    '#FFEAA7', '#DDA0DD', '#98D8C8', '#FFD93D'
+                ]
+            },
+            
+            performance: {
+                ENABLE_CACHING: true,
+                CACHE_TTL: 300000, // 5 minutes
+                MAX_CACHE_SIZE: 50,
+                BATCH_SIZE: 100,
+                WORKER_ENABLED: false // Disabled for browser compatibility
+            },
+            
+            export: {
+                CSV_DELIMITER: ',',
+                CSV_ENCODING: 'UTF-8',
+                INCLUDE_HEADERS: true,
+                DATE_FORMAT: 'YYYY-MM-DD_HH-mm-ss'
+            },
+            
+            validation: {
+                REQUIRED_FIELDS: ['code', 'qty', 'weight', 'l', 'w', 'h'],
+                MAX_CODE_LENGTH: 50,
+                MIN_QTY: 1,
+                MAX_QTY: 10000
+            }
+        };
+
+        // =====================================
+        // Global State Management
+        // =====================================
+        const appState = {
+            cartons: [],
+            selectedPallets: [],
+            heightLimit: PalletizerConfig.constraints.DEFAULT_HEIGHT_LIMIT,
+            calculationResults: null,
+            isDarkMode: false,
+            isCalculating: false,
+            cache: new Map()
+        };
+
+        // =====================================
+        // Utility Functions
+        // =====================================
+        function log(message, level = 'info') {
+            if (PalletizerConfig.DEBUG_MODE) {
+                console[level](`[Palletizer] ${message}`);
+            }
+        }
+
+        function formatNumber(num, decimals = 2) {
+            return Number(num).toFixed(decimals);
+        }
+
+        function formatVolume(lengthCm, widthCm, heightCm) {
+            const volumeM3 = (lengthCm * widthCm * heightCm) / 1000000;
+            return formatNumber(volumeM3, 4);
+        }
+
+        function showLoading() {
+            document.getElementById('loadingSpinner').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingSpinner').classList.remove('active');
+        }
+
+        function showMessage(message, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+            messageDiv.textContent = message;
+            
+            const container = document.querySelector('.container');
+            container.insertBefore(messageDiv, container.firstChild);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        function validateCartonData(carton) {
+            const errors = [];
+            
+            if (!carton.code || carton.code.trim() === '') {
+                errors.push('カートンコードは必須です');
+            }
+            
+            if (!carton.qty || carton.qty < PalletizerConfig.validation.MIN_QTY) {
+                errors.push('数量は1以上である必要があります');
+            }
+            
+            if (!carton.weight || carton.weight <= 0) {
+                errors.push('重量は0より大きい必要があります');
+            }
+            
+            if (carton.weight > PalletizerConfig.constraints.MAX_CARTON_WEIGHT) {
+                errors.push(`重量は${PalletizerConfig.constraints.MAX_CARTON_WEIGHT}kg以下である必要があります`);
+            }
+            
+            if (!carton.l || !carton.w || !carton.h) {
+                errors.push('寸法（長さ、幅、高さ）は必須です');
+            }
+            
+            if (carton.l <= 0 || carton.w <= 0 || carton.h <= 0) {
+                errors.push('寸法は0より大きい必要があります');
+            }
+            
+            const maxDim = PalletizerConfig.constraints.MAX_CARTON_DIMENSION;
+            if (carton.l > maxDim || carton.w > maxDim || carton.h > maxDim) {
+                errors.push(`寸法は${maxDim}cm以下である必要があります`);
+            }
+            
+            return errors;
+        }
+
+        // =====================================
+        // Dark Mode Management
+        // =====================================
+        function toggleDarkMode() {
+            appState.isDarkMode = !appState.isDarkMode;
+            document.body.classList.toggle('dark-mode', appState.isDarkMode);
+            updateDarkModeIcon();
+            log('Dark mode toggled: ' + appState.isDarkMode);
+        }
+
+        function updateDarkModeIcon() {
+            const icon = document.querySelector('.dark-mode-icon');
+            if (icon) {
+                icon.textContent = appState.isDarkMode ? '☀️' : '🌙';
+            }
+        }
+
+        // =====================================
+        // Height Limit Management
+        // =====================================
+        function initializeHeightLimit() {
+            const input = document.getElementById('heightLimitInput');
+            const display = document.getElementById('heightLimitDisplay');
+            
+            if (input && display) {
+                input.value = appState.heightLimit;
+                display.textContent = `${appState.heightLimit}cm`;
+                
+                input.addEventListener('input', function() {
+                    appState.heightLimit = parseInt(this.value);
+                    display.textContent = `${appState.heightLimit}cm`;
+                    checkHeightWarning();
+                });
+            }
+            
+            checkHeightWarning();
+        }
+
+        function checkHeightWarning() {
+            const warningDiv = document.getElementById('heightWarning');
+            const maxCartonHeight = getMaxCartonHeight();
+            
+            if (warningDiv) {
+                if (maxCartonHeight > appState.heightLimit - PalletizerConfig.constraints.PALLET_BASE_HEIGHT) {
+                    warningDiv.textContent = `⚠️ 警告: カートンの最大高さ(${maxCartonHeight}cm)が制限を超えています`;
+                    warningDiv.classList.remove('hidden');
+                } else {
+                    warningDiv.classList.add('hidden');
+                }
+            }
+        }
+
+        function getMaxCartonHeight() {
+            if (appState.cartons.length === 0) return 0;
+            return Math.max(...appState.cartons.map(c => c.h));
+        }
+
+        // =====================================
+        // Pallet Selection Management
+        // =====================================
+        function initializePalletSelection() {
+            const palletOptionsDiv = document.getElementById('palletOptions');
+            if (!palletOptionsDiv) return;
+            
+            palletOptionsDiv.innerHTML = '';
+            
+            PalletizerConfig.palletSizes.forEach((pallet, index) => {
+                const option = document.createElement('div');
+                option.className = 'pallet-option';
+                option.innerHTML = `
+                    <label>
+                        <input type="checkbox" value="${index}" onchange="togglePalletSelection(${index})">
+                        <span>${pallet.name} - ${pallet.description}</span>
+                    </label>
+                `;
+                palletOptionsDiv.appendChild(option);
+            });
+            
+            // Select first pallet by default
+            if (PalletizerConfig.palletSizes.length > 0) {
+                togglePalletSelection(0);
+            }
+        }
+
+        function togglePalletSelection(index) {
+            const checkbox = document.querySelector(`input[value="${index}"]`);
+            if (checkbox) {
+                if (checkbox.checked) {
+                    if (!appState.selectedPallets.includes(index)) {
+                        appState.selectedPallets.push(index);
+                    }
+                } else {
+                    appState.selectedPallets = appState.selectedPallets.filter(i => i !== index);
+                }
+                updateSelectedPalletsInfo();
+            }
+        }
+
+        function updateSelectedPalletsInfo() {
+            const infoDiv = document.getElementById('selectedPalletsInfo');
+            if (!infoDiv) return;
+            
+            if (appState.selectedPallets.length === 0) {
+                infoDiv.innerHTML = '<p>⚠️ パレットサイズを選択してください</p>';
+                infoDiv.className = 'info warning';
+            } else {
+                const selectedNames = appState.selectedPallets
+                    .map(i => PalletizerConfig.palletSizes[i].name)
+                    .join(', ');
+                infoDiv.innerHTML = `<p>選択中: ${selectedNames}</p>`;
+                infoDiv.className = 'info';
+            }
+        }
+
+        // =====================================
+        // Carton Management
+        // =====================================
+        function toggleAddForm() {
+            const form = document.getElementById('addForm');
+            if (form) {
+                form.classList.toggle('hidden');
+                if (!form.classList.contains('hidden')) {
+                    document.getElementById('cartonCode')?.focus();
+                }
+            }
+        }
+
+        function toggleImportArea() {
+            const area = document.getElementById('importArea');
+            if (area) {
+                area.classList.toggle('hidden');
+            }
+        }
+
+        function addCarton() {
+            const code = document.getElementById('cartonCode')?.value.trim();
+            const qty = parseInt(document.getElementById('cartonQty')?.value) || 0;
+            const weight = parseFloat(document.getElementById('cartonWeight')?.value) || 0;
+            const length = parseFloat(document.getElementById('cartonLength')?.value) || 0;
+            const width = parseFloat(document.getElementById('cartonWidth')?.value) || 0;
+            const height = parseFloat(document.getElementById('cartonHeight')?.value) || 0;
+            
+            const carton = {
+                code: code,
+                qty: qty,
+                weight: weight,
+                l: length,
+                w: width,
+                h: height
+            };
+            
+            const errors = validateCartonData(carton);
+            if (errors.length > 0) {
+                showMessage(errors.join(', '), 'error');
+                return;
+            }
+            
+            // Check for duplicate
+            const existingIndex = appState.cartons.findIndex(c => c.code === code);
+            if (existingIndex >= 0) {
+                if (confirm(`カートンコード "${code}" は既に存在します。更新しますか？`)) {
+                    appState.cartons[existingIndex] = carton;
+                } else {
+                    return;
+                }
+            } else {
+                appState.cartons.push(carton);
+            }
+            
+            updateTable();
+            updateSummary();
+            clearInputs();
+            toggleAddForm();
+            showMessage('カートンを追加しました', 'success');
+        }
+
+        function clearInputs() {
+            ['cartonCode', 'cartonQty', 'cartonWeight', 'cartonLength', 'cartonWidth', 'cartonHeight']
+                .forEach(id => {
+                    const elem = document.getElementById(id);
+                    if (elem) elem.value = '';
+                });
+        }
+
+        function cancelAdd() {
+            clearInputs();
+            toggleAddForm();
+        }
+
+        function deleteCarton(index) {
+            if (confirm('このカートンを削除しますか？')) {
+                appState.cartons.splice(index, 1);
+                updateTable();
+                updateSummary();
+                showMessage('カートンを削除しました', 'success');
+            }
+        }
+
+        function clearAllCartons() {
+            if (appState.cartons.length === 0) {
+                showMessage('削除するカートンがありません', 'error');
+                return;
+            }
+            
+            if (confirm(`全ての${appState.cartons.length}個のカートンを削除しますか？`)) {
+                appState.cartons = [];
+                updateTable();
+                updateSummary();
+                showMessage('全てのカートンを削除しました', 'success');
+            }
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('cartonTableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            appState.cartons.forEach((carton, index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${carton.code}</td>
+                    <td class="center">${carton.qty}</td>
+                    <td class="center">${formatNumber(carton.weight, 1)}</td>
+                    <td class="center">${formatNumber(carton.l, 1)}</td>
+                    <td class="center">${formatNumber(carton.w, 1)}</td>
+                    <td class="center">${formatNumber(carton.h, 1)}</td>
+                    <td class="center">${formatVolume(carton.l, carton.w, carton.h)}</td>
+                    <td class="center">
+                        <button class="btn btn-danger btn-sm" onclick="deleteCarton(${index})">削除</button>
+                    </td>
+                `;
+            });
+            
+            checkHeightWarning();
+        }
+
+        function updateSummary() {
+            const totalCartons = appState.cartons.reduce((sum, c) => sum + c.qty, 0);
+            const totalWeight = appState.cartons.reduce((sum, c) => sum + (c.qty * c.weight), 0);
+            const totalVolume = appState.cartons.reduce((sum, c) => {
+                return sum + (c.qty * c.l * c.w * c.h / 1000000);
+            }, 0);
+            
+            document.getElementById('totalCartons').textContent = totalCartons.toLocaleString();
+            document.getElementById('totalWeight').textContent = `${formatNumber(totalWeight, 1)} kg`;
+            document.getElementById('itemCount').textContent = `${appState.cartons.length} 種類`;
+            document.getElementById('totalVolume').textContent = `${formatNumber(totalVolume, 3)} m³`;
+        }
+
+        // =====================================
+        // Import/Export Functions
+        // =====================================
+        function executeImport() {
+            const fileInput = document.getElementById('csvFileInput');
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                showMessage('CSVファイルを選択してください', 'error');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const text = e.target.result;
+                    const lines = text.split('\n').filter(line => line.trim());
+                    
+                    const newCartons = [];
+                    let hasHeader = false;
+                    
+                    // Check if first line is header
+                    const firstLine = lines[0].split(',');
+                    if (isNaN(parseFloat(firstLine[1]))) {
+                        hasHeader = true;
+                    }
+                    
+                    const startIndex = hasHeader ? 1 : 0;
+                    
+                    for (let i = startIndex; i < lines.length; i++) {
+                        const parts = lines[i].split(',').map(p => p.trim());
+                        
+                        if (parts.length >= 6) {
+                            const carton = {
+                                code: parts[0],
+                                qty: parseInt(parts[1]) || 0,
+                                weight: parseFloat(parts[2]) || 0,
+                                l: parseFloat(parts[3]) || 0,
+                                w: parseFloat(parts[4]) || 0,
+                                h: parseFloat(parts[5]) || 0
+                            };
+                            
+                            const errors = validateCartonData(carton);
+                            if (errors.length === 0) {
+                                newCartons.push(carton);
+                            } else {
+                                log(`Line ${i + 1} validation errors: ${errors.join(', ')}`, 'warn');
+                            }
+                        }
+                    }
+                    
+                    if (newCartons.length > 0) {
+                        appState.cartons = appState.cartons.concat(newCartons);
+                        updateTable();
+                        updateSummary();
+                        showMessage(`${newCartons.length}個のカートンをインポートしました`, 'success');
+                        cancelImport();
+                    } else {
+                        showMessage('有効なカートンデータが見つかりませんでした', 'error');
+                    }
+                    
+                } catch (error) {
+                    showMessage('CSVファイルの読み込みに失敗しました: ' + error.message, 'error');
+                    log('Import error: ' + error, 'error');
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+
+        function cancelImport() {
+            document.getElementById('csvFileInput').value = '';
+            toggleImportArea();
+        }
+
+        function exportData() {
+            if (appState.cartons.length === 0) {
+                showMessage('エクスポートするデータがありません', 'error');
+                return;
+            }
+            
+            let csv = 'カートンコード,数量,重量(kg),長さ(cm),幅(cm),高さ(cm),体積(m³)\n';
+            
+            appState.cartons.forEach(carton => {
+                const volume = formatVolume(carton.l, carton.w, carton.h);
+                csv += `${carton.code},${carton.qty},${carton.weight},${carton.l},${carton.w},${carton.h},${volume}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            
+            link.href = URL.createObjectURL(blob);
+            link.download = `palletizer_data_${timestamp}.csv`;
+            link.click();
+            
+            showMessage('データをエクスポートしました', 'success');
+        }
+
+        // =====================================
+        // Calculation Engine
+        // =====================================
+        function calculate() {
+            if (appState.cartons.length === 0) {
+                showMessage('計算するカートンデータがありません', 'error');
+                return;
+            }
+            
+            if (appState.selectedPallets.length === 0) {
+                showMessage('パレットサイズを選択してください', 'error');
+                return;
+            }
+            
+            if (appState.isCalculating) {
+                showMessage('計算中です。しばらくお待ちください。', 'error');
+                return;
+            }
+            
+            appState.isCalculating = true;
+            showLoading();
+            
+            // Use setTimeout to allow UI to update
+            setTimeout(() => {
+                try {
+                    const results = performCalculation();
+                    displayResults(results);
+                    appState.calculationResults = results;
+                    showMessage('計算が完了しました', 'success');
+                } catch (error) {
+                    showMessage('計算中にエラーが発生しました: ' + error.message, 'error');
+                    log('Calculation error: ' + error, 'error');
+                } finally {
+                    appState.isCalculating = false;
+                    hideLoading();
+                }
+            }, 100);
+        }
+
+        function performCalculation() {
+            const results = [];
+            const selectedPalletSizes = appState.selectedPallets.map(i => PalletizerConfig.palletSizes[i]);
+            
+            selectedPalletSizes.forEach(palletSize => {
+                const result = calculateForPallet(palletSize);
+                results.push(result);
+            });
+            
+            return results;
+        }
+
+        function calculateForPallet(palletSize) {
+            const maxStackHeight = appState.heightLimit - PalletizerConfig.constraints.PALLET_BASE_HEIGHT;
+            const pallets = [];
+            let remainingCartons = [];
+            
+            // Create a working copy of cartons with individual items
+            appState.cartons.forEach(carton => {
+                for (let i = 0; i < carton.qty; i++) {
+                    remainingCartons.push({...carton, qty: 1});
+                }
+            });
+            
+            // Sort by volume (largest first) for better packing
+            remainingCartons.sort((a, b) => {
+                const volA = a.l * a.w * a.h;
+                const volB = b.l * b.w * b.h;
+                return volB - volA;
+            });
+            
+            while (remainingCartons.length > 0) {
+                const pallet = createNewPallet(palletSize);
+                
+                // Try to fit cartons into this pallet
+                const toRemove = [];
+                
+                for (let i = 0; i < remainingCartons.length; i++) {
+                    const carton = remainingCartons[i];
+                    
+                    if (tryAddCartonToPallet(pallet, carton, maxStackHeight)) {
+                        toRemove.push(i);
+                    }
+                }
+                
+                // Remove packed cartons
+                for (let i = toRemove.length - 1; i >= 0; i--) {
+                    remainingCartons.splice(toRemove[i], 1);
+                }
+                
+                if (pallet.cartons.length > 0) {
+                    pallets.push(pallet);
+                } else {
+                    // No cartons could fit, break to avoid infinite loop
+                    break;
+                }
+            }
+            
+            return {
+                palletSize: palletSize,
+                pallets: pallets,
+                totalPallets: pallets.length,
+                remainingCartons: remainingCartons,
+                efficiency: calculateEfficiency(pallets, palletSize, maxStackHeight)
+            };
+        }
+
+        function createNewPallet(palletSize) {
+            return {
+                size: palletSize,
+                layers: [],
+                cartons: [],
+                totalWeight: 0,
+                currentHeight: 0
+            };
+        }
+
+        function tryAddCartonToPallet(pallet, carton, maxHeight) {
+            // Check weight constraint
+            if (pallet.totalWeight + carton.weight > pallet.size.maxWeight) {
+                return false;
+            }
+            
+            // Check height constraint
+            if (pallet.currentHeight + carton.h > maxHeight) {
+                return false;
+            }
+            
+            // Simple placement strategy - could be improved with more sophisticated algorithms
+            // For now, just check if carton fits within pallet dimensions
+            const fits = (carton.l <= pallet.size.width && carton.w <= pallet.size.depth) ||
+                        (carton.w <= pallet.size.width && carton.l <= pallet.size.depth);
+            
+            if (fits) {
+                pallet.cartons.push(carton);
+                pallet.totalWeight += carton.weight;
+                
+                // Update height (simple stacking for now)
+                if (pallet.layers.length === 0 || 
+                    pallet.layers[pallet.layers.length - 1].height < carton.h) {
+                    pallet.layers.push({ height: carton.h, cartons: [carton] });
+                    pallet.currentHeight += carton.h;
+                } else {
+                    pallet.layers[pallet.layers.length - 1].cartons.push(carton);
+                }
+                
+                return true;
+            }
+            
+            return false;
+        }
+
+        function calculateEfficiency(pallets, palletSize, maxHeight) {
+            if (pallets.length === 0) return 0;
+            
+            const totalVolume = pallets.reduce((sum, pallet) => {
+                return sum + pallet.cartons.reduce((pSum, carton) => {
+                    return pSum + (carton.l * carton.w * carton.h);
+                }, 0);
+            }, 0);
+            
+            const availableVolume = pallets.length * palletSize.width * palletSize.depth * maxHeight;
+            
+            return (totalVolume / availableVolume) * 100;
+        }
+
+        // =====================================
+        // Results Display
+        // =====================================
+        function displayResults(results) {
+            const container = document.getElementById('resultsContainer');
+            if (!container) return;
+            
+            container.innerHTML = '<h2>計算結果</h2>';
+            container.classList.remove('hidden');
+            
+            results.forEach((result, index) => {
+                const resultCard = document.createElement('div');
+                resultCard.className = 'result-card';
+                
+                const efficiency = formatNumber(result.efficiency, 1);
+                const remainingCount = result.remainingCartons.length;
+                
+                resultCard.innerHTML = `
+                    <div class="result-header">
+                        <h3>パレットサイズ: ${result.palletSize.name}</h3>
+                        <div class="result-stats">
+                            <span class="stat">必要パレット数: <strong>${result.totalPallets}</strong></span>
+                            <span class="stat">積載効率: <strong>${efficiency}%</strong></span>
+                            ${remainingCount > 0 ? `<span class="stat warning">未積載: <strong>${remainingCount}個</strong></span>` : ''}
+                        </div>
+                    </div>
+                    <div class="pallet-details" id="palletDetails_${index}">
+                        ${generatePalletDetails(result)}
+                    </div>
+                `;
+                
+                container.appendChild(resultCard);
+            });
+            
+            // Scroll to results
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function generatePalletDetails(result) {
+            let html = '';
+            
+            result.pallets.forEach((pallet, palletIndex) => {
+                const totalWeight = formatNumber(pallet.totalWeight, 1);
+                const totalHeight = formatNumber(pallet.currentHeight + PalletizerConfig.constraints.PALLET_BASE_HEIGHT, 1);
+                
+                html += `
+                    <div class="pallet-item">
+                        <h4>パレット ${palletIndex + 1}</h4>
+                        <div class="pallet-info">
+                            <span>カートン数: ${pallet.cartons.length}個</span>
+                            <span>総重量: ${totalWeight}kg</span>
+                            <span>高さ: ${totalHeight}cm</span>
+                        </div>
+                        <div class="layer-details">
+                            ${generateLayerDetails(pallet.layers)}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            if (result.remainingCartons.length > 0) {
+                html += `
+                    <div class="remaining-items">
+                        <h4>未積載カートン</h4>
+                        <ul>
+                            ${result.remainingCartons.map(c => `<li>${c.code}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            return html;
+        }
+
+        function generateLayerDetails(layers) {
+            let html = '';
+            
+            layers.forEach((layer, layerIndex) => {
+                const cartonCodes = layer.cartons.map(c => c.code).join(', ');
+                html += `
+                    <div class="layer-info">
+                        <strong>第${layerIndex + 1}層:</strong> 
+                        高さ ${formatNumber(layer.height, 1)}cm - 
+                        ${layer.cartons.length}個 
+                        <span class="carton-codes">(${cartonCodes})</span>
+                    </div>
+                `;
+            });
+            
+            return html;
+        }
+
+        // =====================================
+        // Initialization
+        // =====================================
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Initializing Palletizer Application');
+            
+            // Initialize components
+            initializeHeightLimit();
+            initializePalletSelection();
+            updateSummary();
+            updateTable();
+            
+            // Set initial dark mode state
+            updateDarkModeIcon();
+            
+            log('Palletizer Application initialized');
+        });
+
+        // =====================================
+        // Error Handling
+        // =====================================
+        window.addEventListener('error', function(event) {
+            log('Global error: ' + event.error, 'error');
+            showMessage('エラーが発生しました。ページを再読み込みしてください。', 'error');
+        });
+
+        window.addEventListener('unhandledrejection', function(event) {
+            log('Unhandled promise rejection: ' + event.reason, 'error');
+            showMessage('非同期エラーが発生しました。', 'error');
+        });
+    </script>
+</body>
+</html>
