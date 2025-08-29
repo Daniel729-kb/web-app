@@ -115,8 +115,89 @@ function getMaxTotalHeight() {
     return maxHeightLimit;
 }
 
-// 初期化
+// === エラーハンドリングの強化 ===
+function safeExecute(func, fallback = null, context = 'function') {
+    try {
+        return func();
+    } catch (error) {
+        console.error(`Error in ${context}:`, error);
+        if (fallback) {
+            return fallback;
+        }
+        return null;
+    }
+}
+
+// === グローバルエラーハンドリング ===
+window.addEventListener('error', function(event) {
+    console.error('Global error:', event.error);
+    
+    // ユーザーフレンドリーなエラーメッセージを表示
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-error';
+    errorDiv.innerHTML = `
+        <strong>⚠️ 予期しないエラーが発生しました</strong><br>
+        エラー: ${event.error.message}<br>
+        <small>ページを再読み込みするか、ブラウザを再起動してください。</small>
+    `;
+    
+    const errorsContainer = document.getElementById('errors');
+    if (errorsContainer) {
+        errorsContainer.appendChild(errorDiv);
+    }
+});
+
+// === 未定義関数のチェック ===
+function checkMissingFunctions() {
+    const requiredFunctions = [
+        'updatePalletSelectors',
+        'updateCombinePreview', 
+        'combinePallets',
+        'autoOptimizePallets',
+        'analyzeSelectedPallets',
+        'showDiagramView',
+        'scrollToPallet',
+        'setHeightLimit',
+        'saveEdit',
+        'cancelEdit',
+        'startEdit',
+        'deleteCarton'
+    ];
+    
+    const missingFunctions = requiredFunctions.filter(funcName => 
+        typeof window[funcName] !== 'function'
+    );
+    
+    if (missingFunctions.length > 0) {
+        console.error('Missing functions:', missingFunctions);
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'alert alert-error';
+        errorDiv.innerHTML = `
+            <strong>⚠️ 必要な関数が不足しています</strong><br>
+            不足している関数: ${missingFunctions.join(', ')}<br>
+            <small>ページを再読み込みしてください。</small>
+        `;
+        
+        const errorsContainer = document.getElementById('errors');
+        if (errorsContainer) {
+            errorsContainer.appendChild(errorDiv);
+        }
+        return false;
+    }
+    
+    return true;
+}
+
+// ページ読み込み時に関数の存在をチェック
 document.addEventListener('DOMContentLoaded', function() {
+    if (!checkMissingFunctions()) {
+        console.error('Critical functions missing - app may not work properly');
+        return;
+    }
+    
+    console.log('✅ All required functions are available');
+    
+    // 通常の初期化処理
     updateTable();
     updateSummary();
     setupEventListeners();
@@ -2799,4 +2880,186 @@ function updatePalletSelectors() {
     if (previewDiv) {
         previewDiv.innerHTML = '';
     }
+}
+
+function updateCombinePreview() {
+    const pallet1Index = parseInt(document.getElementById('pallet1Select').value);
+    const pallet2Index = parseInt(document.getElementById('pallet2Select').value);
+    const previewDiv = document.getElementById('combinePreview');
+    
+    if (isNaN(pallet1Index) || isNaN(pallet2Index) || pallet1Index === pallet2Index) {
+        if (previewDiv) previewDiv.innerHTML = '';
+        return;
+    }
+    
+    if (!window.currentPallets || !window.currentPallets[pallet1Index] || !window.currentPallets[pallet2Index]) {
+        if (previewDiv) previewDiv.innerHTML = '<span style="color: #dc2626;">パレットデータが見つかりません</span>';
+        return;
+    }
+    
+    const pallet1 = window.currentPallets[pallet1Index];
+    const pallet2 = window.currentPallets[pallet2Index];
+    
+    const totalCartons = pallet1.cartons.length + pallet2.cartons.length;
+    const totalWeight = pallet1.totalWeight + pallet2.totalWeight;
+    const maxHeight = Math.max(pallet1.height, pallet2.height);
+    
+    if (previewDiv) {
+        previewDiv.innerHTML = `
+            <div style="margin-top: 10px; padding: 10px; background-color: #f0f9ff; border-radius: 6px;">
+                <strong>結合プレビュー:</strong><br>
+                総カートン数: ${totalCartons}個<br>
+                総重量: ${totalWeight.toFixed(1)}kg<br>
+                最大高さ: ${maxHeight.toFixed(1)}cm<br>
+                <small style="color: #666;">※ 実際の結合は「パレット結合」ボタンをクリックしてください</small>
+            </div>
+        `;
+    }
+}
+
+function combinePallets() {
+    const pallet1Index = parseInt(document.getElementById('pallet1Select').value);
+    const pallet2Index = parseInt(document.getElementById('pallet2Select').value);
+    
+    if (isNaN(pallet1Index) || isNaN(pallet2Index) || pallet1Index === pallet2Index) {
+        alert('異なる2つのパレットを選択してください。');
+        return;
+    }
+    
+    if (!window.currentPallets || !window.currentPallets[pallet1Index] || !window.currentPallets[pallet2Index]) {
+        alert('パレットデータが見つかりません。');
+        return;
+    }
+    
+    const pallet1 = window.currentPallets[pallet1Index];
+    const pallet2 = window.currentPallets[pallet2Index];
+    
+    // 結合後のパレットを作成
+    const combinedPallet = {
+        palletSize: pallet1.palletSize, // 最初のパレットのサイズを使用
+        cartons: [...pallet1.cartons, ...pallet2.cartons],
+        layers: [...pallet1.layers, ...pallet2.layers],
+        height: Math.max(pallet1.height, pallet2.height),
+        totalWeight: pallet1.totalWeight + pallet2.totalWeight
+    };
+    
+    // 元のパレットを削除
+    const removeIndices = [pallet1Index, pallet2Index].sort((a, b) => b - a);
+    removeIndices.forEach(index => {
+        window.currentPallets.splice(index, 1);
+    });
+    
+    // 結合後のパレットを追加
+    window.currentPallets.push(combinedPallet);
+    
+    // 結果を更新
+    displayResults(window.currentPallets);
+    buildSummaryTable(window.currentPallets);
+    updatePalletSelectors();
+    
+    // 成功メッセージ
+    const successDiv = document.createElement('div');
+    successDiv.className = 'alert alert-success';
+    successDiv.innerHTML = `🔄 パレット結合完了！<br>パレット数: ${removeIndices.length}枚 → 1枚`;
+    document.getElementById('errors').appendChild(successDiv);
+    
+    // 3秒後に自動削除
+    setTimeout(() => {
+        if (successDiv.parentNode) {
+            successDiv.remove();
+        }
+    }, 3000);
+}
+
+function autoOptimizePallets() {
+    if (!window.currentPallets || window.currentPallets.length < 2) {
+        alert('最適化するパレットが不足しています（2枚以上必要）。');
+        return;
+    }
+    
+    // 簡単な最適化: 最も効率の悪い2つのパレットを結合
+    let worstPallet1 = 0;
+    let worstPallet2 = 1;
+    let worstEfficiency = Infinity;
+    
+    for (let i = 0; i < window.currentPallets.length; i++) {
+        for (let j = i + 1; j < window.currentPallets.length; j++) {
+            const pallet1 = window.currentPallets[i];
+            const pallet2 = window.currentPallets[j];
+            
+            // 効率計算（カートン数が少ないほど効率が悪い）
+            const efficiency = pallet1.cartons.length + pallet2.cartons.length;
+            
+            if (efficiency < worstEfficiency) {
+                worstEfficiency = efficiency;
+                worstPallet1 = i;
+                worstPallet2 = j;
+            }
+        }
+    }
+    
+    // 最適化候補を表示
+    const confirmMessage = `🔍 自動最適化候補を発見しました！\n\n` +
+        `📦 パレット${worstPallet1 + 1}: ${window.currentPallets[worstPallet1].cartons.length}個\n` +
+        `📦 パレット${worstPallet2 + 1}: ${window.currentPallets[worstPallet2].cartons.length}個\n\n` +
+        `🔄 結合後予想: ${worstEfficiency}個\n` +
+        `💡 パレット数: 2枚 → 1枚 (50%削減)\n\n` +
+        `この最適化を実行しますか？`;
+    
+    if (confirm(confirmMessage)) {
+        document.getElementById('pallet1Select').value = worstPallet1;
+        document.getElementById('pallet2Select').value = worstPallet2;
+        updateCombinePreview();
+        combinePallets();
+    }
+}
+
+function analyzeSelectedPallets() {
+    const pallet1Index = parseInt(document.getElementById('pallet1Select').value);
+    const pallet2Index = parseInt(document.getElementById('pallet2Select').value);
+    
+    if (isNaN(pallet1Index) || isNaN(pallet2Index) || pallet1Index === pallet2Index) {
+        alert('分析する2つのパレットを選択してください。');
+        return;
+    }
+    
+    if (!window.currentPallets || !window.currentPallets[pallet1Index] || !window.currentPallets[pallet2Index]) {
+        alert('パレットデータが見つかりません。');
+        return;
+    }
+    
+    const pallet1 = window.currentPallets[pallet1Index];
+    const pallet2 = window.currentPallets[pallet2Index];
+    
+    let analysisMessage = `🔍 パレット${pallet1Index + 1}とパレット${pallet2Index + 1}の分析結果\n\n`;
+    
+    analysisMessage += `📊 基本情報:\n`;
+    analysisMessage += `  パレット${pallet1Index + 1}: ${pallet1.cartons.length}個, ${pallet1.height.toFixed(1)}cm, ${pallet1.totalWeight.toFixed(1)}kg\n`;
+    analysisMessage += `  パレット${pallet2Index + 1}: ${pallet2.cartons.length}個, ${pallet2.height.toFixed(1)}cm, ${pallet2.totalWeight.toFixed(1)}kg\n`;
+    
+    analysisMessage += `\n🔄 結合分析:\n`;
+    analysisMessage += `  総カートン数: ${pallet1.cartons.length + pallet2.cartons.length}個\n`;
+    analysisMessage += `  総重量: ${(pallet1.totalWeight + pallet2.totalWeight).toFixed(1)}kg\n`;
+    analysisMessage += `  最大高さ: ${Math.max(pallet1.height, pallet2.height).toFixed(1)}cm\n`;
+    
+    // 貨物種類の分析
+    const codes1 = [...new Set(pallet1.cartons.map(c => c.code))];
+    const codes2 = [...new Set(pallet2.cartons.map(c => c.code))];
+    const allCodes = [...new Set([...codes1, ...codes2])];
+    
+    analysisMessage += `  貨物種類: ${allCodes.length}種類 (${allCodes.join(', ')})\n`;
+    
+    // 結合の推奨度
+    const heightDiff = Math.abs(pallet1.height - pallet2.height);
+    const weightSum = pallet1.totalWeight + pallet2.totalWeight;
+    
+    if (heightDiff <= 10 && weightSum <= 800) {
+        analysisMessage += `\n✅ 結合推奨: 高さ差が小さく、重量も適切です。`;
+    } else if (heightDiff <= 20 && weightSum <= 1000) {
+        analysisMessage += `\n⚠️ 結合要検討: 高さ差または重量が大きいです。`;
+    } else {
+        analysisMessage += `\n❌ 結合非推奨: 高さ差または重量が大きすぎます。`;
+    }
+    
+    alert(analysisMessage);
 }

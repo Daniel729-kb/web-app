@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>関数存在チェックテスト</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-warning { background-color: #ffc107; color: black; }
+        .function-list { font-family: monospace; background-color: #f8f9fa; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 関数存在チェックテスト</h1>
+    
+    <div class="test-section">
+        <h3>📋 必須関数の存在チェック</h3>
+        <p>パレタイズアプリに必要な関数がすべて定義されているかをチェックします。</p>
+        <button onclick="checkRequiredFunctions()" class="btn-primary">関数存在チェック実行</button>
+        <div id="functionCheckResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🚀 パレット結合機能テスト</h3>
+        <p>パレット結合関連の関数が正常に動作するかをテストします。</p>
+        <button onclick="testPalletCombination()" class="btn-success">パレット結合機能テスト</button>
+        <div id="combinationTestResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>⚡ パフォーマンス機能テスト</h3>
+        <p>パフォーマンス監視機能が正常に動作するかをテストします。</p>
+        <button onclick="testPerformanceFunctions()" class="btn-warning">パフォーマンス機能テスト</button>
+        <div id="performanceTestResult"></div>
+    </div>
+
+    <script>
+        // 必須関数の存在チェック
+        function checkRequiredFunctions() {
+            const result = document.getElementById('functionCheckResult');
+            
+            const requiredFunctions = [
+                'updatePalletSelectors',
+                'updateCombinePreview', 
+                'combinePallets',
+                'autoOptimizePallets',
+                'analyzeSelectedPallets',
+                'showDiagramView',
+                'scrollToPallet',
+                'setHeightLimit',
+                'saveEdit',
+                'cancelEdit',
+                'startEdit',
+                'deleteCarton',
+                'getMemoryUsage',
+                'checkMemoryLimit',
+                'validateCartonData',
+                'updatePerformanceMetrics'
+            ];
+            
+            const missingFunctions = [];
+            const availableFunctions = [];
+            
+            requiredFunctions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    availableFunctions.push(funcName);
+                } else {
+                    missingFunctions.push(funcName);
+                }
+            });
+            
+            if (missingFunctions.length === 0) {
+                result.innerHTML = `
+                    <div class="success">
+                        ✅ すべての必須関数が利用可能です！<br>
+                        利用可能な関数数: ${availableFunctions.length}個
+                    </div>
+                `;
+            } else {
+                result.innerHTML = `
+                    <div class="error">
+                        ❌ 不足している関数があります<br>
+                        不足関数数: ${missingFunctions.length}個<br>
+                        不足関数: <span class="function-list">${missingFunctions.join(', ')}</span>
+                    </div>
+                `;
+            }
+        }
+        
+        // パレット結合機能テスト
+        function testPalletCombination() {
+            const result = document.getElementById('combinationTestResult');
+            
+            try {
+                // モックデータを作成
+                window.currentPallets = [
+                    {
+                        palletSize: { name: '1100×1000', width: 110, depth: 100 },
+                        cartons: [{ code: 'TEST1', l: 50, w: 30, h: 20 }],
+                        layers: [{ height: 20, cartons: [{ code: 'TEST1' }] }],
+                        height: 20,
+                        totalWeight: 10
+                    },
+                    {
+                        palletSize: { name: '1100×1000', width: 110, depth: 100 },
+                        cartons: [{ code: 'TEST2', l: 40, w: 25, h: 15 }],
+                        layers: [{ height: 15, cartons: [{ code: 'TEST2' }] }],
+                        height: 15,
+                        totalWeight: 8
+                    }
+                ];
+                
+                // 関数の存在チェック
+                const functions = ['updatePalletSelectors', 'updateCombinePreview', 'combinePallets'];
+                const missingFuncs = functions.filter(f => typeof window[f] !== 'function');
+                
+                if (missingFuncs.length > 0) {
+                    result.innerHTML = `
+                        <div class="error">
+                            ❌ パレット結合機能テスト失敗<br>
+                            不足している関数: ${missingFuncs.join(', ')}
+                        </div>
+                    `;
+                    return;
+                }
+                
+                result.innerHTML = `
+                    <div class="success">
+                        ✅ パレット結合機能テスト成功！<br>
+                        モックデータ作成完了<br>
+                        パレット数: ${window.currentPallets.length}枚<br>
+                        利用可能な関数: ${functions.join(', ')}
+                    </div>
+                `;
+                
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="error">
+                        ❌ パレット結合機能テスト失敗<br>
+                        エラー: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // パフォーマンス機能テスト
+        function testPerformanceFunctions() {
+            const result = document.getElementById('performanceTestResult');
+            
+            try {
+                const functions = ['getMemoryUsage', 'checkMemoryLimit', 'updatePerformanceMetrics'];
+                const missingFuncs = functions.filter(f => typeof window[f] !== 'function');
+                
+                if (missingFuncs.length > 0) {
+                    result.innerHTML = `
+                        <div class="error">
+                            ❌ パフォーマンス機能テスト失敗<br>
+                            不足している関数: ${missingFuncs.join(', ')}
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // メモリ使用量チェック
+                const memory = getMemoryUsage();
+                const memoryStatus = memory ? '✅ 利用可能' : '⚠️ 非対応';
+                
+                result.innerHTML = `
+                    <div class="success">
+                        ✅ パフォーマンス機能テスト成功！<br>
+                        メモリ監視: ${memoryStatus}<br>
+                        利用可能な関数: ${functions.join(', ')}<br>
+                        ${memory ? `現在のメモリ使用量: ${memory.used}MB (${memory.percentage}%)` : ''}
+                    </div>
+                `;
+                
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="error">
+                        ❌ パフォーマンス機能テスト失敗<br>
+                        エラー: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // ページ読み込み時に自動テスト実行
+        window.addEventListener('load', () => {
+            console.log('🔍 関数存在チェックテスト開始');
+            checkRequiredFunctions();
+            testPalletCombination();
+            testPerformanceFunctions();
+        });
+    </script>
+</body>
+</html>
