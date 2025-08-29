@@ -924,14 +924,33 @@ function findOptimalPalletConfiguration(availableItems) {
     console.log(`少数貨物: ${smallQuantityItems.map(item => `${item.code}(${item.remaining}個, ${item.h}cm)`).join(', ')}`);
     console.log(`大量貨物: ${largeQuantityItems.map(item => `${item.code}(${item.remaining}個, ${item.h}cm)`).join(', ')}`);
 
+    // 🔧 パレットサイズ最適化（改善4）
+    const optimalPalletSize = findOptimalPalletSize(validItems);
+    let palletSizesToTry = [];
+    
+    if (optimalPalletSize) {
+        // 最適サイズを最初に試す
+        palletSizesToTry.push(optimalPalletSize);
+        // 残りのサイズも追加
+        selectedPalletSizes.forEach(size => {
+            if (size.name !== optimalPalletSize.name) {
+                palletSizesToTry.push(size);
+            }
+        });
+        console.log(`🎯 最適パレットサイズ: ${optimalPalletSize.name} (最初に試行)`);
+    } else {
+        palletSizesToTry = [...selectedPalletSizes];
+    }
+
     // 選択されたパレットサイズのみで最適配置を計算
-    for (const palletSize of selectedPalletSizes) {
+    for (const palletSize of palletSizesToTry) {
         // 1. 少数アイテム優先混載配置
         if (smallQuantityItems.length > 0) {
             const mixedConfig = calculateSmallQuantityMixedPallet(validItems, palletSize);
             if (mixedConfig && mixedConfig.cartons.length > 0 && mixedConfig.height <= maxHeightLimit) {
                 const score = calculatePalletScore(mixedConfig, validItems);
-                console.log(`${palletSize.name} 混載: ${mixedConfig.cartons.length}個, 高さ${mixedConfig.height.toFixed(1)}cm, スコア${score.toFixed(1)}`);
+                const volumeUtil = (mixedConfig.cartons.reduce((sum, c) => sum + (c.l * c.w * c.h), 0) / (palletSize.width * palletSize.depth * mixedConfig.height)).toFixed(3);
+                console.log(`${palletSize.name} 混載: ${mixedConfig.cartons.length}個, 高さ${mixedConfig.height.toFixed(1)}cm, 体積利用率${volumeUtil}, スコア${score}`);
                 
                 if (score > maxScore) {
                     maxScore = score;
@@ -945,7 +964,8 @@ function findOptimalPalletConfiguration(availableItems) {
             const dedicatedConfig = calculateLargeQuantityDedicatedPallet(validItems, palletSize);
             if (dedicatedConfig && dedicatedConfig.cartons.length > 0 && dedicatedConfig.height <= maxHeightLimit) {
                 const score = calculatePalletScore(dedicatedConfig, validItems);
-                console.log(`${palletSize.name} 専用: ${dedicatedConfig.cartons.length}個, 高さ${dedicatedConfig.height.toFixed(1)}cm, スコア${score.toFixed(1)}`);
+                const volumeUtil = (dedicatedConfig.cartons.reduce((sum, c) => sum + (c.l * c.w * c.h), 0) / (palletSize.width * palletSize.depth * dedicatedConfig.height)).toFixed(3);
+                console.log(`${palletSize.name} 専用: ${dedicatedConfig.cartons.length}個, 高さ${dedicatedConfig.height.toFixed(1)}cm, 体積利用率${volumeUtil}, スコア${score}`);
                 
                 if (score > maxScore) {
                     maxScore = score;
@@ -958,7 +978,8 @@ function findOptimalPalletConfiguration(availableItems) {
         const balancedConfig = calculateBalancedPallet(validItems, palletSize);
         if (balancedConfig && balancedConfig.cartons.length > 0 && balancedConfig.height <= maxHeightLimit) {
             const score = calculatePalletScore(balancedConfig, validItems);
-            console.log(`${palletSize.name} バランス: ${balancedConfig.cartons.length}個, 高さ${balancedConfig.height.toFixed(1)}cm, スコア${score.toFixed(1)}`);
+            const volumeUtil = (balancedConfig.cartons.reduce((sum, c) => sum + (c.l * c.w * c.h), 0) / (palletSize.width * palletSize.depth * balancedConfig.height)).toFixed(3);
+            console.log(`${palletSize.name} バランス: ${balancedConfig.cartons.length}個, 高さ${balancedConfig.height.toFixed(1)}cm, 体積利用率${volumeUtil}, スコア${score}`);
             
             if (score > maxScore) {
                 maxScore = score;
@@ -1223,6 +1244,14 @@ function calculatePalletConfigurationForItem(availableItems, palletSize, priorit
         // 🔧 安定性のため重量・面積・高さ順でソート（重い・大きいものを優先）
         const sortedPlaceable = sortItemsForStability(placeable);
         
+        // 🔧 ルックアヘッド層選択（改善3）
+        const bestCombination = findBestLayerCombination(placeable, palletSize, availableHeight);
+        
+        if (!bestCombination) {
+            console.log('ルックアヘッド: 適切な層組み合わせが見つかりません');
+            break;
+        }
+        
         // 最適層を選択
         let bestLayer = null;
         let bestScore = 0;
@@ -1239,27 +1268,39 @@ function calculatePalletConfigurationForItem(availableItems, palletSize, priorit
             }
         }
         
-        // 各アイテムの専用層
-        sortedPlaceable.forEach(item => {
-            if (item === priorityRemaining) return;
+        // ルックアヘッド結果と比較
+        if (bestCombination.totalScore > bestScore) {
+            bestScore = bestCombination.totalScore;
+            bestLayer = bestCombination.layers[0]; // 最初の層を使用
             
-            const singleLayer = createSingleItemLayer(item, palletSize, availableHeight);
-            if (singleLayer && singleLayer.cartons.length > 0) {
-                const score = calculateLayerScore(singleLayer, palletSize, false);
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestLayer = singleLayer;
-                }
-            }
-        });
+            console.log(`  ルックアヘッド選択: ${bestCombination.type}タイプ, スコア${bestCombination.totalScore}`);
+        }
         
-        // 混載層
-        const mixedLayer = createHeightBasedMixedLayer(remainingItems, palletSize, availableHeight);
-        if (mixedLayer && mixedLayer.cartons.length > 0) {
-            const mixedScore = calculateLayerScore(mixedLayer, palletSize, false);
-            if (mixedScore > bestScore) {
-                bestScore = mixedScore;
-                bestLayer = mixedLayer;
+        // 従来の単一層選択（フォールバック）
+        if (!bestLayer) {
+            sortedPlaceable.forEach(item => {
+                if (item === priorityRemaining) return;
+                
+                const singleLayer = createSingleItemLayer(item, palletSize, availableHeight);
+                if (singleLayer && singleLayer.cartons.length > 0) {
+                    const score = calculateLayerScore(singleLayer, palletSize, false);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestLayer = singleLayer;
+                    }
+                }
+            });
+        }
+        
+        // 混載層（最終フォールバック）
+        if (!bestLayer) {
+            const mixedLayer = createHeightBasedMixedLayer(remainingItems, palletSize, availableHeight);
+            if (mixedLayer && mixedLayer.cartons.length > 0) {
+                const mixedScore = calculateLayerScore(mixedLayer, palletSize, false);
+                if (mixedScore > bestScore) {
+                    bestScore = mixedScore;
+                    bestLayer = mixedLayer;
+                }
             }
         }
         
@@ -1432,27 +1473,54 @@ function calculateLayerScore(layer, palletSize, isPriority = false) {
     const areaUtilization = layer.area / palletArea;
     const cartonCount = layer.cartons.length;
     
-    let score = areaUtilization * 40 + cartonCount * 10;
+    let score = 0;
     
+    // 1. 面積利用率スコア（最重要）
+    score += areaUtilization * 50;
+    
+    // 2. カートン数スコア
+    score += cartonCount * 15;
+    
+    // 3. 混載効率ボーナス
     const uniqueCodes = [...new Set(layer.cartons.map(c => c.code))];
     const isActuallyMixed = uniqueCodes.length > 1;
     
     if (isActuallyMixed) {
         const avgPerCode = cartonCount / uniqueCodes.length;
-        if (avgPerCode <= 4) {
-            score += 30;
+        if (avgPerCode >= 3) {
+            score += 35; // 効率的な混載
+        } else if (avgPerCode >= 2) {
+            score += 20; // 適度な混載
+        }
+        
+        // 高さの統一性ボーナス
+        const heights = [...new Set(layer.cartons.map(c => c.h))];
+        if (heights.length === 1) {
+            score += 15; // 同じ高さの混載
         }
     }
     
-    if (cartonCount <= 3 && !isActuallyMixed) {
-        score -= 20;
+    // 4. 単一アイテムの効率チェック
+    if (!isActuallyMixed && cartonCount <= 3) {
+        if (areaUtilization < 0.4) {
+            score -= 25; // 効率不良ペナルティ
+        }
     }
     
+    // 5. 優先アイテムボーナス
     if (isPriority) {
-        score += 10;
+        score += 20;
     }
     
-    return Math.max(0, score);
+    // 6. 重量効率ボーナス
+    if (layer.weight) {
+        const weightDensity = layer.weight / layer.area;
+        if (weightDensity > 0.1) { // 適度な重量密度
+            score += 10;
+        }
+    }
+    
+    return Math.max(0, Math.round(score));
 }
 
 // === 単一貨物コード専用層作成（高さ制限対応） ===
@@ -1551,18 +1619,100 @@ function calculateOptimalPlacement(item, palletSize) {
 function calculatePalletScore(config, availableItems) {
     let score = 0;
     
-    // 基本スコア: 配置されたカートン数
+    // 1. 体積利用率スコア（最重要）
+    const totalVolume = config.cartons.reduce((sum, carton) => 
+        sum + (carton.l * carton.w * carton.h), 0);
+    const palletVolume = config.palletSize.width * config.palletSize.depth * config.height;
+    const volumeUtilization = totalVolume / palletVolume;
+    score += volumeUtilization * 100;
+    
+    // 2. 安定性スコア
+    const stabilityScore = calculateStabilityScore(config.layers, config.palletSize);
+    score += stabilityScore * 50;
+    
+    // 3. 重量分布スコア
+    const weightBalance = calculateWeightBalance(config.layers);
+    score += weightBalance * 30;
+    
+    // 4. 基本スコア（配置されたカートン数）
     score += config.cartons.length * 10;
     
-    // 高さ効率スコア
+    // 5. 高さ効率スコア
     const heightEfficiency = config.height / maxHeightLimit;
-    score += (1 - heightEfficiency) * 50;
+    score += (1 - heightEfficiency) * 40;
     
-    // 重量効率スコア
-    const weightEfficiency = config.totalWeight / (config.palletSize.width * config.palletSize.depth * config.height * 0.001);
-    score += weightEfficiency * 30;
+    // 6. 混載効率ボーナス
+    const uniqueCodes = [...new Set(config.cartons.map(c => c.code))];
+    if (uniqueCodes.length > 1) {
+        const mixedEfficiency = config.cartons.length / uniqueCodes.length;
+        if (mixedEfficiency >= 3) {
+            score += 25; // 効率的な混載
+        }
+    }
     
-    return score;
+    return Math.max(0, Math.round(score));
+}
+
+// === 安定性スコア計算 ===
+function calculateStabilityScore(layers, palletSize) {
+    if (layers.length <= 1) return 1.0; // 単層は安定
+    
+    let totalStability = 0;
+    const palletArea = palletSize.width * palletSize.depth;
+    
+    for (let i = 1; i < layers.length; i++) {
+        const currentLayer = layers[i];
+        const previousLayer = layers[i - 1];
+        
+        // 層の重なり面積を計算
+        const currentArea = currentLayer.cartons.reduce((sum, c) => 
+            sum + (c.position ? c.position.width * c.position.depth : c.l * c.w), 0);
+        const overlapRatio = currentArea / palletArea;
+        
+        // 重なりが大きいほど安定
+        let layerStability = Math.min(1.0, overlapRatio * 1.5);
+        
+        // 重量比も考慮（上の層が軽いほど安定）
+        if (currentLayer.weight && previousLayer.weight) {
+            const weightRatio = currentLayer.weight / previousLayer.weight;
+            if (weightRatio <= 0.8) {
+                layerStability += 0.2; // 軽い層ボーナス
+            } else if (weightRatio > 1.2) {
+                layerStability -= 0.3; // 重い層ペナルティ
+            }
+        }
+        
+        totalStability += Math.max(0, layerStability);
+    }
+    
+    return totalStability / (layers.length - 1);
+}
+
+// === 重量分布スコア計算 ===
+function calculateWeightBalance(layers) {
+    if (layers.length <= 1) return 1.0;
+    
+    const weights = layers.map(layer => layer.weight || 0);
+    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+    const avgWeight = totalWeight / weights.length;
+    
+    // 重量の分散を計算（小さいほど良い）
+    const variance = weights.reduce((sum, w) => sum + Math.pow(w - avgWeight, 2), 0) / weights.length;
+    const standardDeviation = Math.sqrt(variance);
+    
+    // 標準偏差が小さいほど高スコア
+    const weightBalance = Math.max(0, 1 - (standardDeviation / avgWeight));
+    
+    // 下層が重いほど高スコア
+    let bottomHeavyBonus = 0;
+    for (let i = 0; i < Math.min(3, layers.length); i++) {
+        const layerWeight = weights[i] || 0;
+        if (layerWeight >= avgWeight * 0.9) {
+            bottomHeavyBonus += 0.1;
+        }
+    }
+    
+    return Math.min(1.0, weightBalance + bottomHeavyBonus);
 }
 
 // === 安定性・重量順序ヘルパー（安全な改善） ===
@@ -2889,4 +3039,148 @@ function clearCustomPallet() {
     document.getElementById('customPalletWidth').value = '';
     document.getElementById('customPalletDepth').value = '';
     document.getElementById('customPalletDesc').value = '';
+}
+
+// === ルックアヘッド層選択（改善3） ===
+function findBestLayerCombination(availableItems, palletSize, availableHeight) {
+    const candidates = [];
+    
+    // 単一層の候補を生成
+    const singleLayers = [];
+    for (let i = 0; i < availableItems.length; i++) {
+        const item = availableItems[i];
+        if (item.remaining > 0 && item.h <= availableHeight) {
+            const layer = createSingleItemLayer(item, palletSize, availableHeight);
+            if (layer) {
+                singleLayers.push({ layer, itemIndex: i, type: 'single' });
+            }
+        }
+    }
+    
+    // 単一層のみの候補
+    singleLayers.forEach(({ layer, itemIndex, type }) => {
+        candidates.push({
+            layers: [layer],
+            totalScore: calculateLayerScore(layer, palletSize, false),
+            remainingHeight: availableHeight - layer.height,
+            usedItems: [{ index: itemIndex, count: layer.cartons.length }],
+            type: 'single'
+        });
+    });
+    
+    // 2層組み合わせの候補（高さ制限内）
+    for (let i = 0; i < singleLayers.length; i++) {
+        const firstLayer = singleLayers[i];
+        const remainingHeight = availableHeight - firstLayer.layer.height;
+        
+        if (remainingHeight > 0) {
+            for (let j = 0; j < singleLayers.length; j++) {
+                if (i === j) continue;
+                
+                const secondLayer = singleLayers[j];
+                if (secondLayer.layer.height <= remainingHeight) {
+                    const combinedScore = calculateLayerScore(firstLayer.layer, palletSize, false) + 
+                                        calculateLayerScore(secondLayer.layer, palletSize, false);
+                    
+                    // 組み合わせボーナス
+                    let combinationBonus = 0;
+                    if (firstLayer.layer.height === secondLayer.layer.height) {
+                        combinationBonus += 15; // 同じ高さボーナス
+                    }
+                    if (firstLayer.layer.weight && secondLayer.layer.weight) {
+                        if (firstLayer.layer.weight >= secondLayer.layer.weight) {
+                            combinationBonus += 10; // 下重上軽ボーナス
+                        }
+                    }
+                    
+                    candidates.push({
+                        layers: [firstLayer.layer, secondLayer.layer],
+                        totalScore: combinedScore + combinationBonus,
+                        remainingHeight: remainingHeight - secondLayer.layer.height,
+                        usedItems: [
+                            { index: firstLayer.itemIndex, count: firstLayer.layer.cartons.length },
+                            { index: secondLayer.itemIndex, count: secondLayer.layer.cartons.length }
+                        ],
+                        type: 'combination'
+                    });
+                }
+            }
+        }
+    }
+    
+    // 混載層の候補も追加
+    const mixedLayer = createHeightBasedMixedLayer(availableItems, palletSize, availableHeight);
+    if (mixedLayer && mixedLayer.cartons.length > 0) {
+        candidates.push({
+            layers: [mixedLayer],
+            totalScore: calculateLayerScore(mixedLayer, palletSize, false),
+            remainingHeight: availableHeight - mixedLayer.height,
+            usedItems: [],
+            type: 'mixed'
+        });
+    }
+    
+    // スコアでソートして最良の組み合わせを返す
+    candidates.sort((a, b) => b.totalScore - a.totalScore);
+    
+    if (candidates.length > 0) {
+        console.log(`  ルックアヘッド: ${candidates.length}個の候補, 最高スコア: ${candidates[0].totalScore}`);
+        return candidates[0];
+    }
+    
+    return null;
+}
+
+// === パレットサイズ最適化（改善4） ===
+function findOptimalPalletSize(items) {
+    if (selectedPalletSizes.length === 0) return null;
+    
+    const totalVolume = items.reduce((sum, item) => 
+        sum + (item.l * item.w * item.h * item.remaining), 0);
+    
+    const palletEvaluations = selectedPalletSizes.map(size => {
+        const maxVolume = size.width * size.depth * maxHeightLimit;
+        const volumeUtilization = totalVolume / maxVolume;
+        
+        // 各アイテムの配置効率を計算
+        let packingEfficiency = 0;
+        let itemCount = 0;
+        
+        items.forEach(item => {
+            if (item.remaining > 0 && item.h <= getMaxCartonHeight()) {
+                const normalFits = Math.floor(size.width / item.l) * Math.floor(size.depth / item.w);
+                const rotatedFits = Math.floor(size.width / item.w) * Math.floor(size.depth / item.l);
+                const maxFits = Math.max(normalFits, rotatedFits);
+                const maxLayers = Math.floor(getMaxCartonHeight() / item.h);
+                const theoreticalMax = maxFits * maxLayers;
+                
+                if (theoreticalMax > 0) {
+                    packingEfficiency += Math.min(item.remaining, theoreticalMax) / item.remaining;
+                    itemCount++;
+                }
+            }
+        });
+        
+        const avgPackingEfficiency = itemCount > 0 ? packingEfficiency / itemCount : 0;
+        
+        // 総合スコア計算
+        const totalScore = (volumeUtilization * 0.6) + (avgPackingEfficiency * 0.4);
+        
+        return {
+            size,
+            volumeUtilization: volumeUtilization.toFixed(3),
+            packingEfficiency: avgPackingEfficiency.toFixed(3),
+            totalScore: totalScore.toFixed(3)
+        };
+    });
+    
+    // スコアでソート
+    palletEvaluations.sort((a, b) => parseFloat(b.totalScore) - parseFloat(a.totalScore));
+    
+    console.log('\n📊 パレットサイズ最適化評価:');
+    palletEvaluations.forEach((eval, index) => {
+        console.log(`  ${index + 1}. ${eval.size.name}: 体積利用率${eval.volumeUtilization}, 配置効率${eval.packingEfficiency}, 総合スコア${eval.totalScore}`);
+    });
+    
+    return palletEvaluations[0].size;
 }
