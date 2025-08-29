@@ -1030,6 +1030,13 @@ function calculateSmallQuantityMixedPallet(availableItems, palletSize) {
             break;
         }
 
+        // 🔧 安定性チェックを追加（安全な改善）
+        const previousLayer = layers.length > 0 ? layers[layers.length - 1] : null;
+        if (!canAddLayerSafely(mixedLayer, currentHeight, maxHeightLimit, previousLayer, palletSize)) {
+            console.log('  安定性チェック失敗: この層は追加できません');
+            break;
+        }
+
         layers.push(mixedLayer);
         selectedCartons.push(...mixedLayer.cartons);
         totalWeight += mixedLayer.weight;
@@ -1102,9 +1109,10 @@ function calculateLargeQuantityDedicatedPallet(availableItems, palletSize) {
             break;
         }
 
-        // 高さ制限チェック
-        if (currentHeight + dedicatedLayer.height > maxHeightLimit) {
-            console.log(`  高さ制限により層追加不可: ${currentHeight + dedicatedLayer.height}cm > ${maxHeightLimit}cm`);
+        // 🔧 安定性チェックを追加（安全な改善）
+        const previousLayer = layers.length > 0 ? layers[layers.length - 1] : null;
+        if (!canAddLayerSafely(dedicatedLayer, currentHeight, maxHeightLimit, previousLayer, palletSize)) {
+            console.log(`  ${primaryItem.code}専用層: 安定性チェック失敗`);
             break;
         }
 
@@ -1204,6 +1212,9 @@ function calculatePalletConfigurationForItem(availableItems, palletSize, priorit
             break;
         }
         
+        // 🔧 安定性のため重量・面積・高さ順でソート（重い・大きいものを優先）
+        const sortedPlaceable = sortItemsForStability(placeable);
+        
         // 最適層を選択
         let bestLayer = null;
         let bestScore = 0;
@@ -1221,7 +1232,7 @@ function calculatePalletConfigurationForItem(availableItems, palletSize, priorit
         }
         
         // 各アイテムの専用層
-        placeable.forEach(item => {
+        sortedPlaceable.forEach(item => {
             if (item === priorityRemaining) return;
             
             const singleLayer = createSingleItemLayer(item, palletSize, availableHeight);
@@ -1252,6 +1263,13 @@ function calculatePalletConfigurationForItem(availableItems, palletSize, priorit
         // 高さ制限チェック
         if (currentHeight + bestLayer.height > maxHeightLimit) {
             console.log(`高さ制限により層追加不可: ${currentHeight + bestLayer.height}cm > ${maxHeightLimit}cm`);
+            break;
+        }
+
+        // 🔧 安定性チェックを追加（安全な改善）
+        const previousLayer = layers.length > 0 ? layers[layers.length - 1] : null;
+        if (!canAddLayerSafely(bestLayer, currentHeight, maxHeightLimit, previousLayer, palletSize)) {
+            console.log('安定性チェック失敗: この層は追加できません');
             break;
         }
 
@@ -1523,46 +1541,61 @@ function calculateOptimalPlacement(item, palletSize) {
 
 // === パレットスコア計算 ===
 function calculatePalletScore(config, availableItems) {
-    const cartonCount = config.cartons.length;
-    const heightUtilization = config.height / maxHeightLimit; // 高さ制限を使用
-    const palletVolume = config.palletSize.width * config.palletSize.depth * getMaxCartonHeight();
-    const usedVolume = config.cartons.reduce((sum, carton) => 
-        sum + (carton.l * carton.w * carton.h), 0);
-    const volumeUtilization = usedVolume / palletVolume;
+    let score = 0;
     
-    const codeCounts = config.cartons.reduce((acc, carton) => {
-        acc[carton.code] = (acc[carton.code] || 0) + 1;
-        return acc;
-    }, {});
+    // 基本スコア: 配置されたカートン数
+    score += config.cartons.length * 10;
     
-    const uniqueCodes = Object.keys(codeCounts);
-    const isMixed = uniqueCodes.length > 1;
+    // 高さ効率スコア
+    const heightEfficiency = config.height / maxHeightLimit;
+    score += (1 - heightEfficiency) * 50;
     
-    let mixedEfficiencyBonus = 0;
-    if (isMixed) {
-        const smallQuantityMixed = uniqueCodes.every(code => codeCounts[code] <= 15);
-        if (smallQuantityMixed) {
-            mixedEfficiencyBonus = 100;
-        }
+    // 重量効率スコア
+    const weightEfficiency = config.totalWeight / (config.palletSize.width * config.palletSize.depth * config.height * 0.001);
+    score += weightEfficiency * 30;
+    
+    return score;
+}
+
+// === 安定性・重量順序ヘルパー（安全な改善） ===
+function sortItemsForStability(items) {
+    // 重量降順 → 面積降順 → 高さ降順でソート（重い・大きいものを下に）
+    return [...items].sort((a, b) => {
+        const weightDiff = b.weight - a.weight;
+        if (Math.abs(weightDiff) > 0.1) return weightDiff;
+        
+        const areaA = a.l * a.w;
+        const areaB = b.l * b.w;
+        const areaDiff = areaB - areaA;
+        if (Math.abs(areaDiff) > 1) return areaDiff;
+        
+        return b.h - a.h;
+    });
+}
+
+function checkLayerStability(newLayer, previousLayer, palletSize) {
+    if (!previousLayer) return true; // 最初の層は常に安定
+    
+    // 簡易安定性チェック: 前の層との重なり面積比率
+    const newLayerArea = newLayer.cartons.reduce((sum, c) => sum + (c.position ? c.position.width * c.position.depth : c.l * c.w), 0);
+    const palletArea = palletSize.width * palletSize.depth;
+    const overlapRatio = newLayerArea / palletArea;
+    
+    // 重なりが60%以上なら安定とみなす
+    return overlapRatio >= 0.6;
+}
+
+function canAddLayerSafely(newLayer, currentHeight, maxHeight, previousLayer, palletSize) {
+    // 高さ制限チェック
+    if (currentHeight + newLayer.height > maxHeight) return false;
+    
+    // 安定性チェック
+    if (!checkLayerStability(newLayer, previousLayer, palletSize)) {
+        console.log('  ⚠️ 安定性不足: 前の層との重なりが不十分');
+        return false;
     }
     
-    let heightProximityBonus = 0;
-    if (isMixed) {
-        const heights = [...new Set(config.cartons.map(c => c.h))];
-        if (heights.length > 1) {
-            const maxHeight = Math.max(...heights);
-            const minHeight = Math.min(...heights);
-            const heightDiff = maxHeight - minHeight;
-            if (heightDiff <= 5) {
-                heightProximityBonus = 50;
-            }
-        }
-    }
-    
-    const baseScore = cartonCount * 50 + volumeUtilization * 100 + heightUtilization * 30;
-    const totalScore = baseScore + mixedEfficiencyBonus + heightProximityBonus;
-    
-    return totalScore;
+    return true;
 }
 
 // === 高さグループ化 ===
@@ -2204,12 +2237,12 @@ function drawSideView(palletIndex) {
         }
         
         // 層番号
-        ctx.fillStyle = '#333';
-        ctx.font = 'bold 11px Arial';
-        ctx.textAlign = 'left';
-        ctx.fillText(`第${i + 1}層`, startX - 55, currentY + layerH/2 - 5);
-        ctx.font = '9px Arial';
-        ctx.fillText(`${layer.height}cm`, startX - 55, currentY + layerH/2 + 5);
+        // ctx.fillStyle = '#333';
+        // ctx.font = 'bold 14px Arial';
+        // ctx.textAlign = 'left';
+        // ctx.fillText(`第${i + 1}層 - ${layer.cartons.length}個`, startX - 55, currentY + layerH/2 - 5);
+        // ctx.font = '9px Arial';
+        // ctx.fillText(`${layer.height}cm`, startX - 55, currentY + layerH/2 + 5);
     }
     
     // タイトルと高さ情報
@@ -2391,10 +2424,10 @@ function drawSingleLayer(palletIndex, layerIndex, layer, palletSize, colorMap) {
         }
     });
     
-    ctx.fillStyle = '#333';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(`第${layerIndex + 1}層 - ${layer.cartons.length}個`, canvas.width / 2, 20);
+    // ctx.fillStyle = '#333';
+    // ctx.font = 'bold 14px Arial';
+    // ctx.textAlign = 'center';
+    // ctx.fillText(`第${layerIndex + 1}層 - ${layer.cartons.length}個`, canvas.width / 2, 25);
 
     // ベースイメージをキャッシュ（ホバー描画用のオーバーレイに利用）
     try {
