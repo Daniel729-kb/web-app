@@ -2489,13 +2489,12 @@ function bindLayerCanvasEvents(canvas, hitmap) {
             clearCartonHover(canvas);
         }
 
-        // パララックス（平行移動 + ズーム）
-        applyCanvasParallax(canvas, e);
+        // パララックス無効化（削除要求）
     };
     const onLeave = () => {
         hideTooltip();
         clearCartonHover(canvas, true);
-        resetCanvasParallax(canvas);
+        // パララックス無効化（削除要求）
     };
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('mouseleave', onLeave);
@@ -2601,11 +2600,11 @@ function bindSideCanvasEvents(canvas, palletIndex) {
             `;
             showTooltip(e.clientX + 8, e.clientY + 8, content);
             animateCartonHover(canvas, found);
-            applyCanvasParallax(canvas, e);
+            // パララックス無効化（削除要求）
         } else {
             hideTooltip();
             clearCartonHover(canvas, true);
-            resetCanvasParallax(canvas);
+            // パララックス無効化（削除要求）
         }
     };
     const onLeave = () => {
