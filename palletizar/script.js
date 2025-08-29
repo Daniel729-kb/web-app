@@ -2748,3 +2748,55 @@ function showPerformanceWarnings() {
         document.getElementById('errors').appendChild(warningDiv);
     }
 }
+
+// === パレット結合機能（高さ制限対応） ===
+function updatePalletSelectors() {
+    const pallet1Select = document.getElementById('pallet1Select');
+    const pallet2Select = document.getElementById('pallet2Select');
+    const combineSection = document.getElementById('combineSection');
+    
+    if (!pallet1Select || !pallet2Select || !combineSection) {
+        console.warn('Pallet selector elements not found');
+        return;
+    }
+    
+    if (!window.currentPallets || window.currentPallets.length < 2) {
+        combineSection.classList.add('hidden');
+        return;
+    }
+    
+    combineSection.classList.remove('hidden');
+    
+    // Clear existing options
+    pallet1Select.innerHTML = '<option value="">選択...</option>';
+    pallet2Select.innerHTML = '<option value="">選択...</option>';
+    
+    // Add pallet options
+    window.currentPallets.forEach((pallet, index) => {
+        const cartonCount = pallet.cartons.length;
+        const height = pallet.height.toFixed(1);
+        const heightStatus = pallet.height <= maxHeightLimit ? '✅' : '⚠️';
+        const codes = [...new Set(pallet.cartons.map(c => c.code))];
+        const isMixed = codes.length > 1;
+        
+        const option1 = document.createElement('option');
+        option1.value = index;
+        option1.textContent = `パレット${index + 1} (${cartonCount}個, ${height}cm${isMixed ? ', 混載' : ''}) ${heightStatus}`;
+        pallet1Select.appendChild(option1);
+        
+        const option2 = document.createElement('option');
+        option2.value = index;
+        option2.textContent = `パレット${index + 1} (${cartonCount}個, ${height}cm${isMixed ? ', 混載' : ''}) ${heightStatus}`;
+        pallet2Select.appendChild(option2);
+    });
+    
+    // Reset selections
+    pallet1Select.value = '';
+    pallet2Select.value = '';
+    
+    // Clear preview
+    const previewDiv = document.getElementById('combinePreview');
+    if (previewDiv) {
+        previewDiv.innerHTML = '';
+    }
+}
