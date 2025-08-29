@@ -158,6 +158,23 @@
                 <button id="deselectAllPallets" class="btn btn-secondary btn-sm">✗ 全て解除</button>
                 <span id="selectedPalletsInfo" style="color: #666; font-size: 0.9rem; padding: 8px 0;"></span>
             </div>
+            
+            <!-- カスタムパレット追加 -->
+            <div class="custom-pallet-section">
+                <h4>🔧 カスタムパレット追加</h4>
+                <div class="custom-pallet-form">
+                    <div class="form-grid">
+                        <input type="text" id="customPalletName" placeholder="パレット名" class="form-input">
+                        <input type="number" id="customPalletWidth" placeholder="幅(cm)" step="0.1" class="form-input">
+                        <input type="number" id="customPalletDepth" placeholder="奥行(cm)" step="0.1" class="form-input">
+                        <input type="text" id="customPalletDesc" placeholder="説明" class="form-input">
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="addCustomPallet" class="btn btn-success btn-sm">➕ カスタムパレット追加</button>
+                        <button id="clearCustomPallet" class="btn btn-secondary btn-sm">🗑️ クリア</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 計算ボタン -->

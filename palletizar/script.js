@@ -14,10 +14,13 @@ const allPalletSizes = [
     { name: '1100×1000', width: 110.0, depth: 100.0, description: '標準パレット' },
     { name: '1100×1100', width: 110.0, depth: 110.0, description: '正方形パレット' },
     { name: '1200×1000', width: 120.0, depth: 100.0, description: '大型パレット' },
-    { name: '1200×1100', width: 120.0, depth: 110.0, description: '特大パレット' }
+    { name: '1200×1100', width: 120.0, depth: 110.0, description: '特大パレット' },
+    { name: '1200×800', width: 120.0, depth: 80.0, description: 'ISO標準・欧州', disabled: true },
+    { name: '1219×1016', width: 121.9, depth: 101.6, description: 'US標準・北米', disabled: true },
+    { name: '1140×1140', width: 114.0, depth: 114.0, description: 'アジア・コンテナ最適', disabled: true }
 ];
 
-let selectedPalletSizes = [...allPalletSizes]; // デフォルトで全選択
+let selectedPalletSizes = allPalletSizes.filter(p => !p.disabled); // デフォルトで無効化されていないもののみ選択
 
 let editingId = null;
 let nextId = 7;
@@ -166,6 +169,10 @@ function setupEventListeners() {
     document.getElementById('selectAllPallets').addEventListener('click', selectAllPallets);
     document.getElementById('deselectAllPallets').addEventListener('click', deselectAllPallets);
 
+    // カスタムパレット機能
+    document.getElementById('addCustomPallet').addEventListener('click', addCustomPallet);
+    document.getElementById('clearCustomPallet').addEventListener('click', clearCustomPallet);
+
     // テーマ切替
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
@@ -214,11 +221,14 @@ function initializePalletSelection() {
 
     allPalletSizes.forEach((pallet, index) => {
         const option = document.createElement('div');
-        option.className = 'pallet-option selected';
-        option.onclick = () => togglePalletSelection(index);
+        const isDisabled = pallet.disabled;
+        option.className = `pallet-option ${isDisabled ? 'disabled' : 'selected'}`;
+        if (!isDisabled) {
+            option.onclick = () => togglePalletSelection(index);
+        }
         
         option.innerHTML = `
-            <input type="checkbox" class="pallet-checkbox" checked>
+            <input type="checkbox" class="pallet-checkbox" ${isDisabled ? 'disabled' : 'checked'}>
             <div class="pallet-option-info">
                 <div class="pallet-option-name">${pallet.name}</div>
                 <div class="pallet-option-size">${pallet.description} - ${pallet.width}cm × ${pallet.depth}cm</div>
@@ -2829,4 +2839,56 @@ function observeReveals() {
         });
     });
     observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+}
+
+// === カスタムパレット機能 ===
+function addCustomPallet() {
+    const nameInput = document.getElementById('customPalletName');
+    const widthInput = document.getElementById('customPalletWidth');
+    const depthInput = document.getElementById('customPalletDepth');
+    const descInput = document.getElementById('customPalletDesc');
+    
+    const name = nameInput.value.trim();
+    const width = parseFloat(widthInput.value);
+    const depth = parseFloat(depthInput.value);
+    const description = descInput.value.trim();
+    
+    // バリデーション
+    if (!name || isNaN(width) || isNaN(depth) || width <= 0 || depth <= 0) {
+        alert('有効なパレット情報を入力してください。\n幅と奥行は0より大きい数値である必要があります。');
+        return;
+    }
+    
+    if (width > 500 || depth > 500) {
+        alert('パレットサイズが大きすぎます。幅・奥行は500cm以下にしてください。');
+        return;
+    }
+    
+    // カスタムパレットを追加
+    const customPallet = {
+        name: name,
+        width: width,
+        depth: depth,
+        description: description || 'カスタムパレット',
+        custom: true
+    };
+    
+    allPalletSizes.push(customPallet);
+    selectedPalletSizes.push(customPallet);
+    
+    // UIを更新
+    initializePalletSelection();
+    updateSelectedPalletsInfo();
+    
+    // フォームをクリア
+    clearCustomPallet();
+    
+    console.log(`カスタムパレット追加: ${name} (${width}cm × ${depth}cm)`);
+}
+
+function clearCustomPallet() {
+    document.getElementById('customPalletName').value = '';
+    document.getElementById('customPalletWidth').value = '';
+    document.getElementById('customPalletDepth').value = '';
+    document.getElementById('customPalletDesc').value = '';
 }
