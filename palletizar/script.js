@@ -2378,7 +2378,7 @@ function drawSingleLayer(palletIndex, layerIndex, layer, palletSize, colorMap) {
     ctx.fillStyle = '#666';
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(`${palletSize.width}cm`, startX + palletW / 2, startY - 5);
+    ctx.fillText(`${palletSize.width}cm`, startX + palletW / 2, startY - 15);
     ctx.save();
     ctx.translate(startX - 15, startY + palletD / 2);
     ctx.rotate(-Math.PI / 2);
@@ -2427,7 +2427,7 @@ function drawSingleLayer(palletIndex, layerIndex, layer, palletSize, colorMap) {
     ctx.fillStyle = '#333';
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(`第${layerIndex + 1}層 - ${layer.cartons.length}個`, canvas.width / 2, 20);
+    ctx.fillText(`第${layerIndex + 1}層 - ${layer.cartons.length}個`, canvas.width / 2, 25);
 
     // ベースイメージをキャッシュ（ホバー描画用のオーバーレイに利用）
     try {
