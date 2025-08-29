@@ -2385,6 +2385,13 @@ function drawSingleLayer(palletIndex, layerIndex, layer, palletSize, colorMap) {
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     ctx.fillText(`第${layerIndex + 1}層 - ${layer.cartons.length}個`, canvas.width / 2, 20);
+
+    // ベースイメージをキャッシュ（ホバー描画用のオーバーレイに利用）
+    try {
+        const img = new Image();
+        img.src = canvas.toDataURL();
+        canvas._baseImage = img;
+    } catch (_) {}
 }
 
 // === ツールチップユーティリティ ===
@@ -2448,10 +2455,12 @@ function bindLayerCanvasEvents(canvas, hitmap) {
         const y = e.clientY - rect.top;
         // 検出
         let found = null;
+        let foundRaw = null;
         for (let i = 0; i < hitmap.length; i++) {
             const r = hitmap[i];
             if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
                 found = r.carton;
+                foundRaw = r;
                 break;
             }
         }
@@ -2462,13 +2471,97 @@ function bindLayerCanvasEvents(canvas, hitmap) {
                 <div>重量: ${typeof found.weight === 'number' ? found.weight.toFixed(2) : found.weight}kg</div>
             `;
             showTooltip(e.clientX + 8, e.clientY + 8, content);
+
+            // カートンのアウトラインをパルス表示
+            if (foundRaw) animateCartonHover(canvas, foundRaw);
         } else {
             hideTooltip();
+            clearCartonHover(canvas);
         }
+
+        // パララックス（平行移動 + ズーム）
+        applyCanvasParallax(canvas, e);
     };
-    const onLeave = () => hideTooltip();
+    const onLeave = () => {
+        hideTooltip();
+        clearCartonHover(canvas, true);
+        resetCanvasParallax(canvas);
+    };
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('mouseleave', onLeave);
+}
+
+// === ホバー用アウトライン描画 ===
+function drawHoverOutline(canvas, r, t) {
+    if (!canvas || !canvas._baseImage) return;
+    const ctx = canvas.getContext('2d');
+    // ベース再描画
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(canvas._baseImage, 0, 0);
+
+    // パルス値（0..1）から太さと透明度を計算
+    const pulse = 0.5 + 0.5 * Math.sin(t * Math.PI * 2);
+    const lineW = 2 + 2 * pulse;
+    const alpha = 0.35 + 0.45 * pulse;
+
+    ctx.save();
+    ctx.strokeStyle = `rgba(96,165,250,${alpha})`;
+    ctx.lineWidth = lineW;
+    ctx.shadowColor = 'rgba(96,165,250,0.35)';
+    ctx.shadowBlur = 12 * pulse + 6;
+    ctx.strokeRect(r.x, r.y, r.w, r.h);
+    ctx.restore();
+}
+
+function animateCartonHover(canvas, rect) {
+    if (!window.anime) return;
+    if (canvas._hoverRect && canvas._hoverRect === rect && canvas._hoverAnim) return; // 既存維持
+    canvas._hoverRect = rect;
+    if (canvas._hoverAnim) { try { canvas._hoverAnim.pause(); } catch(_) {} }
+    canvas._hoverAnim = anime({
+        targets: { p: 0 },
+        p: 1,
+        duration: 900,
+        easing: 'linear',
+        loop: true,
+        update: a => {
+            const t = a.animations[0].currentValue;
+            drawHoverOutline(canvas, rect, t);
+        }
+    });
+}
+
+function clearCartonHover(canvas, restoreBase = false) {
+    if (canvas && canvas._hoverAnim) {
+        try { canvas._hoverAnim.pause(); } catch(_) {}
+        canvas._hoverAnim = null;
+    }
+    if (restoreBase && canvas && canvas._baseImage) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(canvas._baseImage, 0, 0);
+    }
+    canvas._hoverRect = null;
+}
+
+// === パララックス（平行移動 + ズーム） ===
+function applyCanvasParallax(canvas, e) {
+    if (!window.anime) return;
+    const rect = canvas.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = (e.clientX - cx) / rect.width;  // -0.5..0.5
+    const dy = (e.clientY - cy) / rect.height; // -0.5..0.5
+    const tx = dx * 8; // 最大8px平行移動
+    const ty = dy * 8;
+    anime.remove(canvas);
+    anime({ targets: canvas, translateX: tx, translateY: ty, scale: 1.03, duration: 180, easing: 'easeOutQuad' });
+}
+
+function resetCanvasParallax(canvas) {
+    if (!window.anime) return;
+    anime.remove(canvas);
+    anime({ targets: canvas, translateX: 0, translateY: 0, scale: 1, duration: 220, easing: 'easeOutQuad' });
 }
 
 // グローバル関数として定義
