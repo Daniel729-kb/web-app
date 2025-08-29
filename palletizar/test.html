@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palletizar Test - Modular Version</title>
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="palletizar-enhanced.css">
+    <link rel="stylesheet" href="palletizar-specific.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>パレタイズ最適化計算機</h1>
+                <p class="subtitle">カートンの最適な積載パターンを自動計算</p>
+            </div>
+            <button class="btn btn-secondary dark-mode-icon">🌙</button>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+            <div class="summary-card blue">
+                <h3>総カートン数</h3>
+                <p id="totalCartons">0</p>
+            </div>
+            <div class="summary-card green">
+                <h3>総重量</h3>
+                <p id="totalWeight">0 kg</p>
+            </div>
+            <div class="summary-card purple">
+                <h3>アイテム数</h3>
+                <p id="itemCount">0 種類</p>
+            </div>
+        </div>
+
+        <!-- Height Limit Section -->
+        <div class="height-limit-section">
+            <h3>高さ制限設定</h3>
+            <div class="height-limit-controls">
+                <input type="range" id="heightLimitInput" min="50" max="250" value="158" class="form-input">
+                <span class="height-limit-display" id="heightLimitDisplay">158cm</span>
+            </div>
+            <div id="heightWarning" class="height-warning hidden"></div>
+        </div>
+
+        <!-- Pallet Selection -->
+        <div class="pallet-selection">
+            <h3>パレットサイズ選択</h3>
+            <div id="palletOptions"></div>
+            <div id="selectedPalletsInfo" class="info"></div>
+        </div>
+
+        <!-- Carton Management Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2>カートンデータ管理</h2>
+                <div class="btn-group">
+                    <button id="addButton" class="btn btn-primary">+ カートン追加</button>
+                    <button id="importButton" class="btn btn-secondary">📥 インポート</button>
+                    <button id="exportButton" class="btn btn-secondary">📤 エクスポート</button>
+                    <button id="clearAllButton" class="btn btn-danger btn-sm">🗑️ 全削除</button>
+                </div>
+            </div>
+
+            <!-- Add Form (Hidden by default) -->
+            <div id="addForm" class="add-form">
+                <div class="form-grid">
+                    <input type="text" id="cartonCode" placeholder="カートンコード" class="form-input">
+                    <input type="number" id="cartonQty" placeholder="数量" class="form-input" min="1">
+                    <input type="number" id="cartonWeight" placeholder="重量(kg)" class="form-input" step="0.1">
+                    <input type="number" id="cartonLength" placeholder="長さ(cm)" class="form-input" step="0.1">
+                    <input type="number" id="cartonWidth" placeholder="幅(cm)" class="form-input" step="0.1">
+                    <input type="number" id="cartonHeight" placeholder="高さ(cm)" class="form-input" step="0.1">
+                </div>
+                <div class="btn-group">
+                    <button id="saveAddButton" class="btn btn-success">保存</button>
+                    <button id="cancelAddButton" class="btn btn-secondary">キャンセル</button>
+                </div>
+            </div>
+
+            <!-- Import Area (Hidden by default) -->
+            <div id="importArea" class="add-form" style="display: none;">
+                <p>CSVファイルをアップロードしてください</p>
+                <input type="file" accept=".csv" id="csvFileInput" class="form-input">
+                <div class="btn-group mt-2">
+                    <button id="executeImportButton" class="btn btn-success">インポート実行</button>
+                    <button id="cancelImportButton" class="btn btn-secondary">キャンセル</button>
+                </div>
+            </div>
+
+            <!-- Carton Table -->
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>カートンコード</th>
+                            <th class="center">数量</th>
+                            <th class="center">重量(kg)</th>
+                            <th class="center">長さ(cm)</th>
+                            <th class="center">幅(cm)</th>
+                            <th class="center">高さ(cm)</th>
+                            <th class="center">体積(m³)</th>
+                            <th class="center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cartonTableBody">
+                        <!-- Rows will be added dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Calculate Button -->
+        <div class="section text-center">
+            <button id="calculateButton" class="btn btn-primary btn-lg">
+                🧮 最適化計算を実行
+            </button>
+        </div>
+
+        <!-- Results Container -->
+        <div id="resultsContainer" class="section">
+            <!-- Results will be displayed here -->
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="state-manager.js"></script>
+    <script src="calculation-engine.js"></script>
+    <script src="ui-manager.js"></script>
+    <script src="app.js"></script>
+
+    <!-- Test Script -->
+    <script>
+        // Add test data after initialization
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                // Check if app is initialized
+                if (window.PalletizerApp && window.PalletizerApp.initialized) {
+                    console.log('✅ Palletizer App initialized successfully');
+                    
+                    // Add test data
+                    const testData = [
+                        { code: 'TEST-001', qty: 100, weight: 5.5, l: 40, w: 30, h: 25 },
+                        { code: 'TEST-002', qty: 50, weight: 8.2, l: 50, w: 35, h: 20 }
+                    ];
+                    
+                    testData.forEach(carton => {
+                        stateManager.addCarton(carton);
+                    });
+                    
+                    console.log('✅ Test data added');
+                    console.log('App Status:', window.PalletizerApp.getStatus());
+                } else {
+                    console.error('❌ Palletizer App failed to initialize');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
