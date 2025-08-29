@@ -2400,3 +2400,98 @@ function bindLayerCanvasEvents(canvas, hitmap) {
 window.showDiagramView = showDiagramView;
 window.scrollToPallet = scrollToPallet;
 window.setHeightLimit = setHeightLimit;
+
+// === パレット結合用セレクター更新 ===
+function updatePalletSelectors() {
+    const select1 = document.getElementById('pallet1Select');
+    const select2 = document.getElementById('pallet2Select');
+    if (!select1 || !select2) return;
+
+    // 既存オプションをクリア
+    const resetOptions = (sel) => {
+        while (sel.firstChild) sel.removeChild(sel.firstChild);
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = '選択...';
+        sel.appendChild(opt);
+    };
+    resetOptions(select1);
+    resetOptions(select2);
+
+    // 現在のパレットから選択肢を生成
+    if (Array.isArray(window.currentPallets)) {
+        window.currentPallets.forEach((pallet, idx) => {
+            const label = `${idx + 1}: ${pallet.palletSize.width}×${pallet.palletSize.depth} / 高さ ${pallet.height.toFixed(1)}cm / ${pallet.cartons.length}個`;
+            const o1 = document.createElement('option');
+            o1.value = String(idx);
+            o1.textContent = label;
+            select1.appendChild(o1);
+
+            const o2 = document.createElement('option');
+            o2.value = String(idx);
+            o2.textContent = label;
+            select2.appendChild(o2);
+        });
+    }
+
+    updateCombinePreview();
+}
+
+// === 結合プレビュー更新 ===
+function updateCombinePreview() {
+    const preview = document.getElementById('combinePreview');
+    const s1 = document.getElementById('pallet1Select');
+    const s2 = document.getElementById('pallet2Select');
+    if (!preview || !s1 || !s2) return;
+
+    const i1 = s1.value === '' ? null : parseInt(s1.value, 10);
+    const i2 = s2.value === '' ? null : parseInt(s2.value, 10);
+
+    if (i1 == null || i2 == null || i1 === i2) {
+        preview.textContent = '2つの異なるパレットを選択してください。';
+        return;
+    }
+
+    const p1 = window.currentPallets[i1];
+    const p2 = window.currentPallets[i2];
+    if (!p1 || !p2) {
+        preview.textContent = '';
+        return;
+    }
+
+    const totalWeight = (p1.totalWeight + p2.totalWeight).toFixed(1);
+    const items = p1.cartons.length + p2.cartons.length;
+    preview.innerHTML = `
+        選択: パレット${i1 + 1} と パレット${i2 + 1} / 合計${items}個・総重量${totalWeight}kg。サイズ互換性や高さは実行時に検証します。`;
+}
+
+// === パレット結合機能（プレースホルダー） ===
+function combinePallets() {
+    const s1 = document.getElementById('pallet1Select');
+    const s2 = document.getElementById('pallet2Select');
+    const i1 = s1 && s1.value !== '' ? parseInt(s1.value, 10) : null;
+    const i2 = s2 && s2.value !== '' ? parseInt(s2.value, 10) : null;
+    if (i1 == null || i2 == null || i1 === i2) {
+        alert('2つの異なるパレットを選択してください。');
+        return;
+    }
+    console.log('combinePallets: not implemented yet', { i1, i2 });
+    alert('パレット結合は未実装です（プレビューのみ）。');
+}
+
+function autoOptimizePallets() {
+    console.log('autoOptimizePallets: not implemented yet');
+    alert('自動最適化は未実装です。');
+}
+
+function analyzeSelectedPallets() {
+    console.log('analyzeSelectedPallets: not implemented yet');
+    alert('詳細分析は未実装です。');
+}
+
+// グローバルに公開（イベントリスナー参照用）
+window.updatePalletSelectors = updatePalletSelectors;
+window.updateCombinePreview = updateCombinePreview;
+window.combinePallets = combinePallets;
+window.autoOptimizePallets = autoOptimizePallets;
+window.analyzeSelectedPallets = analyzeSelectedPallets;
