@@ -123,6 +123,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initializePalletSelection();
     initializeHeightLimit();
     initializeTheme();
+    try { startIntroAnimations(); } catch(_) {}
+    try { setupInteractionAnimations(); } catch(_) {}
+    try { observeReveals(); } catch(_) {}
 });
 
 function initializeHeightLimit() {
@@ -166,7 +169,12 @@ function setupEventListeners() {
     // テーマ切替
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
-        themeToggle.addEventListener('click', toggleTheme);
+        themeToggle.addEventListener('click', (e) => {
+            toggleTheme();
+            if (window.anime) {
+                anime({ targets: e.currentTarget, scale: [1, 1.1, 1], duration: 300, easing: 'easeOutQuad' });
+            }
+        });
     }
 }
 
@@ -235,6 +243,10 @@ function togglePalletSelection(index) {
         checkbox.checked = true;
     }
     
+    if (window.anime) {
+        anime({ targets: option, scale: [1, 1.05, 1], duration: 250, easing: 'easeOutQuad' });
+    }
+
     updateSelectedPalletSizes();
     updateSelectedPalletsInfo();
 }
@@ -279,6 +291,10 @@ function updateSelectedPalletsInfo() {
     } else {
         info.textContent = `✅ ${count}種類のパレットで最適化計算`;
         info.style.color = '#2563eb';
+    }
+
+    if (window.anime) {
+        anime({ targets: info, opacity: [0.6, 1], duration: 250, easing: 'easeOutQuad' });
     }
 }
 
@@ -1716,6 +1732,9 @@ function displayResults(pallets) {
     const palletResults = document.getElementById('palletResults');
     
     results.classList.remove('hidden');
+    if (window.anime) {
+        anime({ targets: results, opacity: [0,1], translateY: [12,0], duration: 500, easing: 'easeOutQuad' });
+    }
     
     // サマリーカードを作成
     const totalPallets = pallets.length;
@@ -2523,3 +2542,56 @@ window.updateCombinePreview = updateCombinePreview;
 window.combinePallets = combinePallets;
 window.autoOptimizePallets = autoOptimizePallets;
 window.analyzeSelectedPallets = analyzeSelectedPallets;
+
+// === UI Animations with anime.js ===
+function startIntroAnimations() {
+    if (!window.anime) return;
+    try {
+        anime.timeline()
+            .add({ targets: '.header-row h1', opacity: [0,1], translateY: [20,0], duration: 600, easing: 'easeOutQuad' })
+            .add({ targets: '.improvement-note', opacity: [0,1], translateY: [12,0], duration: 500, easing: 'easeOutQuad', offset: '-=250' })
+            .add({ targets: '.summary-card', opacity: [0,1], translateY: [16,0], duration: 500, delay: anime.stagger(80), easing: 'easeOutQuad', offset: '-=200' })
+            .add({ targets: '.section-header', opacity: [0,1], translateY: [12,0], duration: 450, easing: 'easeOutQuad', offset: '-=200' });
+    } catch (_) {}
+}
+
+function setupInteractionAnimations() {
+    if (!window.anime) return;
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn');
+        if (!btn) return;
+        const rect = btn.getBoundingClientRect();
+        const ripple = document.createElement('span');
+        const size = Math.max(rect.width, rect.height);
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+        ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+        ripple.style.position = 'absolute';
+        ripple.style.borderRadius = '50%';
+        ripple.style.background = 'rgba(255,255,255,0.35)';
+        ripple.style.transform = 'scale(0)';
+        ripple.style.pointerEvents = 'none';
+        ripple.style.overflow = 'hidden';
+        ripple.style.mixBlendMode = 'screen';
+        btn.style.position = 'relative';
+        btn.appendChild(ripple);
+        anime({ targets: ripple, scale: [0, 2.2], opacity: [0.5, 0], duration: 500, easing: 'easeOutQuart', complete: () => ripple.remove() });
+    });
+}
+
+function observeReveals() {
+    if (!window.anime || !window.MutationObserver) return;
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(m => {
+            if (m.type === 'attributes' && m.attributeName === 'class') {
+                const el = m.target;
+                if (el instanceof HTMLElement) {
+                    if (!el.classList.contains('hidden')) {
+                        anime({ targets: el, opacity: [0, 1], translateY: [8, 0], duration: 400, easing: 'easeOutQuad' });
+                    }
+                }
+            }
+        });
+    });
+    observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+}
