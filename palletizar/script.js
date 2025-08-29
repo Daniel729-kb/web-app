@@ -2248,6 +2248,10 @@ function drawLayersDetail(palletIndex) {
     setTimeout(() => {
         pallet.layers.forEach((layer, layerIndex) => {
             drawSingleLayer(palletIndex, layerIndex, layer, pallet.palletSize, colorMap);
+            const canvas = document.getElementById(`layerCanvas_${palletIndex}_${layerIndex}`);
+            if (canvas && window.layerCanvasHitmaps && window.layerCanvasHitmaps[canvas.id]) {
+                bindLayerCanvasEvents(canvas, window.layerCanvasHitmaps[canvas.id]);
+            }
         });
     }, 100);
 }
@@ -2291,6 +2295,11 @@ function drawSingleLayer(palletIndex, layerIndex, layer, palletSize, colorMap) {
     ctx.fillText(`${palletSize.depth}cm`, 0, 0);
     ctx.restore();
     
+    // ヒットマップ初期化
+    if (!window.layerCanvasHitmaps) window.layerCanvasHitmaps = {};
+    const canvasId = `layerCanvas_${palletIndex}_${layerIndex}`;
+    window.layerCanvasHitmaps[canvasId] = [];
+    
     // カートンを描画
     layer.cartons.forEach((carton, index) => {
         if (carton.position) {
@@ -2306,6 +2315,15 @@ function drawSingleLayer(palletIndex, layerIndex, layer, palletSize, colorMap) {
             ctx.lineWidth = 1;
             ctx.strokeRect(boxX, boxY, boxW, boxH);
             
+            // ヒットマップ登録
+            window.layerCanvasHitmaps[canvasId].push({
+                x: boxX,
+                y: boxY,
+                w: boxW,
+                h: boxH,
+                carton
+            });
+            
             if (boxW > 25 && boxH > 15) {
                 ctx.fillStyle = '#000';
                 ctx.font = `${Math.min(9, boxW / 8)}px Arial`;
@@ -2320,6 +2338,62 @@ function drawSingleLayer(palletIndex, layerIndex, layer, palletSize, colorMap) {
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     ctx.fillText(`第${layerIndex + 1}層 - ${layer.cartons.length}個`, canvas.width / 2, 20);
+}
+
+// === ツールチップユーティリティ ===
+function ensureTooltip() {
+    let tip = document.getElementById('globalCanvasTooltip');
+    if (!tip) {
+        tip = document.createElement('div');
+        tip.id = 'globalCanvasTooltip';
+        tip.className = 'tooltip';
+        tip.style.display = 'none';
+        document.body.appendChild(tip);
+    }
+    return tip;
+}
+
+function showTooltip(x, y, html) {
+    const tip = ensureTooltip();
+    tip.innerHTML = html;
+    tip.style.left = `${x}px`;
+    tip.style.top = `${y}px`;
+    tip.style.display = 'block';
+}
+
+function hideTooltip() {
+    const tip = ensureTooltip();
+    tip.style.display = 'none';
+}
+
+function bindLayerCanvasEvents(canvas, hitmap) {
+    const onMove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        // 検出
+        let found = null;
+        for (let i = 0; i < hitmap.length; i++) {
+            const r = hitmap[i];
+            if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
+                found = r.carton;
+                break;
+            }
+        }
+        if (found) {
+            const content = `
+                <div style="font-weight:bold; margin-bottom:4px;">${found.code}</div>
+                <div>サイズ: ${found.l}×${found.w}×${found.h}cm</div>
+                <div>重量: ${typeof found.weight === 'number' ? found.weight.toFixed(2) : found.weight}kg</div>
+            `;
+            showTooltip(e.clientX + 8, e.clientY + 8, content);
+        } else {
+            hideTooltip();
+        }
+    };
+    const onLeave = () => hideTooltip();
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseleave', onLeave);
 }
 
 // グローバル関数として定義

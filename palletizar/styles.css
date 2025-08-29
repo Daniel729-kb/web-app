@@ -520,6 +520,48 @@ h1 {
 }
 
 .legend-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,0,0,0.2);
+}
+
+.dimensions-info {
+    background-color: #f8fafc;
+    border: 1px solid #e5e7eb;
+    color: #374151;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin: 10px 20px 0 20px;
+    font-size: 0.9rem;
+}
+
+.safety-warning {
+    margin: 10px 20px 0 20px;
+    background-color: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+}
+
+.tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: rgba(17, 24, 39, 0.95);
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.3;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    transform: translate(8px, 8px);
+    white-space: nowrap;
+}
+
+.legend-color {
     width: 20px;
     height: 20px;
     border: 1px solid #ccc;
