@@ -43,6 +43,8 @@ body {
     --danger: #dc2626;
     --warning-bg: #fff3cd;
     --warning-border: #ffeaa7;
+    --selected-bg: rgba(37, 99, 235, 0.1);
+    --hover-tint: rgba(37, 99, 235, 0.08);
 }
 
 body {
@@ -68,6 +70,8 @@ body.dark {
     --danger: #f87171;
     --warning-bg: #2a1f0b;
     --warning-border: #3b2f12;
+    --selected-bg: #10203a;
+    --hover-tint: #10203a;
 }
 
 h1 {
@@ -717,12 +721,12 @@ h1 {
 }
 
 .pallet-option:hover {
-    background-color: var(--bg-subtle);
+    background-color: var(--hover-tint);
     border-color: var(--brand);
 }
 
 .pallet-option.selected {
-    background-color: #10203a;
+    background-color: var(--selected-bg);
     border-color: var(--brand);
 }
 

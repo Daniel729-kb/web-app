@@ -173,8 +173,7 @@ function setupEventListeners() {
 function initializeTheme() {
     try {
         const stored = localStorage.getItem('palletizar_theme');
-        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const theme = stored || (prefersDark ? 'dark' : 'light');
+        const theme = stored || 'light';
         applyTheme(theme);
     } catch (_) {
         applyTheme('light');
