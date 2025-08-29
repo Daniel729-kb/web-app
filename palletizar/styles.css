@@ -730,26 +730,6 @@ h1 {
     border-color: var(--brand);
 }
 
-.pallet-option.disabled {
-    background-color: var(--bg-subtle);
-    border-color: var(--border);
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.pallet-option.disabled .pallet-checkbox {
-    cursor: not-allowed;
-}
-
-.pallet-option.disabled .pallet-option-name {
-    color: var(--text-muted);
-}
-
-.pallet-option.disabled .pallet-option-size {
-    color: var(--text-muted);
-    opacity: 0.7;
-}
-
 /* カスタムパレットセクション */
 .custom-pallet-section {
     margin-top: 20px;
