@@ -1,6 +1,6 @@
 // logimap-core.js - Core Application Logic
 
-// Global State Management
+// Enhanced Global State Management with Version Control
 let globalState = {
     facility1s: new Map(),
     facility2s: new Map(),
@@ -14,7 +14,15 @@ let globalState = {
     nextFacility4Id: 1,
     nextFacility5Id: 1,
     nextTransportId: 1,
-    currentLanguage: 'ja'
+    currentLanguage: 'ja',
+    // Enhanced features
+    undoStack: [],
+    redoStack: [],
+    isDirty: false,
+    lastSaveTime: null,
+    selectedFacilities: new Set(),
+    zoom: 1,
+    panOffset: { x: 0, y: 0 }
 };
 
 // Translation System
@@ -214,18 +222,28 @@ const transportIcons = {
 
 const facilityIcons = ['🏭', '🏢', '🏪', '🏛️', '🏬', '🏗️', '🏠', '🏥', '📦', '🚚', '🚢', '✈️', '🚆', '🛳️', '🛒', '🛍️', '🦽'];
 
-// Language Switching
+// Enhanced Language Switching with Local Storage
 function switchLanguage(lang, buttonElement) {
-    globalState.currentLanguage = lang;
-    
-    // Update active button
-    document.querySelectorAll('.language-btn').forEach(btn => btn.classList.remove('active'));
-    buttonElement.classList.add('active');
-    
-    // Update all translatable elements
-    updateTranslations();
-    
-    showDebugMessage(`Language switched to ${lang}`);
+    try {
+        globalState.currentLanguage = lang;
+        
+        // Save language preference
+        localStorage.setItem('logimap-language', lang);
+        
+        // Update active button
+        document.querySelectorAll('.language-btn').forEach(btn => btn.classList.remove('active'));
+        if (buttonElement) {
+            buttonElement.classList.add('active');
+        }
+        
+        // Update all translatable elements
+        updateTranslations();
+        
+        showDebugMessage(`Language switched to ${lang}`);
+    } catch (error) {
+        console.error('Error switching language:', error);
+        showDebugMessage(`Failed to switch language: ${error.message}`, true);
+    }
 }
 
 function updateTranslations() {
@@ -1576,6 +1594,133 @@ function cleanupEventListeners() {
 // Initialize when DOM is ready - let layout.js handle the timing
 // document.addEventListener('DOMContentLoaded', initializeApp);
 
+// Enhanced Undo/Redo functionality
+function saveState() {
+    const state = {
+        facility1s: Array.from(globalState.facility1s.entries()),
+        facility2s: Array.from(globalState.facility2s.entries()),
+        facility3s: Array.from(globalState.facility3s.entries()),
+        facility4s: Array.from(globalState.facility4s.entries()),
+        facility5s: Array.from(globalState.facility5s.entries()),
+        transportRoutes: Array.from(globalState.transportRoutes.entries())
+    };
+    
+    globalState.undoStack.push(JSON.stringify(state));
+    if (globalState.undoStack.length > 50) {
+        globalState.undoStack.shift();
+    }
+    globalState.redoStack = [];
+    globalState.isDirty = true;
+}
+
+function undo() {
+    if (globalState.undoStack.length === 0) {
+        showDebugMessage('Nothing to undo');
+        return;
+    }
+    
+    const currentState = JSON.stringify({
+        facility1s: Array.from(globalState.facility1s.entries()),
+        facility2s: Array.from(globalState.facility2s.entries()),
+        facility3s: Array.from(globalState.facility3s.entries()),
+        facility4s: Array.from(globalState.facility4s.entries()),
+        facility5s: Array.from(globalState.facility5s.entries()),
+        transportRoutes: Array.from(globalState.transportRoutes.entries())
+    });
+    
+    globalState.redoStack.push(currentState);
+    
+    const previousState = JSON.parse(globalState.undoStack.pop());
+    restoreState(previousState);
+    showDebugMessage('Undo successful');
+}
+
+function redo() {
+    if (globalState.redoStack.length === 0) {
+        showDebugMessage('Nothing to redo');
+        return;
+    }
+    
+    const currentState = JSON.stringify({
+        facility1s: Array.from(globalState.facility1s.entries()),
+        facility2s: Array.from(globalState.facility2s.entries()),
+        facility3s: Array.from(globalState.facility3s.entries()),
+        facility4s: Array.from(globalState.facility4s.entries()),
+        facility5s: Array.from(globalState.facility5s.entries()),
+        transportRoutes: Array.from(globalState.transportRoutes.entries())
+    });
+    
+    globalState.undoStack.push(currentState);
+    
+    const nextState = JSON.parse(globalState.redoStack.pop());
+    restoreState(nextState);
+    showDebugMessage('Redo successful');
+}
+
+function restoreState(state) {
+    globalState.facility1s = new Map(state.facility1s);
+    globalState.facility2s = new Map(state.facility2s);
+    globalState.facility3s = new Map(state.facility3s);
+    globalState.facility4s = new Map(state.facility4s);
+    globalState.facility5s = new Map(state.facility5s);
+    globalState.transportRoutes = new Map(state.transportRoutes);
+    
+    // Re-render everything
+    renderAllFacilities();
+    renderAllTransportRoutes();
+    generateMap();
+}
+
+function deleteSelectedFacilities() {
+    if (globalState.selectedFacilities.size === 0) return;
+    
+    saveState();
+    
+    globalState.selectedFacilities.forEach(facilityKey => {
+        const [type, id] = facilityKey.split('-');
+        const facilityType = parseInt(type.replace('facility', ''));
+        removeFacility(facilityType, parseInt(id));
+    });
+    
+    globalState.selectedFacilities.clear();
+    showDebugMessage('Selected facilities deleted');
+}
+
+function updateMapZoom() {
+    const mapFlow = document.getElementById('mapFlow');
+    if (mapFlow) {
+        mapFlow.style.transform = `scale(${globalState.zoom}) translate(${globalState.panOffset.x}px, ${globalState.panOffset.y}px)`;
+    }
+}
+
+function renderAllFacilities() {
+    // Clear existing facility forms
+    for (let i = 1; i <= 5; i++) {
+        const container = document.getElementById(`facility${i}sContainer`);
+        if (container) {
+            container.innerHTML = '';
+        }
+    }
+    
+    // Re-render all facilities
+    for (let i = 1; i <= 5; i++) {
+        const facilities = globalState[`facility${i}s`];
+        facilities.forEach(facility => {
+            renderFacilityForm(i, facility);
+        });
+    }
+}
+
+function renderAllTransportRoutes() {
+    const container = document.getElementById('transportContainer');
+    if (container) {
+        container.innerHTML = '';
+        globalState.transportRoutes.forEach(route => {
+            renderTransportRoute(route);
+        });
+    }
+}
+
 // Global error handler
 window.addEventListener('error', function(event) {
     console.error('Global error caught:', event.error);
@@ -1586,4 +1731,71 @@ window.addEventListener('error', function(event) {
 window.addEventListener('unhandledrejection', function(event) {
     console.error('Unhandled promise rejection:', event.reason);
     showDebugMessage(`非同期処理エラー: ${event.reason}`, true);
+});
+
+// Enhanced Initialization with Auto-save
+document.addEventListener('DOMContentLoaded', () => {
+    initializeApp();
+    
+    // Load language preference
+    const savedLang = localStorage.getItem('logimap-language');
+    if (savedLang && translations[savedLang]) {
+        switchLanguage(savedLang, document.querySelector(`[data-lang="${savedLang}"]`));
+    }
+    
+    // Set up auto-save every 30 seconds
+    setInterval(() => {
+        if (globalState.isDirty) {
+            saveToLocalStorage();
+            globalState.isDirty = false;
+            showDebugMessage('Auto-saved to local storage');
+        }
+    }, 30000);
+    
+    // Save on page unload
+    window.addEventListener('beforeunload', (e) => {
+        if (globalState.isDirty) {
+            saveToLocalStorage();
+            e.preventDefault();
+            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        }
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        // Ctrl+Z for undo
+        if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+            e.preventDefault();
+            undo();
+        }
+        // Ctrl+Shift+Z or Ctrl+Y for redo
+        if ((e.ctrlKey && e.shiftKey && e.key === 'z') || (e.ctrlKey && e.key === 'y')) {
+            e.preventDefault();
+            redo();
+        }
+        // Ctrl+S for save
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            saveToLocalStorage();
+            showDebugMessage('Saved to local storage');
+        }
+        // Delete key for removing selected facilities
+        if (e.key === 'Delete' && globalState.selectedFacilities.size > 0) {
+            e.preventDefault();
+            deleteSelectedFacilities();
+        }
+    });
+    
+    // Add zoom controls
+    const mapDisplay = document.getElementById('mapDisplay');
+    if (mapDisplay) {
+        mapDisplay.addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                globalState.zoom = Math.max(0.5, Math.min(3, globalState.zoom * delta));
+                updateMapZoom();
+            }
+        });
+    }
 });
