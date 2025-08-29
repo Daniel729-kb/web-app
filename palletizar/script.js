@@ -931,7 +931,8 @@ function findOptimalPalletConfiguration(availableItems) {
             const mixedConfig = calculateSmallQuantityMixedPallet(validItems, palletSize);
             if (mixedConfig && mixedConfig.cartons.length > 0 && mixedConfig.height <= maxHeightLimit) {
                 const score = calculatePalletScore(mixedConfig, validItems);
-                console.log(`${palletSize.name} 混載: ${mixedConfig.cartons.length}個, 高さ${mixedConfig.height.toFixed(1)}cm, スコア${score.toFixed(1)}`);
+                const volumeUtil = (mixedConfig.cartons.reduce((sum, c) => sum + (c.l * c.w * c.h), 0) / (palletSize.width * palletSize.depth * mixedConfig.height)).toFixed(3);
+                console.log(`${palletSize.name} 混載: ${mixedConfig.cartons.length}個, 高さ${mixedConfig.height.toFixed(1)}cm, 体積利用率${volumeUtil}, スコア${score}`);
                 
                 if (score > maxScore) {
                     maxScore = score;
@@ -945,7 +946,8 @@ function findOptimalPalletConfiguration(availableItems) {
             const dedicatedConfig = calculateLargeQuantityDedicatedPallet(validItems, palletSize);
             if (dedicatedConfig && dedicatedConfig.cartons.length > 0 && dedicatedConfig.height <= maxHeightLimit) {
                 const score = calculatePalletScore(dedicatedConfig, validItems);
-                console.log(`${palletSize.name} 専用: ${dedicatedConfig.cartons.length}個, 高さ${dedicatedConfig.height.toFixed(1)}cm, スコア${score.toFixed(1)}`);
+                const volumeUtil = (dedicatedConfig.cartons.reduce((sum, c) => sum + (c.l * c.w * c.h), 0) / (palletSize.width * palletSize.depth * dedicatedConfig.height)).toFixed(3);
+                console.log(`${palletSize.name} 専用: ${dedicatedConfig.cartons.length}個, 高さ${dedicatedConfig.height.toFixed(1)}cm, 体積利用率${volumeUtil}, スコア${score}`);
                 
                 if (score > maxScore) {
                     maxScore = score;
@@ -958,7 +960,8 @@ function findOptimalPalletConfiguration(availableItems) {
         const balancedConfig = calculateBalancedPallet(validItems, palletSize);
         if (balancedConfig && balancedConfig.cartons.length > 0 && balancedConfig.height <= maxHeightLimit) {
             const score = calculatePalletScore(balancedConfig, validItems);
-            console.log(`${palletSize.name} バランス: ${balancedConfig.cartons.length}個, 高さ${balancedConfig.height.toFixed(1)}cm, スコア${score.toFixed(1)}`);
+            const volumeUtil = (balancedConfig.cartons.reduce((sum, c) => sum + (c.l * c.w * c.h), 0) / (palletSize.width * palletSize.depth * balancedConfig.height)).toFixed(3);
+            console.log(`${palletSize.name} バランス: ${balancedConfig.cartons.length}個, 高さ${balancedConfig.height.toFixed(1)}cm, 体積利用率${volumeUtil}, スコア${score}`);
             
             if (score > maxScore) {
                 maxScore = score;
@@ -1432,27 +1435,54 @@ function calculateLayerScore(layer, palletSize, isPriority = false) {
     const areaUtilization = layer.area / palletArea;
     const cartonCount = layer.cartons.length;
     
-    let score = areaUtilization * 40 + cartonCount * 10;
+    let score = 0;
     
+    // 1. 面積利用率スコア（最重要）
+    score += areaUtilization * 50;
+    
+    // 2. カートン数スコア
+    score += cartonCount * 15;
+    
+    // 3. 混載効率ボーナス
     const uniqueCodes = [...new Set(layer.cartons.map(c => c.code))];
     const isActuallyMixed = uniqueCodes.length > 1;
     
     if (isActuallyMixed) {
         const avgPerCode = cartonCount / uniqueCodes.length;
-        if (avgPerCode <= 4) {
-            score += 30;
+        if (avgPerCode >= 3) {
+            score += 35; // 効率的な混載
+        } else if (avgPerCode >= 2) {
+            score += 20; // 適度な混載
+        }
+        
+        // 高さの統一性ボーナス
+        const heights = [...new Set(layer.cartons.map(c => c.h))];
+        if (heights.length === 1) {
+            score += 15; // 同じ高さの混載
         }
     }
     
-    if (cartonCount <= 3 && !isActuallyMixed) {
-        score -= 20;
+    // 4. 単一アイテムの効率チェック
+    if (!isActuallyMixed && cartonCount <= 3) {
+        if (areaUtilization < 0.4) {
+            score -= 25; // 効率不良ペナルティ
+        }
     }
     
+    // 5. 優先アイテムボーナス
     if (isPriority) {
-        score += 10;
+        score += 20;
     }
     
-    return Math.max(0, score);
+    // 6. 重量効率ボーナス
+    if (layer.weight) {
+        const weightDensity = layer.weight / layer.area;
+        if (weightDensity > 0.1) { // 適度な重量密度
+            score += 10;
+        }
+    }
+    
+    return Math.max(0, Math.round(score));
 }
 
 // === 単一貨物コード専用層作成（高さ制限対応） ===
@@ -1551,18 +1581,100 @@ function calculateOptimalPlacement(item, palletSize) {
 function calculatePalletScore(config, availableItems) {
     let score = 0;
     
-    // 基本スコア: 配置されたカートン数
+    // 1. 体積利用率スコア（最重要）
+    const totalVolume = config.cartons.reduce((sum, carton) => 
+        sum + (carton.l * carton.w * carton.h), 0);
+    const palletVolume = config.palletSize.width * config.palletSize.depth * config.height;
+    const volumeUtilization = totalVolume / palletVolume;
+    score += volumeUtilization * 100;
+    
+    // 2. 安定性スコア
+    const stabilityScore = calculateStabilityScore(config.layers, config.palletSize);
+    score += stabilityScore * 50;
+    
+    // 3. 重量分布スコア
+    const weightBalance = calculateWeightBalance(config.layers);
+    score += weightBalance * 30;
+    
+    // 4. 基本スコア（配置されたカートン数）
     score += config.cartons.length * 10;
     
-    // 高さ効率スコア
+    // 5. 高さ効率スコア
     const heightEfficiency = config.height / maxHeightLimit;
-    score += (1 - heightEfficiency) * 50;
+    score += (1 - heightEfficiency) * 40;
     
-    // 重量効率スコア
-    const weightEfficiency = config.totalWeight / (config.palletSize.width * config.palletSize.depth * config.height * 0.001);
-    score += weightEfficiency * 30;
+    // 6. 混載効率ボーナス
+    const uniqueCodes = [...new Set(config.cartons.map(c => c.code))];
+    if (uniqueCodes.length > 1) {
+        const mixedEfficiency = config.cartons.length / uniqueCodes.length;
+        if (mixedEfficiency >= 3) {
+            score += 25; // 効率的な混載
+        }
+    }
     
-    return score;
+    return Math.max(0, Math.round(score));
+}
+
+// === 安定性スコア計算 ===
+function calculateStabilityScore(layers, palletSize) {
+    if (layers.length <= 1) return 1.0; // 単層は安定
+    
+    let totalStability = 0;
+    const palletArea = palletSize.width * palletSize.depth;
+    
+    for (let i = 1; i < layers.length; i++) {
+        const currentLayer = layers[i];
+        const previousLayer = layers[i - 1];
+        
+        // 層の重なり面積を計算
+        const currentArea = currentLayer.cartons.reduce((sum, c) => 
+            sum + (c.position ? c.position.width * c.position.depth : c.l * c.w), 0);
+        const overlapRatio = currentArea / palletArea;
+        
+        // 重なりが大きいほど安定
+        let layerStability = Math.min(1.0, overlapRatio * 1.5);
+        
+        // 重量比も考慮（上の層が軽いほど安定）
+        if (currentLayer.weight && previousLayer.weight) {
+            const weightRatio = currentLayer.weight / previousLayer.weight;
+            if (weightRatio <= 0.8) {
+                layerStability += 0.2; // 軽い層ボーナス
+            } else if (weightRatio > 1.2) {
+                layerStability -= 0.3; // 重い層ペナルティ
+            }
+        }
+        
+        totalStability += Math.max(0, layerStability);
+    }
+    
+    return totalStability / (layers.length - 1);
+}
+
+// === 重量分布スコア計算 ===
+function calculateWeightBalance(layers) {
+    if (layers.length <= 1) return 1.0;
+    
+    const weights = layers.map(layer => layer.weight || 0);
+    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+    const avgWeight = totalWeight / weights.length;
+    
+    // 重量の分散を計算（小さいほど良い）
+    const variance = weights.reduce((sum, w) => sum + Math.pow(w - avgWeight, 2), 0) / weights.length;
+    const standardDeviation = Math.sqrt(variance);
+    
+    // 標準偏差が小さいほど高スコア
+    const weightBalance = Math.max(0, 1 - (standardDeviation / avgWeight));
+    
+    // 下層が重いほど高スコア
+    let bottomHeavyBonus = 0;
+    for (let i = 0; i < Math.min(3, layers.length); i++) {
+        const layerWeight = weights[i] || 0;
+        if (layerWeight >= avgWeight * 0.9) {
+            bottomHeavyBonus += 0.1;
+        }
+    }
+    
+    return Math.min(1.0, weightBalance + bottomHeavyBonus);
 }
 
 // === 安定性・重量順序ヘルパー（安全な改善） ===
