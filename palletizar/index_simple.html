@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>パレタイズ最適化計算機 - Simple Version</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2563eb; margin-bottom: 20px; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: bold;
+        }
+        .btn-primary { background-color: #2563eb; color: white; }
+        .btn-success { background-color: #16a34a; color: white; }
+        .btn-danger { background-color: #dc2626; color: white; }
+        .form-input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        .hidden { display: none; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th { background-color: #f8f9fa; }
+        .alert {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>パレタイズ最適化計算機 - Simple Version</h1>
+        
+        <div id="status">✅ JavaScript is loading...</div>
+        
+        <div id="errors"></div>
+        
+        <!-- Summary -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0;">
+            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; text-align: center;">
+                <h3>総カートン数</h3>
+                <p id="totalCartons">0 個</p>
+            </div>
+            <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; text-align: center;">
+                <h3>総重量</h3>
+                <p id="totalWeight">0.0 kg</p>
+            </div>
+            <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; text-align: center;">
+                <h3>品目数</h3>
+                <p id="itemCount">0 種類</p>
+            </div>
+        </div>
+        
+        <!-- Controls -->
+        <div style="margin: 20px 0;">
+            <button class="btn btn-success" onclick="addSampleData()">📦 サンプルデータ追加</button>
+            <button class="btn btn-primary" onclick="addNewItem()">➕ 新規追加</button>
+            <button class="btn btn-danger" onclick="clearAll()">🗑️ 全削除</button>
+            <button class="btn btn-primary" onclick="calculate()">🔢 計算実行</button>
+        </div>
+        
+        <!-- Add Form -->
+        <div id="addForm" class="hidden" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+            <h3>新しいカートンを追加</h3>
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;">
+                <input type="text" id="newCode" placeholder="貨物コード" class="form-input">
+                <input type="number" id="newQty" placeholder="数量" class="form-input">
+                <input type="number" id="newWeight" placeholder="重量(kg)" step="0.1" class="form-input">
+                <input type="number" id="newL" placeholder="長さ(cm)" step="0.1" class="form-input">
+                <input type="number" id="newW" placeholder="幅(cm)" step="0.1" class="form-input">
+                <input type="number" id="newH" placeholder="高さ(cm)" step="0.1" class="form-input">
+            </div>
+            <div style="margin-top: 10px;">
+                <button class="btn btn-success" onclick="saveNewItem()">💾 保存</button>
+                <button class="btn" onclick="cancelAdd()">❌ キャンセル</button>
+            </div>
+        </div>
+        
+        <!-- Data Table -->
+        <table>
+            <thead>
+                <tr>
+                    <th>貨物コード</th>
+                    <th>数量</th>
+                    <th>重量 (kg)</th>
+                    <th>長さ (cm)</th>
+                    <th>幅 (cm)</th>
+                    <th>高さ (cm)</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="dataTable">
+                <tr>
+                    <td colspan="7" style="text-align: center; color: #666; font-style: italic;">
+                        データがありません。「📦 サンプルデータ追加」または「➕ 新規追加」でデータを追加してください。
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Results -->
+        <div id="results" class="hidden">
+            <h2 style="color: #2563eb;">計算結果</h2>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Debug: Log that script is loading
+        console.log('🚀 Script starting...');
+        
+        // Global variables
+        let cartonData = [];
+        let nextId = 1;
+        
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            initialize();
+        }
+        
+        function initialize() {
+            console.log('✅ Initializing...');
+            updateStatus('✅ アプリケーション準備完了');
+            updateSummary();
+        }
+        
+        function updateStatus(message) {
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.innerHTML = message;
+            }
+            console.log('Status:', message);
+        }
+        
+        function showMessage(message, type = 'success') {
+            const errorsDiv = document.getElementById('errors');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-' + type;
+            alertDiv.innerHTML = message;
+            errorsDiv.appendChild(alertDiv);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(function() {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 3000);
+        }
+        
+        function addSampleData() {
+            console.log('Adding sample data...');
+            cartonData = [
+                { id: nextId++, code: 'SAMPLE A', qty: 362, weight: 6.70, l: 53.0, w: 38.5, h: 23.5 },
+                { id: nextId++, code: 'SAMPLE B', qty: 42, weight: 7.60, l: 55.0, w: 40.0, h: 24.0 }
+            ];
+            updateTable();
+            updateSummary();
+            showMessage('✅ サンプルデータを追加しました');
+        }
+        
+        function addNewItem() {
+            console.log('Showing add form...');
+            document.getElementById('addForm').classList.remove('hidden');
+        }
+        
+        function cancelAdd() {
+            console.log('Canceling add...');
+            document.getElementById('addForm').classList.add('hidden');
+            clearForm();
+        }
+        
+        function clearForm() {
+            document.getElementById('newCode').value = '';
+            document.getElementById('newQty').value = '';
+            document.getElementById('newWeight').value = '';
+            document.getElementById('newL').value = '';
+            document.getElementById('newW').value = '';
+            document.getElementById('newH').value = '';
+        }
+        
+        function saveNewItem() {
+            console.log('Saving new item...');
+            
+            const code = document.getElementById('newCode').value.trim();
+            const qty = parseInt(document.getElementById('newQty').value) || 0;
+            const weight = parseFloat(document.getElementById('newWeight').value) || 0;
+            const l = parseFloat(document.getElementById('newL').value) || 0;
+            const w = parseFloat(document.getElementById('newW').value) || 0;
+            const h = parseFloat(document.getElementById('newH').value) || 0;
+            
+            if (!code || qty <= 0 || weight <= 0 || l <= 0 || w <= 0 || h <= 0) {
+                showMessage('⚠️ すべての項目を正しく入力してください', 'error');
+                return;
+            }
+            
+            // Check for duplicate
+            const existing = cartonData.find(item => item.code === code);
+            if (existing) {
+                showMessage('⚠️ 貨物コード "' + code + '" は既に存在します', 'error');
+                return;
+            }
+            
+            cartonData.push({
+                id: nextId++,
+                code: code,
+                qty: qty,
+                weight: weight,
+                l: l,
+                w: w,
+                h: h
+            });
+            
+            updateTable();
+            updateSummary();
+            cancelAdd();
+            showMessage('✅ データを追加しました');
+        }
+        
+        function clearAll() {
+            if (confirm('すべてのデータを削除しますか？')) {
+                console.log('Clearing all data...');
+                cartonData = [];
+                updateTable();
+                updateSummary();
+                document.getElementById('results').classList.add('hidden');
+                showMessage('✅ すべてのデータを削除しました');
+            }
+        }
+        
+        function deleteItem(id) {
+            if (confirm('このアイテムを削除しますか？')) {
+                console.log('Deleting item:', id);
+                cartonData = cartonData.filter(item => item.id !== id);
+                updateTable();
+                updateSummary();
+                showMessage('✅ アイテムを削除しました');
+            }
+        }
+        
+        function updateTable() {
+            console.log('Updating table...');
+            const tableBody = document.getElementById('dataTable');
+            
+            if (cartonData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #666; font-style: italic;">データがありません。「📦 サンプルデータ追加」または「➕ 新規追加」でデータを追加してください。</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            cartonData.forEach(item => {
+                html += '<tr>';
+                html += '<td>' + item.code + '</td>';
+                html += '<td>' + item.qty + '</td>';
+                html += '<td>' + item.weight + '</td>';
+                html += '<td>' + item.l + '</td>';
+                html += '<td>' + item.w + '</td>';
+                html += '<td>' + item.h + '</td>';
+                html += '<td><button class="btn btn-danger" onclick="deleteItem(' + item.id + ')">🗑️</button></td>';
+                html += '</tr>';
+            });
+            
+            tableBody.innerHTML = html;
+        }
+        
+        function updateSummary() {
+            console.log('Updating summary...');
+            const totalCartons = cartonData.reduce(function(sum, item) { return sum + item.qty; }, 0);
+            const totalWeight = cartonData.reduce(function(sum, item) { return sum + (item.qty * item.weight); }, 0);
+            const itemCount = cartonData.length;
+            
+            document.getElementById('totalCartons').textContent = totalCartons + ' 個';
+            document.getElementById('totalWeight').textContent = totalWeight.toFixed(1) + ' kg';
+            document.getElementById('itemCount').textContent = itemCount + ' 種類';
+        }
+        
+        function calculate() {
+            console.log('Starting calculation...');
+            
+            if (cartonData.length === 0) {
+                showMessage('⚠️ カートンデータがありません', 'error');
+                return;
+            }
+            
+            // Simple calculation simulation
+            updateStatus('🔢 計算中...');
+            
+            setTimeout(function() {
+                const totalCartons = cartonData.reduce(function(sum, item) { return sum + item.qty; }, 0);
+                const totalWeight = cartonData.reduce(function(sum, item) { return sum + (item.qty * item.weight); }, 0);
+                
+                // Simple estimation: assume 50 cartons per pallet on average
+                const estimatedPallets = Math.ceil(totalCartons / 50);
+                
+                const resultsDiv = document.getElementById('results');
+                const resultContent = document.getElementById('resultContent');
+                
+                let html = '<div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 15px 0;">';
+                html += '<h3>📊 計算結果サマリー</h3>';
+                html += '<p><strong>推定パレット数:</strong> ' + estimatedPallets + ' 枚</p>';
+                html += '<p><strong>総カートン数:</strong> ' + totalCartons + ' 個</p>';
+                html += '<p><strong>総重量:</strong> ' + totalWeight.toFixed(1) + ' kg</p>';
+                html += '<p><strong>平均重量/パレット:</strong> ' + (totalWeight / estimatedPallets).toFixed(1) + ' kg</p>';
+                html += '</div>';
+                
+                html += '<div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0;">';
+                html += '<h4>📝 注意事項</h4>';
+                html += '<p>これは簡易計算です。実際の最適化計算には、モジュール版をWebサーバー環境で実行してください。</p>';
+                html += '</div>';
+                
+                resultContent.innerHTML = html;
+                resultsDiv.classList.remove('hidden');
+                
+                updateStatus('✅ 計算完了');
+                showMessage('✅ 簡易計算が完了しました');
+            }, 1000);
+        }
+        
+        // Test function
+        function testAlert() {
+            alert('JavaScript is working!');
+        }
+        
+        console.log('✅ Script loaded successfully');
+        updateStatus('✅ JavaScript読み込み完了');
+    </script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Does JS Work?</title>
+</head>
+<body>
+    <h1>Simple Test</h1>
+    <div id="test-output">Testing...</div>
+    <button onclick="testFunction()">Click Me</button>
+    
+    <script>
+        console.log('✅ JavaScript is running!');
+        
+        function testFunction() {
+            document.getElementById('test-output').innerHTML = '✅ JavaScript works! Button clicked at ' + new Date();
+            alert('JavaScript is working!');
+        }
+        
+        // Test DOM ready
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('test-output').innerHTML = '✅ DOM loaded and JavaScript is working!';
+            console.log('✅ DOM ready event fired');
+        });
+    </script>
+</body>
+</html>
