@@ -1843,23 +1843,19 @@ function buildSummaryTable(pallets) {
         }, {});
         
         const palletSize = `${pallet.palletSize.width}×${pallet.palletSize.depth}`;
-        const height = pallet.height.toFixed(1);
-        const heightCompliant = pallet.height <= maxHeightLimit ? 'OK' : 'NG';
+        const heightCompliantIcon = pallet.height <= maxHeightLimit ? '✅' : '❌';
         const weight = pallet.totalWeight.toFixed(1);
         const codes = Object.keys(cartonCounts).join(', ');
         const quantities = Object.values(cartonCounts).join(', ');
-        const layers = pallet.layers.length;
+        
         
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td><span class="pallet-link" onclick="scrollToPallet(${palletIndex})">${palletIndex + 1} ${heightCompliant}</span></td>
+            <td><span class="pallet-link" onclick="scrollToPallet(${palletIndex})">${palletIndex + 1} ${heightCompliantIcon}</span></td>
             <td>${palletSize}</td>
-            <td>${height}</td>
-            <td>${heightCompliant}</td>
             <td>${weight}</td>
             <td>${codes}</td>
             <td>${quantities}</td>
-            <td>${layers}</td>
         `;
         
         if (pallet.height > maxHeightLimit) {
@@ -1877,7 +1873,7 @@ function exportSummaryCsv() {
         return;
     }
     
-    const headers = ['パレットNo', 'パレットサイズ(cm)', '高さ(cm)', '高さ制限適合', '重量(kg)', '貨物コード', '数量', '層数'];
+    const headers = ['パレットNo', '寸法(cm)', '重量(kg)', '貨物コード', '数量'];
     const rows = [headers];
     
     window.currentPallets.forEach((pallet, palletIndex) => {
@@ -1887,22 +1883,18 @@ function exportSummaryCsv() {
         }, {});
         
         const palletSize = `${pallet.palletSize.width}×${pallet.palletSize.depth}`;
-        const height = pallet.height.toFixed(1);
-        const heightCompliant = pallet.height <= maxHeightLimit ? 'OK' : 'NG';
+        const heightCompliantIcon = pallet.height <= maxHeightLimit ? '✅' : '❌';
         const weight = pallet.totalWeight.toFixed(1);
         const codes = Object.keys(cartonCounts).join(', ');
         const quantities = Object.values(cartonCounts).join(', ');
-        const layers = pallet.layers.length;
+        
         
         rows.push([
-            palletIndex + 1,
+            `${palletIndex + 1} ${heightCompliantIcon}`,
             palletSize,
-            height,
-            heightCompliant,
             weight,
             codes,
-            quantities,
-            layers
+            quantities
         ]);
     });
     
