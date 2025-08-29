@@ -1279,6 +1279,110 @@ body.dark .theme-icon {
     }
 }
 
+/* === DIAGRAM STYLES === */
+.diagram-container {
+    margin-top: var(--space-lg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.diagram-tabs {
+    display: flex;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.diagram-tab {
+    flex: 1;
+    padding: var(--space-sm) var(--space-md);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.diagram-tab:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.diagram-tab.active {
+    background: var(--brand);
+    color: white;
+    font-weight: 600;
+}
+
+.diagram-content {
+    position: relative;
+    min-height: 300px;
+    background: white;
+}
+
+.pallet-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.pallet-canvas.active {
+    opacity: 1;
+}
+
+/* === MODAL STYLES === */
+.carton-details-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: var(--space-xl);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    max-width: 500px;
+    width: 90%;
+}
+
+.modal-content h3 {
+    margin: 0 0 var(--space-md) 0;
+    color: var(--text-primary);
+}
+
+.modal-content p {
+    margin: var(--space-sm) 0;
+    color: var(--text-secondary);
+}
+
+.modal-content button {
+    margin-top: var(--space-lg);
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--brand);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.modal-content button:hover {
+    background: var(--brand-dark);
+}
+
 /* === PRINT STYLES === */
 @media print {
     .btn,
@@ -1296,5 +1400,9 @@ body.dark .theme-icon {
     .pallet-card {
         break-inside: avoid;
         page-break-inside: avoid;
+    }
+    
+    .diagram-container {
+        display: none !important;
     }
 }

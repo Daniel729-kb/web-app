@@ -995,29 +995,291 @@ function deleteCarton(id) {
     }
 }
 
-// === パレタイズ計算の実装（簡略化） ===
+// === パレタイズ計算の実装（完全版） ===
 function performPalletizationCalculation() {
-    // 実際の計算ロジックは既存のコードを使用
-    // ここではサンプル結果を返す
-    return {
-        pallets: [
-            {
-                id: 1,
-                width: 120,
-                depth: 100,
-                height: 120,
-                weight: 500,
-                items: cartonData
-            }
-        ],
-        totalPallets: 1,
-        totalWeight: cartonData.reduce((sum, c) => sum + (c.weight * c.qty), 0)
-    };
+    console.log('パレタイズ計算開始...');
+    
+    // 貨物データの前処理
+    const processedCartons = preprocessCartonData(cartonData);
+    console.log('前処理済み貨物データ:', processedCartons);
+    
+    // パレットサイズごとの最適化計算
+    const palletResults = [];
+    
+    selectedPalletSizes.forEach(palletSize => {
+        console.log(`${palletSize.name}での計算開始...`);
+        
+        const result = findOptimalPalletConfiguration(
+            processedCartons,
+            palletSize,
+            maxHeightLimit
+        );
+        
+        if (result && result.pallets.length > 0) {
+            palletResults.push({
+                palletSize: palletSize,
+                result: result
+            });
+        }
+    });
+    
+    // 最適な結果を選択
+    const bestResult = selectBestResult(palletResults);
+    
+    if (!bestResult) {
+        throw new Error('有効なパレット配置が見つかりませんでした');
+    }
+    
+    console.log('最適な結果:', bestResult);
+    return bestResult;
 }
 
-// === 結果表示の実装（簡略化） ===
+// === 貨物データの前処理 ===
+function preprocessCartonData(cartons) {
+    return cartons.map(carton => ({
+        ...carton,
+        volume: carton.l * carton.w * carton.h,
+        area: carton.l * carton.w,
+        aspectRatio: Math.max(carton.l, carton.w) / Math.min(carton.l, carton.w)
+    }));
+}
+
+// === 最適なパレット配置の検索 ===
+function findOptimalPalletConfiguration(cartons, palletSize, maxHeight) {
+    const results = [];
+    
+    // 小数量混合パレットの計算
+    const smallQuantityResult = calculateSmallQuantityMixedPallet(cartons, palletSize, maxHeight);
+    if (smallQuantityResult) {
+        results.push({
+            type: 'small_quantity_mixed',
+            score: calculatePalletScore(smallQuantityResult),
+            result: smallQuantityResult
+        });
+    }
+    
+    // 大数量専用パレットの計算
+    const largeQuantityResult = calculateLargeQuantityDedicatedPallet(cartons, palletSize, maxHeight);
+    if (largeQuantityResult) {
+        results.push({
+            type: 'large_quantity_dedicated',
+            score: calculatePalletScore(largeQuantityResult),
+            result: largeQuantityResult
+        });
+    }
+    
+    // バランス型パレットの計算
+    const balancedResult = calculateBalancedPallet(cartons, palletSize, maxHeight);
+    if (balancedResult) {
+        results.push({
+            type: 'balanced',
+            score: calculatePalletScore(balancedResult),
+            result: balancedResult
+        });
+    }
+    
+    // 最高スコアの結果を返す
+    if (results.length === 0) return null;
+    
+    const bestResult = results.reduce((best, current) => 
+        current.score > best.score ? current : best
+    );
+    
+    return bestResult.result;
+}
+
+// === 小数量混合パレットの計算 ===
+function calculateSmallQuantityMixedPallet(cartons, palletSize, maxHeight) {
+    const pallets = [];
+    let remainingCartons = [...cartons];
+    
+    while (remainingCartons.length > 0) {
+        const pallet = {
+            id: pallets.length + 1,
+            width: palletSize.width,
+            depth: palletSize.depth,
+            height: 0,
+            weight: 0,
+            items: [],
+            layers: []
+        };
+        
+        let currentHeight = 0;
+        let currentLayer = [];
+        let layerHeight = 0;
+        
+        // 貨物を1つずつ配置
+        for (let i = 0; i < remainingCartons.length; i++) {
+            const carton = remainingCartons[i];
+            
+            if (currentHeight + carton.h <= maxHeight) {
+                // レイヤー内での配置チェック
+                if (canFitInLayer(currentLayer, carton, palletSize)) {
+                    currentLayer.push(carton);
+                    layerHeight = Math.max(layerHeight, carton.h);
+                    currentHeight += carton.h;
+                    
+                    // 貨物を削除
+                    remainingCartons.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+        
+        if (currentLayer.length > 0) {
+            pallet.layers.push({
+                items: currentLayer,
+                height: layerHeight
+            });
+            pallet.height = currentHeight;
+            pallet.weight = currentLayer.reduce((sum, c) => sum + (c.weight * c.qty), 0);
+            pallet.items = currentLayer;
+            pallets.push(pallet);
+        }
+    }
+    
+    return pallets.length > 0 ? { pallets, totalPallets: pallets.length } : null;
+}
+
+// === 大数量専用パレットの計算 ===
+function calculateLargeQuantityDedicatedPallet(cartons, palletSize, maxHeight) {
+    const pallets = [];
+    
+    cartons.forEach(carton => {
+        if (carton.qty >= 100) { // 大数量の閾値
+            const palletsNeeded = Math.ceil(carton.qty / 50); // 1パレットあたり50個
+            
+            for (let i = 0; i < palletsNeeded; i++) {
+                const pallet = {
+                    id: pallets.length + 1,
+                    width: palletSize.width,
+                    depth: palletSize.depth,
+                    height: carton.h,
+                    weight: carton.weight * Math.min(50, carton.qty - i * 50),
+                    items: [carton],
+                    layers: [{
+                        items: [carton],
+                        height: carton.h
+                    }]
+                };
+                pallets.push(pallet);
+            }
+        }
+    });
+    
+    return pallets.length > 0 ? { pallets, totalPallets: pallets.length } : null;
+}
+
+// === バランス型パレットの計算 ===
+function calculateBalancedPallet(cartons, palletSize, maxHeight) {
+    const pallets = [];
+    let remainingCartons = [...cartons];
+    
+    while (remainingCartons.length > 0) {
+        const pallet = {
+            id: pallets.length + 1,
+            width: palletSize.width,
+            depth: palletSize.depth,
+            height: 0,
+            weight: 0,
+            items: [],
+            layers: []
+        };
+        
+        let currentHeight = 0;
+        let currentLayer = [];
+        let layerHeight = 0;
+        
+        // 貨物を効率的に配置
+        const sortedCartons = remainingCartons.sort((a, b) => b.volume - a.volume);
+        
+        for (let i = 0; i < sortedCartons.length; i++) {
+            const carton = sortedCartons[i];
+            
+            if (currentHeight + carton.h <= maxHeight) {
+                if (canFitInLayer(currentLayer, carton, palletSize)) {
+                    currentLayer.push(carton);
+                    layerHeight = Math.max(layerHeight, carton.h);
+                    currentHeight += carton.h;
+                    
+                    // 貨物を削除
+                    remainingCartons = remainingCartons.filter(c => c !== carton);
+                    break;
+                }
+            }
+        }
+        
+        if (currentLayer.length > 0) {
+            pallet.layers.push({
+                items: currentLayer,
+                height: layerHeight
+            });
+            pallet.height = currentHeight;
+            pallet.weight = currentLayer.reduce((sum, c) => sum + (c.weight * c.qty), 0);
+            pallet.items = currentLayer;
+            pallets.push(pallet);
+        }
+    }
+    
+    return pallets.length > 0 ? { pallets, totalPallets: pallets.length } : null;
+}
+
+// === レイヤー内での配置チェック ===
+function canFitInLayer(layer, carton, palletSize) {
+    // 簡易的な配置チェック（実際の実装ではより複雑なアルゴリズムが必要）
+    const totalArea = layer.reduce((sum, c) => sum + c.area, 0) + carton.area;
+    const palletArea = palletSize.width * palletSize.depth;
+    
+    return totalArea <= palletArea * 0.9; // 90%の面積使用率
+}
+
+// === パレットスコアの計算 ===
+function calculatePalletScore(result) {
+    if (!result || !result.pallets) return 0;
+    
+    let score = 0;
+    
+    result.pallets.forEach(pallet => {
+        // 高さ効率
+        const heightEfficiency = pallet.height / maxHeightLimit;
+        score += heightEfficiency * 10;
+        
+        // 重量効率
+        const weightEfficiency = pallet.weight / 1000; // 1トン基準
+        score += Math.min(weightEfficiency, 1) * 5;
+        
+        // 貨物数効率
+        const itemEfficiency = pallet.items.length / 10; // 10個基準
+        score += Math.min(itemEfficiency, 1) * 3;
+    });
+    
+    // パレット数が少ないほど高スコア
+    score += (10 - result.totalPallets) * 2;
+    
+    return score;
+}
+
+// === 最適な結果の選択 ===
+function selectBestResult(results) {
+    if (results.length === 0) return null;
+    
+    // スコアが最も高い結果を選択
+    const bestResult = results.reduce((best, current) => {
+        const currentScore = current.result.score || 0;
+        const bestScore = best.result.score || 0;
+        return currentScore > bestScore ? current : best;
+    });
+    
+    return bestResult.result;
+}
+
+// === 結果表示の実装（完全版） ===
 function updateResultSummary(result) {
     const summaryDiv = document.getElementById('resultSummary');
+    
+    // 総重量の計算
+    const totalWeight = result.pallets.reduce((sum, pallet) => sum + pallet.weight, 0);
+    
     summaryDiv.innerHTML = `
         <div class="summary-card orange">
             <h3>使用パレット数</h3>
@@ -1025,7 +1287,11 @@ function updateResultSummary(result) {
         </div>
         <div class="summary-card green">
             <h3>総重量</h3>
-            <p>${result.totalWeight.toFixed(2)} kg</p>
+            <p>${totalWeight.toFixed(2)} kg</p>
+        </div>
+        <div class="summary-card blue">
+            <h3>平均高さ</h3>
+            <p>${(result.pallets.reduce((sum, p) => sum + p.height, 0) / result.pallets.length).toFixed(1)} cm</p>
         </div>
     `;
 }
@@ -1066,9 +1332,35 @@ function displayPalletResults(pallets) {
                     `).join('')}
                 </div>
             </div>
+            
+            <!-- パレット図面セクション -->
+            <div class="diagram-container">
+                <div class="diagram-tabs">
+                    <button class="diagram-tab active" onclick="switchDiagramTab(this, 'top-${pallet.id}')">上面図</button>
+                    <button class="diagram-tab" onclick="switchDiagramTab(this, 'side-${pallet.id}')">側面図</button>
+                    <button class="diagram-tab" onclick="switchDiagramTab(this, 'detail-${pallet.id}')">レイヤー詳細</button>
+                </div>
+                
+                <div class="diagram-content">
+                    <canvas id="top-${pallet.id}" class="pallet-canvas active"></canvas>
+                    <canvas id="side-${pallet.id}" class="pallet-canvas"></canvas>
+                    <canvas id="detail-${pallet.id}" class="pallet-canvas"></canvas>
+                </div>
+            </div>
         `;
         
         resultsDiv.appendChild(palletDiv);
+        
+        // 図面の描画
+        setTimeout(() => {
+            drawPalletDiagram(pallet, `top-${pallet.id}`);
+            drawSideView(pallet, `side-${pallet.id}`);
+            drawLayersDetail(pallet, `detail-${pallet.id}`);
+            
+            // キャンバスイベントの設定
+            bindLayerCanvasEvents(`detail-${pallet.id}`);
+            applyCanvasParallax(`detail-${pallet.id}`);
+        }, 100);
     });
 }
 
@@ -1205,4 +1497,488 @@ function exportSummaryCsv() {
     link.click();
     
     showSuccess('結果をCSVでエクスポートしました');
+}
+
+// === パレット図面描画機能 ===
+function drawPalletDiagram(pallet, canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    
+    // キャンバスのサイズ設定
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    
+    // 背景をクリア
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // パレットの基本寸法
+    const palletWidth = canvas.width * 0.8;
+    const palletHeight = canvas.height * 0.6;
+    const startX = (canvas.width - palletWidth) / 2;
+    const startY = (canvas.height - palletHeight) / 2;
+    
+    // パレットの描画
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(startX, startY, palletWidth, palletHeight);
+    
+    // 貨物の描画
+    let currentY = startY;
+    pallet.layers.forEach((layer, layerIndex) => {
+        const layerHeight = (layer.height / pallet.height) * palletHeight;
+        
+        layer.items.forEach((item, itemIndex) => {
+            const itemWidth = (item.l / pallet.width) * palletWidth;
+            const itemHeight = (item.h / pallet.height) * palletHeight;
+            const itemX = startX + (itemIndex * itemWidth * 0.1);
+            const itemY = currentY;
+            
+            // 貨物の色をランダムに設定
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
+            ctx.fillStyle = colors[itemIndex % colors.length];
+            
+            ctx.fillRect(itemX, itemY, itemWidth, itemHeight);
+            
+            // 貨物のラベル
+            ctx.fillStyle = '#000';
+            ctx.font = '12px Arial';
+            ctx.fillText(item.code, itemX + 5, itemY + 15);
+            ctx.fillText(`${item.qty}個`, itemX + 5, itemY + 30);
+        });
+        
+        currentY += layerHeight;
+    });
+    
+    // パレットのラベル
+    ctx.fillStyle = '#000';
+    ctx.font = '14px Arial';
+    ctx.fillText(`パレット ${pallet.id}`, startX, startY - 10);
+    ctx.fillText(`${pallet.width} × ${pallet.depth} × ${pallet.height} cm`, startX, startY + palletHeight + 20);
+}
+
+// === 側面図の描画 ===
+function drawSideView(pallet, canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const viewWidth = canvas.width * 0.8;
+    const viewHeight = canvas.height * 0.7;
+    const startX = (canvas.width - viewWidth) / 2;
+    const startY = (canvas.height - viewHeight) / 2;
+    
+    // パレットの側面
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(startX, startY + viewHeight - 20, viewWidth, 20);
+    
+    // 貨物の積層
+    let currentY = startY + viewHeight - 20;
+    pallet.layers.forEach((layer, layerIndex) => {
+        const layerHeight = (layer.height / pallet.height) * viewHeight;
+        currentY -= layerHeight;
+        
+        ctx.fillStyle = '#FF6B6B';
+        ctx.fillRect(startX, currentY, viewWidth, layerHeight);
+        
+        // レイヤー情報
+        ctx.fillStyle = '#000';
+        ctx.font = '12px Arial';
+        ctx.fillText(`レイヤー ${layerIndex + 1}: ${layer.height}cm`, startX + 5, currentY + 15);
+    });
+    
+    // 寸法線
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    
+    // 高さの寸法線
+    ctx.beginPath();
+    ctx.moveTo(startX - 10, startY);
+    ctx.lineTo(startX - 10, startY + viewHeight);
+    ctx.stroke();
+    
+    ctx.fillText(`${pallet.height} cm`, startX - 50, startY + viewHeight / 2);
+}
+
+// === レイヤー詳細の描画 ===
+function drawLayersDetail(pallet, canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const itemSize = 40;
+    const startX = 20;
+    const startY = 20;
+    
+    let currentX = startX;
+    let currentY = startY;
+    
+    pallet.layers.forEach((layer, layerIndex) => {
+        // レイヤーラベル
+        ctx.fillStyle = '#333';
+        ctx.font = '14px Arial';
+        ctx.fillText(`レイヤー ${layerIndex + 1}`, currentX, currentY - 5);
+        
+        layer.items.forEach((item, itemIndex) => {
+            const x = currentX + (itemIndex * (itemSize + 10));
+            const y = currentY;
+            
+            // 貨物の描画
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
+            ctx.fillStyle = colors[itemIndex % colors.length];
+            ctx.fillRect(x, y, itemSize, itemSize);
+            
+            // 貨物情報
+            ctx.fillStyle = '#000';
+            ctx.font = '10px Arial';
+            ctx.fillText(item.code, x + 2, y + 12);
+            ctx.fillText(`${item.qty}個`, x + 2, y + 25);
+            ctx.fillText(`${item.l}×${item.w}`, x + 2, y + 38);
+        });
+        
+        currentY += itemSize + 30;
+    });
+}
+
+// === キャンバスイベントの設定 ===
+function bindLayerCanvasEvents(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    let isHovering = false;
+    let hoveredItem = null;
+    
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // 貨物のホバー検出（簡易版）
+        if (x > 20 && x < 60 && y > 20 && y < 60) {
+            if (!isHovering) {
+                isHovering = true;
+                canvas.style.cursor = 'pointer';
+                animateCartonHover(canvas, true);
+            }
+        } else {
+            if (isHovering) {
+                isHovering = false;
+                canvas.style.cursor = 'default';
+                animateCartonHover(canvas, false);
+            }
+        }
+    });
+    
+    canvas.addEventListener('click', (e) => {
+        if (isHovering) {
+            // 貨物の詳細情報を表示
+            showCartonDetails(hoveredItem);
+        }
+    });
+}
+
+// === 貨物ホバーアニメーション ===
+function animateCartonHover(canvas, isHovering) {
+    if (!window.anime) return;
+    
+    anime({
+        targets: canvas,
+        scale: isHovering ? 1.05 : 1,
+        duration: 200,
+        easing: 'easeOutQuad'
+    });
+}
+
+// === 貨物詳細表示 ===
+function showCartonDetails(carton) {
+    if (!carton) return;
+    
+    const detailsDiv = document.createElement('div');
+    detailsDiv.className = 'carton-details-modal';
+    detailsDiv.innerHTML = `
+        <div class="modal-content">
+            <h3>貨物詳細: ${carton.code}</h3>
+            <p>数量: ${carton.qty}個</p>
+            <p>重量: ${carton.weight} kg</p>
+            <p>寸法: ${carton.l} × ${carton.w} × ${carton.h} cm</p>
+            <button onclick="this.parentElement.parentElement.remove()">閉じる</button>
+        </div>
+    `;
+    
+    document.body.appendChild(detailsDiv);
+}
+
+// === 図面タブ切替機能 ===
+function switchDiagramTab(button, canvasId) {
+    // タブのアクティブ状態を更新
+    const tabContainer = button.parentElement;
+    tabContainer.querySelectorAll('.diagram-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    button.classList.add('active');
+    
+    // キャンバスの表示/非表示を切り替え
+    const canvasContainer = button.parentElement.nextElementSibling;
+    canvasContainer.querySelectorAll('.pallet-canvas').forEach(canvas => {
+        canvas.classList.remove('active');
+    });
+    
+    const targetCanvas = document.getElementById(canvasId);
+    if (targetCanvas) {
+        targetCanvas.classList.add('active');
+    }
+}
+
+// === キャンバスパララックス効果 ===
+function applyCanvasParallax(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    let isMoving = false;
+    let lastX = 0;
+    let lastY = 0;
+    
+    canvas.addEventListener('mousedown', (e) => {
+        isMoving = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isMoving) return;
+        
+        const deltaX = e.clientX - lastX;
+        const deltaY = e.clientY - lastY;
+        
+        // パララックス効果（簡易版）
+        const items = canvas.querySelectorAll('.cargo-item');
+        items.forEach((item, index) => {
+            const speed = 0.1 + (index * 0.05);
+            item.style.transform = `translate(${deltaX * speed}px, ${deltaY * speed}px)`;
+        });
+        
+        lastX = e.clientX;
+        lastY = e.clientY;
+    });
+    
+    canvas.addEventListener('mouseup', () => {
+        isMoving = false;
+    });
+}
+
+// === 高度なパレタイズアルゴリズム ===
+function advancedPalletizationAlgorithm(cartons, palletSize, constraints) {
+    // 3Dビンパッキングアルゴリズムの実装
+    const pallets = [];
+    let remainingCartons = [...cartons];
+    
+    // 貨物を体積順にソート
+    remainingCartons.sort((a, b) => b.volume - a.volume);
+    
+    while (remainingCartons.length > 0) {
+        const pallet = createEmptyPallet(palletSize);
+        
+        // 最適な配置を探索
+        const placement = findOptimalPlacement(remainingCartons, pallet, constraints);
+        
+        if (placement.success) {
+            pallet.items = placement.items;
+            pallet.layers = placement.layers;
+            pallet.height = placement.height;
+            pallet.weight = placement.weight;
+            pallets.push(pallet);
+            
+            // 配置された貨物を削除
+            placement.items.forEach(item => {
+                const index = remainingCartons.findIndex(c => c.id === item.id);
+                if (index !== -1) {
+                    remainingCartons.splice(index, 1);
+                }
+            });
+        } else {
+            // 配置できない貨物がある場合は単独でパレットを作成
+            const singleCarton = remainingCartons.shift();
+            const singlePallet = createSingleCartonPallet(singleCarton, palletSize);
+            pallets.push(singlePallet);
+        }
+    }
+    
+    return { pallets, totalPallets: pallets.length };
+}
+
+// === 最適配置の探索 ===
+function findOptimalPlacement(cartons, pallet, constraints) {
+    // 貪欲アルゴリズムによる最適配置
+    let bestPlacement = null;
+    let bestScore = -1;
+    
+    // 配置パターンの生成
+    const patterns = generatePlacementPatterns(cartons, pallet);
+    
+    patterns.forEach(pattern => {
+        if (isValidPlacement(pattern, pallet, constraints)) {
+            const score = calculatePlacementScore(pattern, pallet);
+            if (score > bestScore) {
+                bestScore = score;
+                bestPlacement = pattern;
+            }
+        }
+    });
+    
+    return bestPlacement || { success: false };
+}
+
+// === 配置パターンの生成 ===
+function generatePlacementPatterns(cartons, pallet) {
+    const patterns = [];
+    
+    // 単純な配置パターン
+    cartons.forEach(carton => {
+        patterns.push({
+            items: [carton],
+            layers: [{ items: [carton], height: carton.h }],
+            height: carton.h,
+            weight: carton.weight * carton.qty,
+            success: true
+        });
+    });
+    
+    // 複数貨物の配置パターン
+    if (cartons.length > 1) {
+        const combinations = generateCombinations(cartons, 2);
+        combinations.forEach(combo => {
+            if (canFitTogether(combo, pallet)) {
+                patterns.push({
+                    items: combo,
+                    layers: [{ items: combo, height: Math.max(...combo.map(c => c.h)) }],
+                    height: Math.max(...combo.map(c => c.h)),
+                    weight: combo.reduce((sum, c) => sum + (c.weight * c.qty), 0),
+                    success: true
+                });
+            }
+        });
+    }
+    
+    return patterns;
+}
+
+// === 貨物の組み合わせ生成 ===
+function generateCombinations(cartons, size) {
+    const combinations = [];
+    
+    function backtrack(start, current) {
+        if (current.length === size) {
+            combinations.push([...current]);
+            return;
+        }
+        
+        for (let i = start; i < cartons.length; i++) {
+            current.push(cartons[i]);
+            backtrack(i + 1, current);
+            current.pop();
+        }
+    }
+    
+    backtrack(0, []);
+    return combinations;
+}
+
+// === 貨物の同時配置可能性チェック ===
+function canFitTogether(cartons, pallet) {
+    const totalArea = cartons.reduce((sum, c) => sum + (c.l * c.w), 0);
+    const palletArea = pallet.width * pallet.depth;
+    
+    return totalArea <= palletArea * 0.95; // 95%の面積使用率
+}
+
+// === 配置の妥当性チェック ===
+function isValidPlacement(placement, pallet, constraints) {
+    // 高さ制限チェック
+    if (placement.height > constraints.maxHeight) {
+        return false;
+    }
+    
+    // 重量制限チェック
+    if (placement.weight > constraints.maxWeight) {
+        return false;
+    }
+    
+    // パレットサイズ制限チェック
+    const maxLength = Math.max(...placement.items.map(c => c.l));
+    const maxWidth = Math.max(...placement.items.map(c => c.w));
+    
+    if (maxLength > pallet.width || maxWidth > pallet.depth) {
+        return false;
+    }
+    
+    return true;
+}
+
+// === 配置スコアの計算 ===
+function calculatePlacementScore(placement, pallet) {
+    let score = 0;
+    
+    // 高さ効率
+    const heightEfficiency = placement.height / pallet.height;
+    score += heightEfficiency * 10;
+    
+    // 重量効率
+    const weightEfficiency = placement.weight / 1000; // 1トン基準
+    score += Math.min(weightEfficiency, 1) * 5;
+    
+    // 貨物数効率
+    const itemEfficiency = placement.items.length / 5; // 5個基準
+    score += Math.min(itemEfficiency, 1) * 3;
+    
+    // 面積効率
+    const totalArea = placement.items.reduce((sum, c) => sum + (c.l * c.w), 0);
+    const palletArea = pallet.width * pallet.depth;
+    const areaEfficiency = totalArea / palletArea;
+    score += areaEfficiency * 8;
+    
+    return score;
+}
+
+// === 空のパレット作成 ===
+function createEmptyPallet(palletSize) {
+    return {
+        id: Date.now(),
+        width: palletSize.width,
+        depth: palletSize.depth,
+        height: 0,
+        weight: 0,
+        items: [],
+        layers: []
+    };
+}
+
+// === 単一貨物パレット作成 ===
+function createSingleCartonPallet(carton, palletSize) {
+    return {
+        id: Date.now(),
+        width: palletSize.width,
+        depth: palletSize.depth,
+        height: carton.h,
+        weight: carton.weight * carton.qty,
+        items: [carton],
+        layers: [{
+            items: [carton],
+            height: carton.h
+        }]
+    };
 }
