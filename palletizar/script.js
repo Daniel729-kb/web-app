@@ -3063,3 +3063,23 @@ function analyzeSelectedPallets() {
     
     alert(analysisMessage);
 }
+
+// === グローバル関数として定義 ===
+window.updatePalletSelectors = updatePalletSelectors;
+window.updateCombinePreview = updateCombinePreview;
+window.combinePallets = combinePallets;
+window.autoOptimizePallets = autoOptimizePallets;
+window.analyzeSelectedPallets = analyzeSelectedPallets;
+window.showDiagramView = showDiagramView;
+window.scrollToPallet = scrollToPallet;
+window.setHeightLimit = setHeightLimit;
+window.saveEdit = saveEdit;
+window.cancelEdit = cancelEdit;
+window.startEdit = startEdit;
+window.deleteCarton = deleteCarton;
+window.getMemoryUsage = getMemoryUsage;
+window.checkMemoryLimit = checkMemoryLimit;
+window.validateCartonData = validateCartonData;
+window.updatePerformanceMetrics = updatePerformanceMetrics;
+
+console.log('✅ All functions loaded and exposed globally');
