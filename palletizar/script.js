@@ -122,6 +122,10 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     initializePalletSelection();
     initializeHeightLimit();
+    initializeTheme();
+    try { startIntroAnimations(); } catch(_) {}
+    try { setupInteractionAnimations(); } catch(_) {}
+    try { observeReveals(); } catch(_) {}
 });
 
 function initializeHeightLimit() {
@@ -161,6 +165,46 @@ function setupEventListeners() {
     // パレット選択機能
     document.getElementById('selectAllPallets').addEventListener('click', selectAllPallets);
     document.getElementById('deselectAllPallets').addEventListener('click', deselectAllPallets);
+
+    // テーマ切替
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', (e) => {
+            toggleTheme();
+            if (window.anime) {
+                anime({ targets: e.currentTarget, scale: [1, 1.1, 1], duration: 300, easing: 'easeOutQuad' });
+            }
+        });
+    }
+}
+
+function initializeTheme() {
+    try {
+        const stored = localStorage.getItem('palletizar_theme');
+        const theme = stored || 'light';
+        applyTheme(theme);
+    } catch (_) {
+        applyTheme('light');
+    }
+}
+
+function toggleTheme() {
+    const isDark = document.body.classList.toggle('dark');
+    const theme = isDark ? 'dark' : 'light';
+    applyTheme(theme);
+    try { localStorage.setItem('palletizar_theme', theme); } catch (_) {}
+}
+
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.body.classList.add('dark');
+        const btn = document.getElementById('themeToggle');
+        if (btn) btn.textContent = '☀️ ライト';
+    } else {
+        document.body.classList.remove('dark');
+        const btn = document.getElementById('themeToggle');
+        if (btn) btn.textContent = '🌙 ダーク';
+    }
 }
 
 // === パレット選択機能 ===
@@ -199,6 +243,10 @@ function togglePalletSelection(index) {
         checkbox.checked = true;
     }
     
+    if (window.anime) {
+        anime({ targets: option, scale: [1, 1.05, 1], duration: 250, easing: 'easeOutQuad' });
+    }
+
     updateSelectedPalletSizes();
     updateSelectedPalletsInfo();
 }
@@ -243,6 +291,10 @@ function updateSelectedPalletsInfo() {
     } else {
         info.textContent = `✅ ${count}種類のパレットで最適化計算`;
         info.style.color = '#2563eb';
+    }
+
+    if (window.anime) {
+        anime({ targets: info, opacity: [0.6, 1], duration: 250, easing: 'easeOutQuad' });
     }
 }
 
@@ -1680,6 +1732,9 @@ function displayResults(pallets) {
     const palletResults = document.getElementById('palletResults');
     
     results.classList.remove('hidden');
+    if (window.anime) {
+        anime({ targets: results, opacity: [0,1], translateY: [12,0], duration: 500, easing: 'easeOutQuad' });
+    }
     
     // サマリーカードを作成
     const totalPallets = pallets.length;
@@ -2171,6 +2226,16 @@ function drawSideView(palletIndex) {
     
     ctx.fillStyle = '#333';
     ctx.fillText(`${pallet.palletSize.width}cm × ${pallet.palletSize.depth}cm`, canvas.width / 2, canvas.height - 5);
+
+    // ベースイメージをキャッシュ（ホバーアウトライン用）
+    try {
+        const img = new Image();
+        img.src = canvas.toDataURL();
+        canvas._baseImage = img;
+    } catch (_) {}
+
+    // 側面図ホバーイベントをバインド
+    bindSideCanvasEvents(canvas, palletIndex);
 }
 
 // === 層別詳細描画（高さ制限情報付き） ===
@@ -2330,6 +2395,13 @@ function drawSingleLayer(palletIndex, layerIndex, layer, palletSize, colorMap) {
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     ctx.fillText(`第${layerIndex + 1}層 - ${layer.cartons.length}個`, canvas.width / 2, 20);
+
+    // ベースイメージをキャッシュ（ホバー描画用のオーバーレイに利用）
+    try {
+        const img = new Image();
+        img.src = canvas.toDataURL();
+        canvas._baseImage = img;
+    } catch (_) {}
 }
 
 // === ツールチップユーティリティ ===
@@ -2350,12 +2422,40 @@ function showTooltip(x, y, html) {
     tip.innerHTML = html;
     tip.style.left = `${x}px`;
     tip.style.top = `${y}px`;
-    tip.style.display = 'block';
+    if (tip.style.display !== 'block') {
+        tip.style.opacity = '0';
+        tip.style.transform = 'translate(8px, 8px) scale(0.98)';
+        tip.style.display = 'block';
+    }
+    if (window.anime) {
+        anime.remove(tip);
+        anime({
+            targets: tip,
+            opacity: 1,
+            translateX: 8,
+            translateY: 8,
+            scale: 1,
+            duration: 160,
+            easing: 'easeOutQuad'
+        });
+    }
 }
 
 function hideTooltip() {
     const tip = ensureTooltip();
-    tip.style.display = 'none';
+    if (window.anime) {
+        anime.remove(tip);
+        anime({
+            targets: tip,
+            opacity: 0,
+            translateY: 12,
+            duration: 140,
+            easing: 'easeOutQuad',
+            complete: () => { tip.style.display = 'none'; tip.style.transform = 'translate(8px, 8px)'; }
+        });
+    } else {
+        tip.style.display = 'none';
+    }
 }
 
 function bindLayerCanvasEvents(canvas, hitmap) {
@@ -2365,10 +2465,12 @@ function bindLayerCanvasEvents(canvas, hitmap) {
         const y = e.clientY - rect.top;
         // 検出
         let found = null;
+        let foundRaw = null;
         for (let i = 0; i < hitmap.length; i++) {
             const r = hitmap[i];
             if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
                 found = r.carton;
+                foundRaw = r;
                 break;
             }
         }
@@ -2379,13 +2481,168 @@ function bindLayerCanvasEvents(canvas, hitmap) {
                 <div>重量: ${typeof found.weight === 'number' ? found.weight.toFixed(2) : found.weight}kg</div>
             `;
             showTooltip(e.clientX + 8, e.clientY + 8, content);
+
+            // カートンのアウトラインをパルス表示
+            if (foundRaw) animateCartonHover(canvas, foundRaw);
         } else {
             hideTooltip();
+            clearCartonHover(canvas);
         }
+
+        // パララックス無効化（削除要求）
     };
-    const onLeave = () => hideTooltip();
+    const onLeave = () => {
+        hideTooltip();
+        clearCartonHover(canvas, true);
+        // パララックス無効化（削除要求）
+    };
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('mouseleave', onLeave);
+}
+
+// === ホバー用アウトライン描画 ===
+function drawHoverOutline(canvas, r, t) {
+    if (!canvas || !canvas._baseImage) return;
+    const ctx = canvas.getContext('2d');
+    // ベース再描画
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(canvas._baseImage, 0, 0);
+
+    // パルス値（0..1）から太さと透明度を計算
+    const pulse = 0.5 + 0.5 * Math.sin(t * Math.PI * 2);
+    const lineW = 2 + 2 * pulse;
+    const alpha = 0.35 + 0.45 * pulse;
+
+    ctx.save();
+    ctx.strokeStyle = `rgba(96,165,250,${alpha})`;
+    ctx.lineWidth = lineW;
+    ctx.shadowColor = 'rgba(96,165,250,0.35)';
+    ctx.shadowBlur = 12 * pulse + 6;
+    ctx.strokeRect(r.x, r.y, r.w, r.h);
+    ctx.restore();
+}
+
+function animateCartonHover(canvas, rect) {
+    if (!window.anime) return;
+    if (canvas._hoverRect && canvas._hoverRect === rect && canvas._hoverAnim) return; // 既存維持
+    canvas._hoverRect = rect;
+    if (canvas._hoverAnim) { try { canvas._hoverAnim.pause(); } catch(_) {} }
+    canvas._hoverAnim = anime({
+        targets: { p: 0 },
+        p: 1,
+        duration: 900,
+        easing: 'linear',
+        loop: true,
+        update: a => {
+            const t = a.animations[0].currentValue;
+            drawHoverOutline(canvas, rect, t);
+        }
+    });
+}
+
+function clearCartonHover(canvas, restoreBase = false) {
+    if (canvas && canvas._hoverAnim) {
+        try { canvas._hoverAnim.pause(); } catch(_) {}
+        canvas._hoverAnim = null;
+    }
+    if (restoreBase && canvas && canvas._baseImage) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(canvas._baseImage, 0, 0);
+    }
+    canvas._hoverRect = null;
+}
+
+// === パララックス（平行移動 + ズーム） ===
+function applyCanvasParallax(canvas, e) {
+    if (!window.anime) return;
+    const rect = canvas.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = (e.clientX - cx) / rect.width;  // -0.5..0.5
+    const dy = (e.clientY - cy) / rect.height; // -0.5..0.5
+    const tx = dx * 8; // 最大8px平行移動
+    const ty = dy * 8;
+    anime.remove(canvas);
+    anime({ targets: canvas, translateX: tx, translateY: ty, scale: 1.03, duration: 180, easing: 'easeOutQuad' });
+}
+
+function resetCanvasParallax(canvas) {
+    if (!window.anime) return;
+    anime.remove(canvas);
+    anime({ targets: canvas, translateX: 0, translateY: 0, scale: 1, duration: 220, easing: 'easeOutQuad' });
+}
+
+// === 側面図ホバーイベント ===
+function bindSideCanvasEvents(canvas, palletIndex) {
+    const pallet = window.currentPallets[palletIndex];
+    if (!pallet) return;
+    const regions = buildSideRegions(canvas, pallet);
+
+    const onMove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        let found = null;
+        for (let i = 0; i < regions.length; i++) {
+            const r = regions[i];
+            if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
+                found = r;
+                break;
+            }
+        }
+        if (found) {
+            const c = found.carton;
+            const content = `
+                <div style="font-weight:bold; margin-bottom:4px;">${c.code}</div>
+                <div>層: 第${found.layer + 1}層</div>
+                <div>高さ: ${c.h}cm</div>
+            `;
+            showTooltip(e.clientX + 8, e.clientY + 8, content);
+            animateCartonHover(canvas, found);
+            // パララックス無効化（削除要求）
+        } else {
+            hideTooltip();
+            clearCartonHover(canvas, true);
+            // パララックス無効化（削除要求）
+        }
+    };
+    const onLeave = () => {
+        hideTooltip();
+        clearCartonHover(canvas, true);
+        resetCanvasParallax(canvas);
+    };
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseleave', onLeave);
+}
+
+function buildSideRegions(canvas, pallet) {
+    const margin = 60;
+    const maxWidth = canvas.width - 2 * margin;
+    const maxHeight = canvas.height - 2 * margin;
+    const scaleX = maxWidth / pallet.palletSize.width;
+    const scaleY = maxHeight / maxHeightLimit;
+    const scale = Math.min(scaleX, scaleY);
+    const palletW = pallet.palletSize.width * scale;
+    const limitH = maxHeightLimit * scale;
+    const startX = (canvas.width - palletW) / 2;
+    let currentY = (canvas.height - limitH) / 2 + limitH - 14 * scale;
+    const regions = [];
+    for (let i = 0; i < pallet.layers.length; i++) {
+        const layer = pallet.layers[i];
+        const layerH = layer.height * scale;
+        currentY -= layerH;
+        // 層内のセグメント幅を配分
+        const total = layer.cartons.length;
+        let segStart = startX;
+        const counts = layer.cartons.reduce((a,c)=>{a[c.code]=(a[c.code]||0)+1;return a;},{});
+        for (const [code, count] of Object.entries(counts)) {
+            const segW = (count / total) * palletW;
+            regions.push({ x: segStart, y: currentY, w: segW, h: layerH, carton: { code, h: layer.height }, layer: i });
+            segStart += segW;
+        }
+    }
+    return regions;
 }
 
 // グローバル関数として定義
@@ -2487,3 +2744,56 @@ window.updateCombinePreview = updateCombinePreview;
 window.combinePallets = combinePallets;
 window.autoOptimizePallets = autoOptimizePallets;
 window.analyzeSelectedPallets = analyzeSelectedPallets;
+
+// === UI Animations with anime.js ===
+function startIntroAnimations() {
+    if (!window.anime) return;
+    try {
+        anime.timeline()
+            .add({ targets: '.header-row h1', opacity: [0,1], translateY: [20,0], duration: 600, easing: 'easeOutQuad' })
+            .add({ targets: '.improvement-note', opacity: [0,1], translateY: [12,0], duration: 500, easing: 'easeOutQuad', offset: '-=250' })
+            .add({ targets: '.summary-card', opacity: [0,1], translateY: [16,0], duration: 500, delay: anime.stagger(80), easing: 'easeOutQuad', offset: '-=200' })
+            .add({ targets: '.section-header', opacity: [0,1], translateY: [12,0], duration: 450, easing: 'easeOutQuad', offset: '-=200' });
+    } catch (_) {}
+}
+
+function setupInteractionAnimations() {
+    if (!window.anime) return;
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn');
+        if (!btn) return;
+        const rect = btn.getBoundingClientRect();
+        const ripple = document.createElement('span');
+        const size = Math.max(rect.width, rect.height);
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+        ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+        ripple.style.position = 'absolute';
+        ripple.style.borderRadius = '50%';
+        ripple.style.background = 'rgba(255,255,255,0.35)';
+        ripple.style.transform = 'scale(0)';
+        ripple.style.pointerEvents = 'none';
+        ripple.style.overflow = 'hidden';
+        ripple.style.mixBlendMode = 'screen';
+        btn.style.position = 'relative';
+        btn.appendChild(ripple);
+        anime({ targets: ripple, scale: [0, 2.2], opacity: [0.5, 0], duration: 500, easing: 'easeOutQuart', complete: () => ripple.remove() });
+    });
+}
+
+function observeReveals() {
+    if (!window.anime || !window.MutationObserver) return;
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(m => {
+            if (m.type === 'attributes' && m.attributeName === 'class') {
+                const el = m.target;
+                if (el instanceof HTMLElement) {
+                    if (!el.classList.contains('hidden')) {
+                        anime({ targets: el, opacity: [0, 1], translateY: [8, 0], duration: 400, easing: 'easeOutQuad' });
+                    }
+                }
+            }
+        });
+    });
+    observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+}
