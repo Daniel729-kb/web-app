@@ -835,7 +835,41 @@
                 justify-content: center;
             }
         }
-</style>
+
+        .performance-section {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .performance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .performance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .performance-label {
+            font-weight: bold;
+        }
+
+        .performance-value {
+            margin-left: 10px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -990,6 +1024,32 @@
         <!-- 計算ボタン -->
         <div class="center">
             <button id="calculateButton" class="btn btn-primary btn-lg">🔢 パレタイズ計算を実行</button>
+        </div>
+
+        <!-- パフォーマンス監視セクション -->
+        <div id="performanceSection" class="performance-section">
+            <div class="performance-header">
+                <h3>📊 パフォーマンス監視</h3>
+                <button id="refreshPerformance" class="btn btn-sm btn-secondary">🔄 更新</button>
+            </div>
+            <div class="performance-grid">
+                <div class="performance-item">
+                    <span class="performance-label">メモリ使用量:</span>
+                    <span id="memoryUsage" class="performance-value">-</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">データ件数:</span>
+                    <span id="dataCount" class="performance-value">-</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">計算時間:</span>
+                    <span id="calcTime" class="performance-value">-</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">パレット数:</span>
+                    <span id="palletCount" class="performance-value">-</span>
+                </div>
+            </div>
         </div>
 
         <div class="loading" id="loading">

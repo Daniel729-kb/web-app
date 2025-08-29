@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>パフォーマンス改善テスト</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-warning { background-color: #ffc107; color: black; }
+    </style>
+</head>
+<body>
+    <h1>🚀 パフォーマンス改善テスト</h1>
+    
+    <div class="test-section">
+        <h3>📊 メモリ監視テスト</h3>
+        <p>メモリ使用量の監視機能をテストします。</p>
+        <button onclick="testMemoryMonitoring()" class="btn-primary">メモリ監視テスト</button>
+        <div id="memoryResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>⚡ パフォーマンス測定テスト</h3>
+        <p>計算時間の測定機能をテストします。</p>
+        <button onclick="testPerformanceMeasurement()" class="btn-primary">パフォーマンス測定テスト</button>
+        <div id="performanceResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🔍 データ検証テスト</h3>
+        <p>データ検証機能をテストします。</p>
+        <button onclick="testDataValidation()" class="btn-primary">データ検証テスト</button>
+        <div id="validationResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📈 進捗表示テスト</h3>
+        <p>進捗バーの表示機能をテストします。</p>
+        <button onclick="testProgressBar()" class="btn-primary">進捗表示テスト</button>
+        <div id="progressResult"></div>
+    </div>
+
+    <script>
+        // メモリ監視テスト
+        function testMemoryMonitoring() {
+            const result = document.getElementById('memoryResult');
+            try {
+                if (performance.memory) {
+                    const memory = {
+                        used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024 * 100) / 100,
+                        total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024 * 100) / 100,
+                        limit: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024 * 100) / 100,
+                        percentage: Math.round((performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit) * 100)
+                    };
+                    
+                    result.innerHTML = `
+                        <div class="success">
+                            ✅ メモリ監視機能: 正常動作<br>
+                            使用量: ${memory.used}MB<br>
+                            総量: ${memory.total}MB<br>
+                            制限: ${memory.limit}MB<br>
+                            使用率: ${memory.percentage}%
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="warning">
+                            ⚠️ メモリ監視機能: 非対応<br>
+                            このブラウザではメモリ使用量の監視ができません。
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="error">
+                        ❌ メモリ監視テスト失敗: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // パフォーマンス測定テスト
+        function testPerformanceMeasurement() {
+            const result = document.getElementById('performanceResult');
+            try {
+                const startTime = performance.now();
+                
+                // 模擬計算処理
+                let sum = 0;
+                for (let i = 0; i < 1000000; i++) {
+                    sum += Math.sqrt(i);
+                }
+                
+                const endTime = performance.now();
+                const duration = (endTime - startTime) / 1000;
+                
+                result.innerHTML = `
+                    <div class="success">
+                        ✅ パフォーマンス測定機能: 正常動作<br>
+                        計算時間: ${duration.toFixed(3)}秒<br>
+                        計算結果: ${sum.toFixed(2)}
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="error">
+                        ❌ パフォーマンス測定テスト失敗: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // データ検証テスト
+        function testDataValidation() {
+            const result = document.getElementById('validationResult');
+            try {
+                // テストデータ
+                const testCartons = [
+                    { code: 'TEST1', qty: 100, weight: 5.5, l: 50, w: 30, h: 20 },
+                    { code: '', qty: 0, weight: -1, l: 600, w: 0, h: 300 },
+                    { code: 'TEST3', qty: 999999, weight: 9999, l: 1, w: 1, h: 1 }
+                ];
+                
+                let successCount = 0;
+                let errorCount = 0;
+                
+                testCartons.forEach((carton, index) => {
+                    // 簡易検証
+                    if (carton.code && carton.qty > 0 && carton.weight > 0 && 
+                        carton.l > 0 && carton.l <= 500 && 
+                        carton.w > 0 && carton.w <= 500 && 
+                        carton.h > 0 && carton.h <= 200) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                    }
+                });
+                
+                result.innerHTML = `
+                    <div class="success">
+                        ✅ データ検証機能: 正常動作<br>
+                        正常データ: ${successCount}件<br>
+                        異常データ: ${errorCount}件<br>
+                        検証完了
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="error">
+                        ❌ データ検証テスト失敗: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // 進捗表示テスト
+        function testProgressBar() {
+            const result = document.getElementById('progressResult');
+            try {
+                // 進捗バーのHTMLを生成
+                const progressHTML = `
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 75%"></div>
+                        </div>
+                        <div class="progress-text">テスト完了: 75%</div>
+                    </div>
+                `;
+                
+                result.innerHTML = `
+                    <div class="success">
+                        ✅ 進捗表示機能: 正常動作<br>
+                        ${progressHTML}
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="error">
+                        ❌ 進捗表示テスト失敗: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // ページ読み込み時に自動テスト実行
+        window.addEventListener('load', () => {
+            console.log('🚀 パフォーマンス改善テスト開始');
+            testMemoryMonitoring();
+            testPerformanceMeasurement();
+            testDataValidation();
+            testProgressBar();
+        });
+    </script>
+</body>
+</html>

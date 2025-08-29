@@ -802,6 +802,149 @@ h1 {
     margin-right: 5px;
 }
 
+/* Progress Bar Styles */
+.progress-container {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background-color: #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    border: 1px solid #d1d5db;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 10px;
+    position: relative;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.progress-text {
+    font-size: 14px;
+    color: #374151;
+    font-weight: 500;
+}
+
+/* Enhanced Loading States */
+.loading {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    margin: 20px 0;
+}
+
+.loading.show {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Performance Warning Styles */
+.performance-warning {
+    background-color: #fef3c7;
+    border: 1px solid #f59e0b;
+    color: #92400e;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+.performance-warning strong {
+    color: #d97706;
+}
+
+/* Memory Usage Indicator */
+.memory-indicator {
+    background-color: #f0f9ff;
+    border: 1px solid #0ea5e9;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #0369a1;
+    display: inline-block;
+    margin: 5px 0;
+}
+
+/* Enhanced Error Display */
+.alert.alert-error {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+    border-left: 4px solid #dc2626;
+}
+
+.alert.alert-error strong {
+    color: #dc2626;
+}
+
+.alert.alert-warning {
+    background-color: #fffbeb;
+    border: 1px solid #fed7aa;
+    color: #92400e;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+    border-left: 4px solid #f59e0b;
+}
+
+.alert.alert-warning strong {
+    color: #d97706;
+}
+
+/* Responsive Progress Bar */
+@media (max-width: 768px) {
+    .progress-container {
+        margin: 15px 0;
+    }
+    
+    .progress-bar {
+        height: 16px;
+    }
+    
+    .progress-text {
+        font-size: 12px;
+    }
+    
+    .loading {
+        padding: 30px 20px;
+    }
+}
+
 @media (max-width: 768px) {
     .combine-controls {
         flex-direction: column;

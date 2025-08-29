@@ -161,6 +161,15 @@ function setupEventListeners() {
     // パレット選択機能
     document.getElementById('selectAllPallets').addEventListener('click', selectAllPallets);
     document.getElementById('deselectAllPallets').addEventListener('click', deselectAllPallets);
+    
+    // パフォーマンス監視機能
+    const refreshPerformanceBtn = document.getElementById('refreshPerformance');
+    if (refreshPerformanceBtn) {
+        refreshPerformanceBtn.addEventListener('click', updatePerformanceMetrics);
+    }
+    
+    // 初期パフォーマンス表示
+    updatePerformanceMetrics();
 }
 
 // === パレット選択機能 ===
@@ -373,136 +382,179 @@ function parseAndImportCSV(csvText) {
         showErrors(['CSVファイルにデータが含まれていません。']);
         return;
     }
+
+    // Validate file size to prevent memory issues
+    if (lines.length > 10000) {
+        showErrors(['CSVファイルが大きすぎます。最大10,000行まで対応しています。']);
+        return;
+    }
     
     const errors = [];
-    const tempCartons = {};
+    // Use Map for better memory efficiency
+    const tempCartons = new Map();
     let processedLines = 0;
     let combinedItems = 0;
     
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        
-        let columns = line.split(',');
-        if (columns.length < 6) {
-            columns = line.split('\t');
+    try {
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+            
+            let columns = line.split(',');
+            if (columns.length < 6) {
+                columns = line.split('\t');
+            }
+            if (columns.length < 6) {
+                columns = line.split(';');
+            }
+            
+            columns = columns.map(col => col.trim().replace(/['"]/g, ''));
+            
+            if (columns.length < 6) {
+                errors.push(`行${i + 1}: 列数が不足しています (${columns.length}列)`);
+                continue;
+            }
+            
+            const [code, qtyStr, weightStr, lStr, wStr, hStr] = columns;
+            
+            if (!code) {
+                errors.push(`行${i + 1}: 貨物コードが入力されていません`);
+                continue;
+            }
+            
+            const qty = parseInt(qtyStr);
+            const weight = parseFloat(weightStr);
+            const l = parseFloat(lStr);
+            const w = parseFloat(wStr);
+            const h = parseFloat(hStr);
+            
+            if (isNaN(qty) || qty <= 0) {
+                errors.push(`行${i + 1}: 数量が無効です (${qtyStr})`);
+                continue;
+            }
+            
+            if (isNaN(weight) || weight <= 0) {
+                errors.push(`行${i + 1}: 重量が無効です (${weightStr})`);
+                continue;
+            }
+            
+            if (isNaN(l) || l <= 0 || l > 500) {
+                errors.push(`行${i + 1}: 長さが無効です (${lStr})`);
+                continue;
+            }
+            
+            if (isNaN(w) || w <= 0 || w > 500) {
+                errors.push(`行${i + 1}: 幅が無効です (${wStr})`);
+                continue;
+            }
+            
+            if (isNaN(h) || h <= 0 || h > 200) {
+                errors.push(`行${i + 1}: 高さが無効です (${hStr})`);
+                continue;
+            }
+            
+            // Use Map for efficient lookups
+            if (tempCartons.has(code)) {
+                const existing = tempCartons.get(code);
+                existing.qty += qty;
+                combinedItems++;
+            } else {
+                tempCartons.set(code, {
+                    code: code,
+                    qty: qty,
+                    weight: weight,
+                    l: l,
+                    w: w,
+                    h: h
+                });
+            }
+            
+            processedLines++;
+            
+            // Memory check every 1000 lines
+            if (processedLines % 1000 === 0) {
+                if (performance.memory && performance.memory.usedJSHeapSize > 50 * 1024 * 1024) { // 50MB limit
+                    throw new Error('メモリ使用量が上限に達しました。ファイルサイズを小さくしてください。');
+                }
+            }
         }
-        if (columns.length < 6) {
-            columns = line.split(';');
+        
+        const newCartons = [];
+        let duplicatesWithExisting = [];
+        
+        // Process Map entries efficiently
+        for (const [code, item] of tempCartons) {
+            const existing = cartonData.find(existingItem => existingItem.code === code);
+            if (existing) {
+                duplicatesWithExisting.push(`${code} (新規: ${item.qty}個, 既存: ${existing.qty}個)`);
+                continue;
+            }
+            
+            newCartons.push({
+                id: nextId++,
+                code: item.code,
+                qty: item.qty,
+                weight: item.weight,
+                l: item.l,
+                w: item.w,
+                h: item.h
+            });
         }
         
-        columns = columns.map(col => col.trim().replace(/['"]/g, ''));
-        
-        if (columns.length < 6) {
-            errors.push(`行${i + 1}: 列数が不足しています (${columns.length}列)`);
-            continue;
-        }
-        
-        const [code, qtyStr, weightStr, lStr, wStr, hStr] = columns;
-        
-        if (!code) {
-            errors.push(`行${i + 1}: 貨物コードが入力されていません`);
-            continue;
-        }
-        
-        const qty = parseInt(qtyStr);
-        const weight = parseFloat(weightStr);
-        const l = parseFloat(lStr);
-        const w = parseFloat(wStr);
-        const h = parseFloat(hStr);
-        
-        if (isNaN(qty) || qty <= 0) {
-            errors.push(`行${i + 1}: 数量が無効です (${qtyStr})`);
-            continue;
-        }
-        
-        if (isNaN(weight) || weight <= 0) {
-            errors.push(`行${i + 1}: 重量が無効です (${weightStr})`);
-            continue;
-        }
-        
-        if (isNaN(l) || l <= 0 || l > 500) {
-            errors.push(`行${i + 1}: 長さが無効です (${lStr})`);
-            continue;
-        }
-        
-        if (isNaN(w) || w <= 0 || w > 500) {
-            errors.push(`行${i + 1}: 幅が無効です (${wStr})`);
-            continue;
-        }
-        
-        if (isNaN(h) || h <= 0 || h > 200) {
-            errors.push(`行${i + 1}: 高さが無効です (${hStr})`);
-            continue;
-        }
-        
-        if (tempCartons[code]) {
-            tempCartons[code].qty += qty;
-            combinedItems++;
-        } else {
-            tempCartons[code] = {
-                code: code,
-                qty: qty,
-                weight: weight,
-                l: l,
-                w: w,
-                h: h
-            };
-        }
-        
-        processedLines++;
-    }
-    
-    const newCartons = [];
-    let duplicatesWithExisting = [];
-    
-    for (const [code, item] of Object.entries(tempCartons)) {
-        const existing = cartonData.find(existingItem => existingItem.code === code);
-        if (existing) {
-            duplicatesWithExisting.push(`${code} (新規: ${item.qty}個, 既存: ${existing.qty}個)`);
-            continue;
-        }
-        
-        newCartons.push({
-            id: nextId++,
-            code: item.code,
-            qty: item.qty,
-            weight: item.weight,
-            l: item.l,
-            w: item.w,
-            h: item.h
-        });
-    }
-    
-    if (duplicatesWithExisting.length > 0) {
-        errors.push(`既存データと重複する貨物コード: ${duplicatesWithExisting.join(', ')}`);
-    }
-    
-    if (errors.length > 0) {
-        showErrors(errors);
-    }
-    
-    if (newCartons.length > 0) {
-        cartonData.push(...newCartons);
-        updateTable();
-        updateSummary();
-        
-        let successMessage = `✅ ${newCartons.length}件のデータを正常にインポートしました。`;
-        if (combinedItems > 0) {
-            successMessage += `<br>📊 ${combinedItems}件の重複行を自動的に合計しました。`;
-        }
         if (duplicatesWithExisting.length > 0) {
-            successMessage += `<br>⚠️ ${duplicatesWithExisting.length}件は既存データと重複のためスキップしました。`;
+            errors.push(`既存データと重複する貨物コード: ${duplicatesWithExisting.join(', ')}`);
         }
         
-        const successDiv = document.createElement('div');
-        successDiv.className = 'alert alert-success';
-        successDiv.innerHTML = successMessage;
-        document.getElementById('errors').appendChild(successDiv);
+        if (errors.length > 0) {
+            showErrors(errors);
+        }
         
-        cancelImport();
-    } else if (newCartons.length === 0 && errors.length === 0) {
-        showErrors(['インポート可能な新規データがありません。']);
+        if (newCartons.length > 0) {
+            cartonData.push(...newCartons);
+            updateTable();
+            updateSummary();
+            
+            let successMessage = `✅ ${newCartons.length}件のデータを正常にインポートしました。`;
+            if (combinedItems > 0) {
+                successMessage += `<br>📊 ${combinedItems}件の重複行を自動的に合計しました。`;
+            }
+            if (duplicatesWithExisting.length > 0) {
+                successMessage += `<br>⚠️ ${duplicatesWithExisting.length}件は既存データと重複のためスキップしました。`;
+            }
+            
+            const successDiv = document.createElement('div');
+            successDiv.className = 'alert alert-success';
+            successDiv.innerHTML = successMessage;
+            document.getElementById('errors').appendChild(successDiv);
+            
+            cancelImport();
+        } else if (newCartons.length === 0 && errors.length === 0) {
+            showErrors(['インポート可能な新規データがありません。']);
+        }
+        
+    } catch (error) {
+        console.error('CSV parsing error:', error);
+        
+        // Specific error handling for CSV parsing
+        let errorMessage = '';
+        if (error.message.includes('メモリ')) {
+            errorMessage = 'ファイルが大きすぎます。データを分割してインポートしてください。';
+        } else if (error.name === 'SyntaxError') {
+            errorMessage = 'CSVファイルの形式が正しくありません。';
+        } else {
+            errorMessage = `CSV解析エラー: ${error.message}`;
+        }
+        
+        showErrors([errorMessage]);
+        
+        // Add technical details for debugging
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'alert alert-error';
+        errorDiv.innerHTML = `<strong>技術詳細:</strong> ${error.name}: ${error.message}<br><small>スタックトレースはコンソールで確認できます。</small>`;
+        document.getElementById('errors').appendChild(errorDiv);
+    } finally {
+        // Clean up memory
+        tempCartons.clear();
     }
 }
 
@@ -519,18 +571,31 @@ function addCarton() {
     const w = parseFloat(document.getElementById('newW').value) || 0;
     const h = parseFloat(document.getElementById('newH').value) || 0;
 
-    if (!code || qty <= 0 || weight <= 0 || l <= 0 || w <= 0 || h <= 0) {
-        alert('すべての項目を正しく入力してください。');
+    // Create carton object for validation
+    const carton = { code, qty, weight, l, w, h };
+    
+    // Use enhanced validation
+    const validationErrors = validateCartonData(carton);
+    if (validationErrors.length > 0) {
+        showErrors(validationErrors);
         return;
     }
 
+    // Check for duplicate codes
     const existing = cartonData.find(item => item.code === code);
     if (existing) {
-        alert(`貨物コード "${code}" は既に存在します。`);
+        showErrors([`貨物コード "${code}" は既に存在します。`]);
         return;
     }
 
-    cartonData.push({
+    // Memory check before adding
+    if (!checkMemoryLimit()) {
+        showMemoryWarning();
+        return;
+    }
+
+    // Add new carton
+    const newCarton = {
         id: nextId++,
         code: code,
         qty: qty,
@@ -538,11 +603,26 @@ function addCarton() {
         l: l,
         w: w,
         h: h
-    });
+    };
+
+    cartonData.push(newCarton);
 
     clearAddForm();
     updateTable();
     updateSummary();
+    
+    // Success message
+    const successDiv = document.createElement('div');
+    successDiv.className = 'alert alert-success';
+    successDiv.innerHTML = `✅ 貨物 "${code}" を追加しました。`;
+    document.getElementById('errors').appendChild(successDiv);
+    
+    // Auto-remove success message after 3 seconds
+    setTimeout(() => {
+        if (successDiv.parentNode) {
+            successDiv.remove();
+        }
+    }, 3000);
 }
 
 function cancelAdd() {
@@ -632,6 +712,9 @@ function updateSummary() {
         clearAllButton.disabled = cartonData.length === 0;
         clearAllButton.title = cartonData.length === 0 ? '削除するデータがありません' : `${itemCount}種類の貨物データを一括削除`;
     }
+    
+    // パフォーマンス指標も更新
+    updatePerformanceMetrics();
 }
 
 function startEdit(id) {
@@ -719,10 +802,28 @@ function calculateImprovedPalletization() {
     results.classList.add('hidden');
     showErrors([]);
 
+    // Add progress tracking
+    const progressContainer = document.createElement('div');
+    progressContainer.className = 'progress-container';
+    progressContainer.innerHTML = `
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">計算中...</div>
+    `;
+    loading.appendChild(progressContainer);
+
     setTimeout(() => {
         try {
+            const startTime = performance.now();
+            const maxTime = 30000; // 30 seconds max timeout
             const pallets = [];
-            const remainingStock = cartonData.map(item => ({ ...item, remaining: item.qty }));
+            
+            // Use Map for better memory management
+            const remainingStock = new Map();
+            cartonData.forEach(item => {
+                remainingStock.set(item.id, { ...item, remaining: item.qty });
+            });
             
             let totalProcessed = 0;
             const totalCartons = cartonData.reduce((sum, item) => sum + item.qty, 0);
@@ -747,7 +848,7 @@ function calculateImprovedPalletization() {
                 
                 // 超過アイテムを除外
                 oversizedItems.forEach(oversizedItem => {
-                    const stockItem = remainingStock.find(item => item.code === oversizedItem.code);
+                    const stockItem = remainingStock.get(oversizedItem.id);
                     if (stockItem) {
                         stockItem.remaining = 0; // 配置不可能に設定
                     }
@@ -755,9 +856,19 @@ function calculateImprovedPalletization() {
             }
 
             while (totalProcessed < totalCartons && iterations < maxIterations) {
+                // Performance timeout check
+                if (performance.now() - startTime > maxTime) {
+                    console.warn('Calculation timeout - stopping early');
+                    const warningDiv = document.createElement('div');
+                    warningDiv.className = 'alert alert-warning';
+                    warningDiv.innerHTML = `⚠️ 計算がタイムアウトしました（30秒）。大きなデータセットの場合は、貨物数を減らすか、より効率的な設定を試してください。`;
+                    document.getElementById('errors').appendChild(warningDiv);
+                    break;
+                }
+
                 iterations++;
                 
-                const availableItems = remainingStock.filter(item => 
+                const availableItems = Array.from(remainingStock.values()).filter(item => 
                     item.remaining > 0 && item.h <= getMaxCartonHeight()
                 );
                 if (availableItems.length === 0) break;
@@ -782,14 +893,31 @@ function calculateImprovedPalletization() {
                 
                 // 在庫を更新
                 bestPallet.cartons.forEach(carton => {
-                    const stockItem = remainingStock.find(item => item.code === carton.code);
+                    const stockItem = remainingStock.get(carton.id);
                     if (stockItem && stockItem.remaining > 0) {
                         stockItem.remaining--;
                         totalProcessed++;
                     }
                 });
 
+                // Update progress
+                const progress = (totalProcessed / totalCartons) * 100;
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                if (progressFill && progressText) {
+                    progressFill.style.width = `${progress}%`;
+                    progressText.textContent = `計算中... ${totalProcessed}/${totalCartons} (${progress.toFixed(1)}%)`;
+                }
+
                 console.log(`✅ パレット${pallets.length}完了: 高さ${bestPallet.height.toFixed(1)}cm (制限${maxHeightLimit}cm以内)`);
+            }
+
+            // Final progress update
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            if (progressFill && progressText) {
+                progressFill.style.width = '100%';
+                progressText.textContent = `完了！ ${totalProcessed}/${totalCartons}`;
             }
 
             // 最終結果サマリー
@@ -797,9 +925,13 @@ function calculateImprovedPalletization() {
             console.log(`高さ制限: ${maxHeightLimit}cm`);
             console.log(`総パレット数: ${pallets.length}`);
             console.log(`処理済み: ${totalProcessed}/${totalCartons}個`);
+            console.log(`計算時間: ${((performance.now() - startTime) / 1000).toFixed(2)}秒`);
+
+            // 計算時間を記録
+            window.lastCalculationTime = (performance.now() - startTime) / 1000;
 
             // 高さ制限による未配置分析
-            const unplaced = remainingStock.filter(item => item.remaining > 0);
+            const unplaced = Array.from(remainingStock.values()).filter(item => item.remaining > 0);
             if (unplaced.length > 0) {
                 const unplacedTotal = unplaced.reduce((sum, item) => sum + item.remaining, 0);
                 const heightBlocked = unplaced.filter(item => item.h > getMaxCartonHeight());
@@ -831,14 +963,44 @@ function calculateImprovedPalletization() {
             displayResults(pallets);
             buildSummaryTable(pallets);
             
+            // パフォーマンス指標を更新
+            updatePerformanceMetrics();
         } catch (error) {
-            console.error('計算エラー:', error);
-            showErrors(['計算中にエラーが発生しました: ' + error.message]);
+            console.error('Palletization calculation error:', error);
+            
+            // Specific error handling
+            let errorMessage = '';
+            if (error.name === 'RangeError') {
+                errorMessage = 'データが大きすぎます。貨物数を減らしてください。';
+            } else if (error.name === 'TypeError') {
+                errorMessage = 'データ形式が正しくありません。CSVを確認してください。';
+            } else if (error.message.includes('timeout')) {
+                errorMessage = '計算がタイムアウトしました。貨物数を減らしてください。';
+            } else if (error.message.includes('memory')) {
+                errorMessage = 'メモリ不足です。貨物数を減らしてください。';
+            } else {
+                errorMessage = `計算中にエラーが発生しました: ${error.message}`;
+            }
+            
+            showErrors([errorMessage]);
+            
+            // Add error details for debugging
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'alert alert-error';
+            errorDiv.innerHTML = `<strong>技術詳細:</strong> ${error.name}: ${error.message}<br><small>スタックトレースはコンソールで確認できます。</small>`;
+            document.getElementById('errors').appendChild(errorDiv);
+            
         } finally {
             loading.classList.remove('show');
             calculateButton.disabled = false;
+            
+            // Clean up progress elements
+            const progressContainer = loading.querySelector('.progress-container');
+            if (progressContainer) {
+                progressContainer.remove();
+            }
         }
-    }, 1000);
+    }, 100);
 }
 
 // === 最適パレット配置計算（高さ制限対応） ===
@@ -1513,28 +1675,49 @@ function calculatePalletScore(config, availableItems) {
     return totalScore;
 }
 
-// === 高さグループ化 ===
+// === 高さグループ化（最適化版） ===
 function groupItemsByHeight(items, tolerance) {
-    const groups = {};
+    // Filter and sort items first for better performance
+    const validItems = items.filter(item => 
+        item.remaining > 0 && item.h <= getMaxCartonHeight()
+    );
     
-    items.forEach(item => {
-        if (item.remaining <= 0 || item.h > getMaxCartonHeight()) return;
-        
+    if (validItems.length === 0) return {};
+    
+    // Sort by height for efficient grouping
+    validItems.sort((a, b) => a.h - b.h);
+    
+    const groups = [];
+    
+    for (const item of validItems) {
         let groupFound = false;
-        for (const [groupHeight, groupItems] of Object.entries(groups)) {
-            if (Math.abs(item.h - parseFloat(groupHeight)) <= tolerance) {
-                groupItems.push(item);
+        
+        // Use binary search approach for finding groups
+        for (const group of groups) {
+            if (Math.abs(item.h - group.height) <= tolerance) {
+                group.items.push(item);
                 groupFound = true;
                 break;
             }
         }
         
         if (!groupFound) {
-            groups[item.h.toString()] = [item];
+            groups.push({ 
+                height: item.h, 
+                items: [item],
+                totalRemaining: item.remaining,
+                avgWeight: item.weight
+            });
         }
+    }
+    
+    // Convert to expected format for backward compatibility
+    const result = {};
+    groups.forEach(group => {
+        result[group.height.toString()] = group.items;
     });
     
-    return groups;
+    return result;
 }
 
 // === 効率的混載層作成 ===
@@ -2326,3 +2509,242 @@ function drawSingleLayer(palletIndex, layerIndex, layer, palletSize, colorMap) {
 window.showDiagramView = showDiagramView;
 window.scrollToPallet = scrollToPallet;
 window.setHeightLimit = setHeightLimit;
+
+// === メモリ監視とパフォーマンス管理 ===
+function getMemoryUsage() {
+    if (performance.memory) {
+        const used = performance.memory.usedJSHeapSize;
+        const total = performance.memory.totalJSHeapSize;
+        const limit = performance.memory.jsHeapSizeLimit;
+        
+        return {
+            used: Math.round(used / 1024 / 1024 * 100) / 100,
+            total: Math.round(total / 1024 / 1024 * 100) / 100,
+            limit: Math.round(limit / 1024 / 1024 * 100) / 100,
+            percentage: Math.round((used / limit) * 100)
+        };
+    }
+    return null;
+}
+
+function checkMemoryLimit() {
+    const memory = getMemoryUsage();
+    if (memory && memory.percentage > 80) {
+        console.warn(`Memory usage high: ${memory.percentage}% (${memory.used}MB / ${memory.limit}MB)`);
+        return false;
+    }
+    return true;
+}
+
+function showMemoryWarning() {
+    const memory = getMemoryUsage();
+    if (memory) {
+        const warningDiv = document.createElement('div');
+        warningDiv.className = 'performance-warning';
+        warningDiv.innerHTML = `
+            <strong>⚠️ メモリ使用量警告</strong><br>
+            現在のメモリ使用量: ${memory.used}MB (${memory.percentage}%)<br>
+            推奨: 貨物数を減らすか、ブラウザを再起動してください。
+        `;
+        document.getElementById('errors').appendChild(warningDiv);
+    }
+}
+
+// === データ検証の強化 ===
+function validateCartonData(carton) {
+    const errors = [];
+    
+    // 基本検証
+    if (!carton.code || carton.code.trim().length === 0) {
+        errors.push('貨物コードが入力されていません');
+    }
+    
+    if (!carton.code || carton.code.length > 50) {
+        errors.push('貨物コードが長すぎます（最大50文字）');
+    }
+    
+    if (isNaN(carton.qty) || carton.qty <= 0) {
+        errors.push('数量は正の整数である必要があります');
+    }
+    
+    if (carton.qty > 100000) {
+        errors.push('数量が多すぎます（最大100,000個）');
+    }
+    
+    if (isNaN(carton.weight) || carton.weight <= 0) {
+        errors.push('重量は正の数である必要があります');
+    }
+    
+    if (carton.weight > 1000) {
+        errors.push('重量が重すぎます（最大1,000kg）');
+    }
+    
+    // 寸法検証
+    if (isNaN(carton.l) || carton.l <= 0) {
+        errors.push('長さは正の数である必要があります');
+    }
+    
+    if (carton.l > 500) {
+        errors.push('長さが大きすぎます（最大500cm）');
+    }
+    
+    if (isNaN(carton.w) || carton.w <= 0) {
+        errors.push('幅は正の数である必要があります');
+    }
+    
+    if (carton.w > 500) {
+        errors.push('幅が大きすぎます（最大500cm）');
+    }
+    
+    if (isNaN(carton.h) || carton.h <= 0) {
+        errors.push('高さは正の数である必要があります');
+    }
+    
+    if (carton.h > 200) {
+        errors.push('高さが大きすぎます（最大200cm）');
+    }
+    
+    // 現実性チェック
+    if (carton.l * carton.w * carton.h > 1000000) { // 1立方メートル
+        errors.push('貨物の体積が現実的ではありません');
+    }
+    
+    if (carton.weight / (carton.l * carton.w * carton.h) > 10) { // 密度チェック
+        errors.push('貨物の密度が現実的ではありません');
+    }
+    
+    return errors;
+}
+
+// === バッチ処理によるパフォーマンス向上 ===
+function processCartonsInBatches(cartons, batchSize = 100, processor) {
+    const results = [];
+    const totalBatches = Math.ceil(cartons.length / batchSize);
+    
+    for (let i = 0; i < totalBatches; i++) {
+        const start = i * batchSize;
+        const end = Math.min(start + batchSize, cartons.length);
+        const batch = cartons.slice(start, end);
+        
+        // メモリチェック
+        if (!checkMemoryLimit()) {
+            showMemoryWarning();
+            break;
+        }
+        
+        const batchResults = processor(batch, i, totalBatches);
+        results.push(...batchResults);
+        
+        // 進捗更新
+        if (i % 10 === 0) {
+            const progress = ((i + 1) / totalBatches) * 100;
+            console.log(`バッチ処理進捗: ${progress.toFixed(1)}% (${i + 1}/${totalBatches})`);
+        }
+    }
+    
+    return results;
+}
+
+// === パフォーマンス監視機能 ===
+function updatePerformanceMetrics() {
+    // メモリ使用量
+    const memoryElement = document.getElementById('memoryUsage');
+    if (memoryElement) {
+        const memory = getMemoryUsage();
+        if (memory) {
+            const status = memory.percentage > 80 ? '⚠️' : memory.percentage > 60 ? '⚡' : '✅';
+            memoryElement.innerHTML = `${status} ${memory.used}MB (${memory.percentage}%)`;
+            memoryElement.style.color = memory.percentage > 80 ? '#dc2626' : memory.percentage > 60 ? '#f59e0b' : '#16a34a';
+        } else {
+            memoryElement.innerHTML = '📊 非対応';
+            memoryElement.style.color = '#666';
+        }
+    }
+    
+    // データ件数
+    const dataCountElement = document.getElementById('dataCount');
+    if (dataCountElement) {
+        const totalCartons = cartonData.reduce((sum, item) => sum + item.qty, 0);
+        const itemCount = cartonData.length;
+        dataCountElement.innerHTML = `${itemCount}種類 / ${totalCartons}個`;
+        
+        // 色分けによる警告
+        if (totalCartons > 10000) {
+            dataCountElement.style.color = '#dc2626';
+        } else if (totalCartons > 5000) {
+            dataCountElement.style.color = '#f59e0b';
+        } else {
+            dataCountElement.style.color = '#16a34a';
+        }
+    }
+    
+    // 計算時間
+    const calcTimeElement = document.getElementById('calcTime');
+    if (calcTimeElement) {
+        if (window.lastCalculationTime) {
+            calcTimeElement.innerHTML = `${window.lastCalculationTime.toFixed(2)}秒`;
+            calcTimeElement.style.color = window.lastCalculationTime > 10 ? '#dc2626' : 
+                                        window.lastCalculationTime > 5 ? '#f59e0b' : '#16a34a';
+        } else {
+            calcTimeElement.innerHTML = '-';
+            calcTimeElement.style.color = '#666';
+        }
+    }
+    
+    // パレット数
+    const palletCountElement = document.getElementById('palletCount');
+    if (palletCountElement) {
+        if (window.currentPallets && window.currentPallets.length > 0) {
+            const palletCount = window.currentPallets.length;
+            const totalProcessed = window.currentPallets.reduce((sum, pallet) => sum + pallet.cartons.length, 0);
+            palletCountElement.innerHTML = `${palletCount}枚 (${totalProcessed}個)`;
+            palletCountElement.style.color = '#16a34a';
+        } else {
+            palletCountElement.innerHTML = '-';
+            palletCountElement.style.color = '#666';
+        }
+    }
+    
+    // パフォーマンス警告の表示
+    showPerformanceWarnings();
+}
+
+function showPerformanceWarnings() {
+    const warnings = [];
+    
+    // メモリ警告
+    const memory = getMemoryUsage();
+    if (memory && memory.percentage > 80) {
+        warnings.push(`メモリ使用量が高いです: ${memory.percentage}%`);
+    }
+    
+    // データ量警告
+    const totalCartons = cartonData.reduce((sum, item) => sum + item.qty, 0);
+    if (totalCartons > 10000) {
+        warnings.push(`データ量が多すぎます: ${totalCartons}個`);
+    }
+    
+    // 計算時間警告
+    if (window.lastCalculationTime && window.lastCalculationTime > 10) {
+        warnings.push(`計算時間が長すぎます: ${window.lastCalculationTime.toFixed(2)}秒`);
+    }
+    
+    // 警告表示
+    if (warnings.length > 0) {
+        const warningDiv = document.createElement('div');
+        warningDiv.className = 'performance-warning';
+        warningDiv.innerHTML = `
+            <strong>⚠️ パフォーマンス警告</strong><br>
+            ${warnings.join('<br>')}<br>
+            <small>推奨: データ量を減らすか、ブラウザを再起動してください。</small>
+        `;
+        
+        // 既存の警告を削除
+        const existingWarning = document.querySelector('.performance-warning');
+        if (existingWarning) {
+            existingWarning.remove();
+        }
+        
+        document.getElementById('errors').appendChild(warningDiv);
+    }
+}
