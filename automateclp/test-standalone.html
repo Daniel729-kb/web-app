@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutomateCLP Standalone Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border-left: 4px solid #28a745; }
+        .error { background: #f8d7da; border-left: 4px solid #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>AutomateCLP Standalone Test</h1>
+    
+    <div class="test">
+        <h3>Testing Standalone Version</h3>
+        <p>This page tests if the standalone version works without a web server.</p>
+        <div id="test-results">Testing...</div>
+    </div>
+    
+    <div class="test">
+        <h3>Links to Test</h3>
+        <p><a href="index-standalone.html" target="_blank">Open Standalone App</a></p>
+        <p><a href="index.html" target="_blank">Open Modular App (needs server)</a></p>
+    </div>
+
+    <script>
+        // Test if we can access the standalone file
+        const testResults = document.getElementById('test-results');
+        
+        try {
+            // Test if basic JavaScript works
+            testResults.innerHTML = '<div class="success">✅ Basic JavaScript working</div>';
+            
+            // Test if we can access the standalone file
+            fetch('./app-standalone.js')
+                .then(response => {
+                    if (response.ok) {
+                        testResults.innerHTML += '<div class="success">✅ Standalone JS file accessible</div>';
+                    } else {
+                        testResults.innerHTML += '<div class="error">❌ Cannot access standalone JS file</div>';
+                    }
+                })
+                .catch(error => {
+                    testResults.innerHTML += '<div class="error">❌ Error accessing standalone JS file: ' + error.message + '</div>';
+                });
+                
+        } catch (error) {
+            testResults.innerHTML = '<div class="error">❌ JavaScript error: ' + error.message + '</div>';
+        }
+    </script>
+</body>
+</html>
