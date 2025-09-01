@@ -1263,7 +1263,246 @@ function renderAllPallets(container) { /* unchanged; omitted for brevity */ }
 function isOutsideContainer(pallet, container) { return pallet.x < 0 || pallet.y < 0 || pallet.x + pallet.finalLength > container.length || pallet.y + pallet.finalWidth > container.width; }
 
 let isDDListenerAttached = false;
-function enableDragAndDropAndActions() { /* unchanged; omitted for brevity */ }
+
+// 自動配置機能
+function autoPlacePallet(palletEl) {
+    const palletData = allPalletsGenerated.find(p =>
+        p.id == palletEl.dataset.palletId && p.instance == palletEl.dataset.instance
+    );
+    if (!palletData) return;
+
+    const container = containers[elements.containerType.value];
+    const clearance = utils.getCurrentClearance();
+    
+    // 配置済みパレットを取得
+    const placedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted && p !== palletData);
+    
+    // 最適な位置を探索
+    let bestPosition = null;
+    let bestScore = Infinity;
+    
+    // グリッドベースで配置位置を探索
+    for (let y = 0; y <= container.width - palletData.finalWidth; y += 5) {
+        for (let x = 0; x <= container.length - palletData.finalLength; x += 5) {
+            if (canPlace2D(x, y, palletData.finalLength, palletData.finalWidth, placedPallets, clearance)) {
+                // 左下を優先するスコア計算
+                const score = x + y * 2;
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestPosition = { x, y };
+                }
+            }
+        }
+    }
+    
+    if (bestPosition) {
+        // パレットを配置
+        palletData.x = bestPosition.x;
+        palletData.y = bestPosition.y;
+        palletData.placed = true;
+        
+        // UIを更新
+        const palletLeft = (palletData.x * renderConfig.scale) + CONSTANTS.CONTAINER_OFFSET_X;
+        const palletTop = (palletData.y * renderConfig.scale) + CONSTANTS.CONTAINER_OFFSET_Y;
+        
+        palletEl.style.left = `${palletLeft}px`;
+        palletEl.style.top = `${palletTop}px`;
+        
+        // 状態を更新
+        updatePalletStatus(palletEl);
+        updateStats(container);
+        
+        utils.showSuccess(`パレット#${palletData.palletNumber} を自動配置しました`);
+    } else {
+        utils.showError('配置可能な位置が見つかりませんでした');
+    }
+}
+
+function enableDragAndDropAndActions() {
+    const workArea = elements.containerFloor.parentElement;
+    if (isDDListenerAttached) return;
+
+    let activePalletEl = null;
+    let initialMouseX, initialMouseY;
+
+    workArea.addEventListener('mousedown', handleMouseDown);
+    workArea.addEventListener('dblclick', handleDoubleClick);
+    isDDListenerAttached = true;
+
+    function handleMouseDown(e) {
+        const target = e.target;
+        if (target.classList.contains('rotate-btn')) {
+            e.stopPropagation();
+            rotatePallet(target.closest('.pallet-2d'));
+        } else if (target.classList.contains('delete-btn')) {
+            e.stopPropagation();
+            deletePallet(target.closest('.pallet-2d'));
+        } else {
+            const palletEl = target.classList.contains('pallet-2d') ? target : target.closest('.pallet-2d');
+            if (palletEl) {
+                dragStart(e, palletEl);
+            }
+        }
+    }
+
+    function handleDoubleClick(e) {
+        const target = e.target;
+        const palletEl = target.classList.contains('pallet-2d') ? target : target.closest('.pallet-2d');
+        
+        if (palletEl) {
+            e.preventDefault();
+            e.stopPropagation();
+            autoPlacePallet(palletEl);
+        }
+    }
+
+    function dragStart(e, palletEl) {
+        e.preventDefault();
+        activePalletEl = palletEl;
+        activePalletEl.classList.add('dragging');
+        
+        const palletRect = activePalletEl.getBoundingClientRect();
+        const workAreaRect = workArea.getBoundingClientRect();
+        
+        initialMouseX = e.clientX - palletRect.left;
+        initialMouseY = e.clientY - palletRect.top;
+        
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', dragEnd);
+    }
+
+    function drag(e) {
+        if (!activePalletEl) return;
+        e.preventDefault();
+        
+        const workAreaRect = workArea.getBoundingClientRect();
+        let newLeft = e.clientX - workAreaRect.left - initialMouseX;
+        let newTop = e.clientY - workAreaRect.top - initialMouseY;
+        
+        // 作業エリア内に制限
+        newLeft = Math.max(CONSTANTS.MIN_DRAG_MARGIN, 
+                  Math.min(newLeft, workArea.clientWidth - activePalletEl.clientWidth - CONSTANTS.MIN_DRAG_MARGIN));
+        newTop = Math.max(CONSTANTS.MIN_DRAG_MARGIN, 
+                 Math.min(newTop, workArea.clientHeight - activePalletEl.clientHeight - CONSTANTS.MIN_DRAG_MARGIN));
+        
+        activePalletEl.style.left = `${newLeft}px`;
+        activePalletEl.style.top = `${newTop}px`;
+        
+        updatePalletStatus(activePalletEl);
+    }
+
+    function dragEnd() {
+        if (!activePalletEl) return;
+        activePalletEl.classList.remove('dragging');
+        updatePalletModel(activePalletEl);
+        updateStats(containers[elements.containerType.value]);
+        document.removeEventListener('mousemove', drag);
+        document.removeEventListener('mouseup', dragEnd);
+        activePalletEl = null;
+    }
+
+    function rotatePallet(palletEl) {
+        if (!palletEl) return;
+        
+        const palletData = allPalletsGenerated.find(p =>
+            p.id == palletEl.dataset.palletId && p.instance == palletEl.dataset.instance
+        );
+        if (!palletData) return;
+
+        // 寸法を入れ替え
+        [palletData.finalLength, palletData.finalWidth] = [palletData.finalWidth, palletData.finalLength];
+        palletData.rotated = !palletData.rotated;
+
+        const container = containers[elements.containerType.value];
+        palletEl.style.width = `${palletData.finalLength * renderConfig.scale}px`;
+        palletEl.style.height = `${palletData.finalWidth * renderConfig.scale}px`;
+        palletEl.querySelector('.pallet-label').textContent = 
+            `${palletData.finalLength}×${palletData.finalWidth}${palletData.rotated ? ' ↻' : ''}`;
+        
+        // 背景更新
+        if (palletData.rotated) {
+            palletEl.style.background = `repeating-linear-gradient(45deg, ${palletData.color}, ${palletData.color} 10px, ${utils.adjustColor(palletData.color, -20)} 10px, ${utils.adjustColor(palletData.color, -20)} 20px)`;
+        } else {
+            palletEl.style.background = palletData.color;
+        }
+
+        // 位置調整
+        if (palletEl.offsetLeft + palletEl.offsetWidth > workArea.clientWidth) {
+            palletEl.style.left = `${Math.max(0, workArea.clientWidth - palletEl.offsetWidth)}px`;
+        }
+        if (palletEl.offsetTop + palletEl.offsetHeight > workArea.clientHeight) {
+            palletEl.style.top = `${Math.max(0, workArea.clientHeight - palletEl.offsetHeight)}px`;
+        }
+        
+        updatePalletModel(palletEl);
+        updatePalletStatus(palletEl);
+        updateStats(container);
+    }
+
+    function deletePallet(palletEl) {
+        if (!palletEl) return;
+        
+        const palletData = allPalletsGenerated.find(p =>
+            p.id == palletEl.dataset.palletId && p.instance == palletEl.dataset.instance
+        );
+        if (!palletData) return;
+
+        palletData.deleted = true;
+        palletEl.remove();
+        updateStats(containers[elements.containerType.value]);
+        utils.showSuccess('パレットが削除されました');
+    }
+
+    function updatePalletStatus(palletEl) {
+        const container = containers[elements.containerType.value];
+        const palletData = {
+            x: (parseFloat(palletEl.style.left) - CONSTANTS.CONTAINER_OFFSET_X) / renderConfig.scale,
+            y: (parseFloat(palletEl.style.top) - CONSTANTS.CONTAINER_OFFSET_Y) / renderConfig.scale,
+            finalLength: palletEl.clientWidth / renderConfig.scale,
+            finalWidth: palletEl.clientHeight / renderConfig.scale
+        };
+
+        const isOutside = isOutsideContainer(palletData, container);
+        const hasCollision = checkCollision(palletEl);
+        
+        palletEl.classList.toggle('outside-container', isOutside);
+        palletEl.classList.toggle('colliding', hasCollision);
+    }
+
+    function checkCollision(draggedEl) {
+        const container = containers[elements.containerType.value];
+        const clearance = utils.getCurrentClearance();
+        
+        const draggedRect = {
+            x: (draggedEl.offsetLeft - CONSTANTS.CONTAINER_OFFSET_X) / renderConfig.scale,
+            y: (draggedEl.offsetTop - CONSTANTS.CONTAINER_OFFSET_Y) / renderConfig.scale,
+            length: draggedEl.clientWidth / renderConfig.scale,
+            width: draggedEl.clientHeight / renderConfig.scale
+        };
+        
+        return allPalletsGenerated.some(p => {
+            if (p.deleted) return false;
+            const el = workArea.querySelector(`[data-pallet-id="${p.id}"][data-instance="${p.instance}"]`);
+            if (el === draggedEl) return false;
+            
+            return rectanglesOverlapWithClearance(
+                draggedRect,
+                { x: p.x, y: p.y, length: p.finalLength, width: p.finalWidth },
+                clearance
+            );
+        });
+    }
+
+    function updatePalletModel(el) {
+        const palletData = allPalletsGenerated.find(p =>
+            p.id == el.dataset.palletId && p.instance == el.dataset.instance
+        );
+        if (palletData) {
+            palletData.x = (parseFloat(el.style.left) - CONSTANTS.CONTAINER_OFFSET_X) / renderConfig.scale;
+            palletData.y = (parseFloat(el.style.top) - CONSTANTS.CONTAINER_OFFSET_Y) / renderConfig.scale;
+        }
+    }
+}
 
 function updateStats(container) { /* unchanged; omitted for brevity */ }
 function updateLegend() { /* unchanged; omitted for brevity */ }
