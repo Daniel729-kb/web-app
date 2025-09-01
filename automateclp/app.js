@@ -208,14 +208,27 @@ const debug = {
                     });
                     
                     this.log(`パレット#${pallet.palletNumber} 積み重ね可能性:`, {
+                        canStackBelow: pallet.canStackBelow,
+                        canStackAbove: pallet.canStackAbove,
                         potentialBases: potentialBases.length,
                         weightMatch: potentialBases.filter(b => b.weight === pallet.weight).length,
                         sizeMatch: potentialBases.filter(b => 
                             (pallet.length <= b.finalLength && pallet.width <= b.finalWidth) ||
                             (pallet.width <= b.finalLength && pallet.length <= b.finalWidth)
-                        ).length
+                        ).length,
+                        permissionIssues: basePallets.filter(b => !pallet.canStackBelow || !b.canStackAbove).length
                     });
                 });
+                
+                // Check stacking permissions for all pallets
+                const stackingPermissions = {
+                    canStackBelow: unplacedPallets.filter(p => p.canStackBelow).length,
+                    cannotStackBelow: unplacedPallets.filter(p => !p.canStackBelow).length,
+                    baseCanStackAbove: basePallets.filter(p => p.canStackAbove).length,
+                    baseCannotStackAbove: basePallets.filter(p => !p.canStackAbove).length
+                };
+                
+                this.log('積み重ね権限分析:', stackingPermissions);
             }
         }
     },
@@ -445,9 +458,65 @@ const debug = {
                 });
                 
                 this.log(`パレット#${pallet.palletNumber} (${pallet.length}×${pallet.width}×${pallet.height}, ${pallet.weight}kg):`, {
+                    canStackBelow: pallet.canStackBelow,
+                    canStackAbove: pallet.canStackAbove,
                     potentialBases: potentialBases.length,
                     weightMatch: potentialBases.filter(b => b.weight === pallet.weight).length,
                     weightRatio: potentialBases.map(b => (pallet.weight / b.weight).toFixed(2))
+                });
+            });
+        }
+    },
+    analyzeStackingPermissions: function() {
+        this.log('=== 積み重ね権限詳細分析 ===');
+        if (allPalletsGenerated.length === 0) { this.log('パレットが配置されていません'); return; }
+        
+        const allPallets = allPalletsGenerated.filter(p => !p.deleted);
+        const placedPallets = allPallets.filter(p => p.placed);
+        const unplacedPallets = allPallets.filter(p => !p.placed);
+        
+        // Analyze stacking permissions by type
+        const permissionTypes = {
+            'canStackBoth': allPallets.filter(p => p.canStackAbove && p.canStackBelow).length,
+            'canStackAboveOnly': allPallets.filter(p => p.canStackAbove && !p.canStackBelow).length,
+            'canStackBelowOnly': allPallets.filter(p => !p.canStackAbove && p.canStackBelow).length,
+            'cannotStack': allPallets.filter(p => !p.canStackAbove && !p.canStackBelow).length
+        };
+        
+        this.log('積み重ね権限タイプ別分析:', permissionTypes);
+        
+        // Analyze placed vs unplaced permissions
+        const placedPermissions = {
+            'canStackBoth': placedPallets.filter(p => p.canStackAbove && p.canStackBelow).length,
+            'canStackAboveOnly': placedPallets.filter(p => p.canStackAbove && !p.canStackBelow).length,
+            'canStackBelowOnly': placedPallets.filter(p => !p.canStackAbove && p.canStackBelow).length,
+            'cannotStack': placedPallets.filter(p => !p.canStackAbove && !p.canStackBelow).length
+        };
+        
+        const unplacedPermissions = {
+            'canStackBoth': unplacedPallets.filter(p => p.canStackAbove && p.canStackBelow).length,
+            'canStackAboveOnly': unplacedPallets.filter(p => p.canStackAbove && !p.canStackBelow).length,
+            'canStackBelowOnly': unplacedPallets.filter(p => !p.canStackAbove && p.canStackBelow).length,
+            'cannotStack': unplacedPallets.filter(p => !p.canStackAbove && !p.canStackBelow).length
+        };
+        
+        this.log('配置済みパレットの権限:', placedPermissions);
+        this.log('未配置パレットの権限:', unplacedPermissions);
+        
+        // Check stacking compatibility
+        if (unplacedPallets.length > 0 && placedPallets.length > 0) {
+            this.log('積み重ね互換性チェック...');
+            
+            unplacedPallets.slice(0, 3).forEach(pallet => {
+                const compatibleBases = placedPallets.filter(basePallet => 
+                    pallet.canStackBelow && basePallet.canStackAbove
+                );
+                
+                this.log(`パレット#${pallet.palletNumber} 積み重ね互換性:`, {
+                    canStackBelow: pallet.canStackBelow,
+                    compatibleBases: compatibleBases.length,
+                    totalPlaced: placedPallets.length,
+                    compatibilityRate: `${((compatibleBases.length / placedPallets.length) * 100).toFixed(1)}%`
                 });
             });
         }
@@ -526,10 +595,14 @@ function runTestCase() {
     elements.clearanceValue.value = '1';
     elements.enableStacking.checked = true;
     
-    // Test case for identical pallets (100×125×100cm, 600kg, 40 pieces)
+    // Test case with different stacking permissions
     const testData = [
-        // Identical pallets for maximum stacking test
-        { l: 100, w: 125, h: 100, wt: 600, q: 40, c: '#e74c3c', above: true, below: true }
+        // Stackable pallets (can be stacked and can support others)
+        { l: 100, w: 125, h: 100, wt: 600, q: 20, c: '#e74c3c', above: true, below: true },
+        // Fragile pallets (cannot be stacked on, but can stack on others)
+        { l: 100, w: 125, h: 100, wt: 600, q: 10, c: '#3498db', above: false, below: true },
+        // Heavy pallets (cannot stack on others, but can support stacking)
+        { l: 100, w: 125, h: 100, wt: 600, q: 10, c: '#2ecc71', above: true, below: false }
     ];
     
     testData.forEach((p, i) => pallets.push({ 
@@ -548,7 +621,7 @@ function runTestCase() {
     updatePalletList(); 
     updateContainerInfo(); 
     clearResults(); 
-    utils.showSuccess('🎯 最大積み重ねテスト: 100×125×100cm, 600kg, 40個で高さ制限まで積み重ねをテスト');
+    utils.showSuccess('🎯 積み重ね権限テスト: 異なる積み重ね権限を持つパレットでテスト');
 }
 
 function updatePalletList() {
@@ -948,19 +1021,34 @@ function findBestStackPosition(pallet, placedPallets, container, clearance) {
     // Get all potential base pallets that can support stacking
     // Include both base pallets and already stacked pallets
     const potentialBases = placedPallets.filter(basePallet => {
-        // Check stacking permissions
-        if (!pallet.canStackBelow || !basePallet.canStackAbove) return false;
+        // Check stacking permissions - CRITICAL CHECK
+        if (!pallet.canStackBelow) {
+            console.log(`❌ パレット#${pallet.palletNumber} は下積み不可 (canStackBelow: ${pallet.canStackBelow})`);
+            return false;
+        }
+        if (!basePallet.canStackAbove) {
+            console.log(`❌ パレット#${basePallet.palletNumber} は上積み不可 (canStackAbove: ${basePallet.canStackAbove})`);
+            return false;
+        }
         
         // Check if pallet can physically fit on base
         const canFitLength = pallet.length <= basePallet.finalLength && pallet.width <= basePallet.finalWidth;
         const canFitWidth = pallet.width <= basePallet.finalLength && pallet.length <= basePallet.finalWidth;
         
-        return canFitLength || canFitWidth;
+        if (!canFitLength && !canFitWidth) {
+            console.log(`❌ パレット#${pallet.palletNumber} はパレット#${basePallet.palletNumber} の上にサイズ的に収まりません`);
+            return false;
+        }
+        
+        return true;
     });
     
-    if (potentialBases.length === 0) return null;
+    if (potentialBases.length === 0) {
+        console.log(`❌ パレット#${pallet.palletNumber} の積み重ね候補がありません`);
+        return null;
+    }
     
-    console.log(`パレット#${pallet.palletNumber} の積み重ね候補: ${potentialBases.length}個のベースパレット`);
+    console.log(`✅ パレット#${pallet.palletNumber} の積み重ね候補: ${potentialBases.length}個のベースパレット`);
     
     potentialBases.forEach(basePallet => {
         // Try both orientations if pallet is not square
@@ -1168,7 +1256,15 @@ function forceStackingForIdenticalPallets(unplacedPallets, placedPallets, contai
                     let bestScore = -Infinity;
                     
                     placedInGroup.forEach(basePallet => {
-                        if (!pallet.canStackBelow || !basePallet.canStackAbove) return;
+                        // Check stacking permissions - CRITICAL
+                        if (!pallet.canStackBelow) {
+                            console.log(`❌ 強制積み重ね失敗: パレット#${pallet.palletNumber} は下積み不可`);
+                            return;
+                        }
+                        if (!basePallet.canStackAbove) {
+                            console.log(`❌ 強制積み重ね失敗: パレット#${basePallet.palletNumber} は上積み不可`);
+                            return;
+                        }
                         if (basePallet.stackedBy && basePallet.stackedBy.length >= 2) return; // Max 2 stacked
                         
                         // Check if pallet fits on base
@@ -1287,6 +1383,7 @@ function setupEventListeners() {
     document.getElementById('debug3DStacking').addEventListener('click', () => debug.test3DStacking());
     document.getElementById('debugMultiLevel').addEventListener('click', () => debug.testMultiLevelStacking());
     document.getElementById('debugIdentical').addEventListener('click', () => debug.analyzeIdenticalPallets());
+    document.getElementById('debugPermissions').addEventListener('click', () => debug.analyzeStackingPermissions());
     document.getElementById('debugClear').addEventListener('click', () => debug.clear());
     [elements.palletLength, elements.palletWidth, elements.palletHeight, elements.palletWeight, elements.palletQty].forEach(input => {
         input.addEventListener('keypress', e => { if (e.key === 'Enter') palletManager.add(); });
