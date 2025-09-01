@@ -783,26 +783,7 @@
 </div>
 </div>
 </div>
-<script>
-        // 定数の一元管理
-        const CONSTANTS = {
-            CONTAINER_OFFSET_X: 25,
-            CONTAINER_OFFSET_Y: 35,
-            CONTAINER_DISPLAY_WIDTH: 800,
-            CONTAINER_DISPLAY_HEIGHT: 300,
-            MIN_DRAG_MARGIN: 10,
-            EPSILON: 0.01,
-            ANIMATION_DELAY: 500
-        };
-
-        // グローバル変数
-        let pallets = [];
-        let allPalletsGenerated = [];
-        let renderConfig = {
-            scale: 1,
-            containerOffset: { x: CONSTANTS.CONTAINER_OFFSET_X, y: CONSTANTS.CONTAINER_OFFSET_Y },
-            containerBounds: null
-        };
+<script src="inline.js"></script>
 
         const containers = {
             '20ft': { length: 589.8, width: 235.0, height: 235.0 },

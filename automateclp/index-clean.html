@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コンテナ積載計画ツール - 3D積み重ね対応</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚢 コンテナ積載計画ツール</h1>
+            <p>3D積み重ね対応の自動パレット配置システム</p>
+            <button id="darkModeToggle">🌙</button>
+        </header>
+
+        <div class="main-content">
+            <!-- 入力パネル -->
+            <div class="input-panel">
+                <h2>パレット設定</h2>
+                
+                <div class="input-group">
+                    <label for="containerType">コンテナタイプ:</label>
+                    <select id="containerType">
+                        <option value="20ft">20ft</option>
+                        <option value="40ft">40ft</option>
+                        <option value="40HQ">40HQ</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="clearanceValue">クリアランス (cm):</label>
+                    <input type="number" id="clearanceValue" value="1" min="0" max="10">
+                </div>
+
+                <div class="input-group">
+                    <label>
+                        <input type="checkbox" id="enableStacking" checked>
+                        3D積み重ねを有効にする
+                    </label>
+                </div>
+
+                <hr>
+
+                <div class="input-group">
+                    <label for="palletLength">長さ (cm):</label>
+                    <input type="number" id="palletLength" placeholder="例: 100">
+                </div>
+
+                <div class="input-group">
+                    <label for="palletWidth">幅 (cm):</label>
+                    <input type="number" id="palletWidth" placeholder="例: 125">
+                </div>
+
+                <div class="input-group">
+                    <label for="palletHeight">高さ (cm):</label>
+                    <input type="number" id="palletHeight" placeholder="例: 120">
+                </div>
+
+                <div class="input-group">
+                    <label for="palletWeight">重量 (kg):</label>
+                    <input type="number" id="palletWeight" placeholder="例: 500">
+                </div>
+
+                <div class="input-group">
+                    <label for="palletQty">数量:</label>
+                    <input type="number" id="palletQty" value="1" min="1" max="100">
+                </div>
+
+                <div class="stacking-options">
+                    <label>
+                        <input type="checkbox" id="canStackAbove" checked>
+                        上積み可
+                    </label>
+                    <label>
+                        <input type="checkbox" id="canStackBelow" checked>
+                        下積み可
+                    </label>
+                </div>
+
+                <button id="addPalletBtn" class="btn-primary">パレット追加</button>
+
+                <!-- プリセットボタン -->
+                <div class="preset-buttons">
+                    <button class="preset-btn" data-length="100" data-width="125" data-height="120" data-weight="500">100×125</button>
+                    <button class="preset-btn" data-length="110" data-width="110" data-height="120" data-weight="800">110×110</button>
+                    <button class="preset-btn" data-length="120" data-width="100" data-height="100" data-weight="600">120×100</button>
+                </div>
+
+                <hr>
+
+                <div class="action-buttons">
+                    <button id="calculateBtn" class="btn-success">計算開始</button>
+                    <button id="testBtn" class="btn-info">テストケース</button>
+                </div>
+
+                <div id="containerInfo" class="container-info"></div>
+            </div>
+
+            <!-- パレットリスト -->
+            <div class="pallet-list-panel">
+                <h3>パレットリスト</h3>
+                <div id="palletList"></div>
+            </div>
+
+            <!-- 可視化エリア -->
+            <div class="visualization">
+                <div class="visualization-header">
+                    <h3>積載計画</h3>
+                    <div class="controls">
+                        <button id="exportBtn" class="btn-secondary" style="display: none;">画像エクスポート</button>
+                    </div>
+                </div>
+
+                <div class="work-area">
+                    <div id="containerFloor" class="container-floor"></div>
+                </div>
+
+                <div id="loadingAnimation" class="loading-animation" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>配置計算中...</p>
+                </div>
+
+                <div id="manualInstructions" class="manual-instructions" style="display: none;">
+                    <h4>マニュアル調整</h4>
+                    <ul>
+                        <li>パレットをドラッグして移動</li>
+                        <li>↻ボタンで回転</li>
+                        <li>✕ボタンで削除</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 統計情報 -->
+            <div class="stats-panel">
+                <h3>統計情報</h3>
+                <div id="stats" class="stats-grid" style="display: none;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="inputPallets">0</div>
+                        <div class="stat-label">入力パレット</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="visiblePallets">0</div>
+                        <div class="stat-label">表示パレット</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="loadedPallets">0</div>
+                        <div class="stat-label">積載パレット</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="loadingRate">0%</div>
+                        <div class="stat-label">積載率</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="efficiency">0%</div>
+                        <div class="stat-label">床面効率</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="remainingArea">0m²</div>
+                        <div class="stat-label">残り床面積</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 凡例 -->
+            <div id="legend" class="legend" style="display: none;"></div>
+
+            <!-- 未積載サマリー -->
+            <div id="unloadedSummary" class="unloaded-summary" style="display: none;">
+                <h4>未積載パレット</h4>
+                <div class="unloaded-list"></div>
+            </div>
+        </div>
+
+        <!-- デバッグパネル -->
+        <div class="debug-panel">
+            <h3>デバッグツール</h3>
+            <div class="debug-buttons">
+                <button id="debugStacking">積み重ねテスト</button>
+                <button id="debugGravity">重心計算テスト</button>
+                <button id="debugLayout">レイアウト解析</button>
+                <button id="debugClear">デバッグクリア</button>
+            </div>
+            <div id="debugOutput" class="debug-output" style="display: none;"></div>
+        </div>
+
+        <!-- メッセージ -->
+        <div id="errorMessage" class="message error" style="display: none;"></div>
+        <div id="successMessage" class="message success" style="display: none;"></div>
+    </div>
+
+    <!-- 外部JavaScriptファイル -->
+    <script src="inline.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
