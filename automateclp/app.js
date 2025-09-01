@@ -255,6 +255,7 @@ const debug = {
     },
     testLayout: function() {
         this.log('=== レイアウト解析テスト開始 ===');
+        this.log('DEBUG: testLayout function is being called');
         const container = containers[elements.containerType.value];
         this.log('コンテナ情報:', {
             type: elements.containerType.value,
@@ -293,6 +294,14 @@ const debug = {
         const usedArea = basePallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
         const remainingArea = Math.max(0, totalArea - usedArea); // Ensure remaining area is never negative
         const areaUtilization = Math.min(100, (usedArea / totalArea) * 100); // Cap utilization at 100%
+        
+        // Simple debug to see raw values
+        this.log('RAW VALUES DEBUG:', {
+            totalArea: totalArea,
+            usedArea: usedArea,
+            basePalletsCount: basePallets.length,
+            calculation: `${totalArea} - ${usedArea} = ${totalArea - usedArea}`
+        });
         
         // Debug: Show area calculations
         this.log('面積計算デバッグ:', {
