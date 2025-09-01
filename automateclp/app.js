@@ -163,13 +163,17 @@ const debug = {
             const basePallets = placedPallets.filter(p => !p.stackedOn);
             const unplacedPallets = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
             
+            const maxStackHeight = Math.max(...placedPallets.map(p => p.z + p.finalHeight));
+            const maxLevel = Math.floor(maxStackHeight / 100);
+            const levelDescription = maxLevel === 0 ? '床のみ' : maxLevel === 1 ? '下段まで' : maxLevel === 2 ? '中段まで' : `${maxLevel}段目まで`;
+            
             this.log('積み重ね詳細分析:', {
                 basePallets: basePallets.length,
                 stackedPallets: stackedPallets.length,
                 unplacedPallets: unplacedPallets.length,
-                maxStackHeight: Math.max(...placedPallets.map(p => p.z + p.finalHeight)),
+                maxStackHeight: maxStackHeight,
                 averageStackHeight: placedPallets.reduce((sum, p) => sum + p.z, 0) / placedPallets.length,
-                stackingLevels: Math.floor(Math.max(...placedPallets.map(p => p.z + p.finalHeight)) / 100),
+                stackingLevels: `${maxLevel}段 (${levelDescription})`,
                 weightDistribution: {
                     total: placedPallets.reduce((sum, p) => sum + (p.weight || 0), 0),
                     base: basePallets.reduce((sum, p) => sum + (p.weight || 0), 0),
@@ -349,11 +353,19 @@ const debug = {
             stackingLevels[level].push(pallet);
         });
         
+        const levelNames = {
+            0: '床',
+            1: '下段',
+            2: '中段',
+            3: '上段'
+        };
+        
         this.log('積み重ねレベル分析:', {
             totalLevels: Object.keys(stackingLevels).length,
-            levelDistribution: Object.entries(stackingLevels).map(([level, pallets]) => 
-                `レベル${level}: ${pallets.length}個`
-            ).join(', '),
+            levelDistribution: Object.entries(stackingLevels).map(([level, pallets]) => {
+                const levelName = levelNames[level] || `${level}段目`;
+                return `${levelName}: ${pallets.length}個`;
+            }).join(', '),
             maxHeight: Math.max(...placedPallets.map(p => p.z + p.finalHeight)),
             avgHeight: placedPallets.reduce((sum, p) => sum + p.z, 0) / placedPallets.length
         });
@@ -386,11 +398,19 @@ const debug = {
             const container = containers[elements.containerType.value];
             const clearance = utils.getCurrentClearance();
             
+            const levelNames = {
+                0: '床',
+                1: '下段',
+                2: '中段',
+                3: '上段'
+            };
+            
             unplacedPallets.forEach(pallet => {
                 const bestPosition = findBestStackPosition(pallet, placedPallets, container, clearance);
                 if (bestPosition) {
                     const level = Math.floor(bestPosition.z / 100);
-                    this.log(`✅ パレット#${pallet.palletNumber} レベル${level}に積み重ね可能`);
+                    const levelName = levelNames[level] || `${level}段目`;
+                    this.log(`✅ パレット#${pallet.palletNumber} ${levelName}に積み重ね可能`);
                 }
             });
         }
@@ -900,7 +920,9 @@ function perform3DStacking() {
                 if (!basePallet.stackedBy) basePallet.stackedBy = [];
                 basePallet.stackedBy.push({ id: pallet.id, instance: pallet.instance });
                 
-                console.log(`✅ 積み重ね成功: パレット#${pallet.palletNumber} を パレット#${basePallet.palletNumber} の上に配置 (Z: ${topZ}, 回転: ${orientation.rotated})`);
+                const stackingLevel = Math.floor(topZ / 100);
+                const levelText = stackingLevel === 0 ? '床' : stackingLevel === 1 ? '下段' : stackingLevel === 2 ? '中段' : `${stackingLevel}段目`;
+                console.log(`✅ 積み重ね成功: パレット#${pallet.palletNumber} を パレット#${basePallet.palletNumber} の上に配置 (${levelText}, 回転: ${orientation.rotated})`);
                 
                 anyStacked = true;
                 
@@ -926,12 +948,15 @@ function perform3DStacking() {
     const maxStackHeight = Math.max(...finalPlacedPallets.map(p => p.z + p.finalHeight));
     
     console.log('=== 3D積み重ね完了 ===');
+    const maxLevel = Math.floor(maxStackHeight / 100);
+    const levelDescription = maxLevel === 0 ? '床のみ' : maxLevel === 1 ? '下段まで' : maxLevel === 2 ? '中段まで' : `${maxLevel}段目まで`;
+    
     console.log('最終結果:', {
         totalPlaced: finalPlacedPallets.length,
         stackedCount: stackedCount,
         unplacedCount: finalUnplacedPallets.length,
         maxStackHeight: maxStackHeight,
-        stackingLevels: Math.floor(maxStackHeight / 100),
+        stackingLevels: `${maxLevel}段 (${levelDescription})`,
         attempts: stackingAttempts
     });
     
@@ -949,6 +974,17 @@ function perform3DStacking() {
 }
 
 // Removed findBestStackPosition function - replaced with simpler logic in perform3DStacking
+
+// Helper function to get Japanese level names
+function getLevelName(level) {
+    const levelNames = {
+        0: '床',
+        1: '下段',
+        2: '中段',
+        3: '上段'
+    };
+    return levelNames[level] || `${level}段目`;
+}
 
 function isPositionAvailable(position, placedPallets, clearance) {
     // Check for overlap with other pallets at the same Z level
