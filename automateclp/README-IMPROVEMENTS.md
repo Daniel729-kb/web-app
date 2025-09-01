@@ -84,17 +84,21 @@ Created comprehensive test suite (`test-functionality.html`):
 
 ```
 automateclp/
-├── index.html              # Main application (updated)
+├── index.html              # Main application (modularized)
 ├── app.js                  # Main application logic (modularized)
-├── utils.js                # Utilities and constants (new)
-├── algorithms.js           # Core algorithms (new)
-├── ui.js                   # UI management (new)
+├── utils.js                # Utilities and constants
+├── algorithms.js           # Core algorithms
+├── ui.js                   # UI management
 ├── styles.css              # Styling (unchanged)
-├── app-original.js         # Backup of original app.js
-├── index-original.html     # Backup of original index.html
-├── test.html               # Basic import test
-├── test-functionality.html # Comprehensive functionality test
-└── README-IMPROVEMENTS.md  # This documentation
+├── README-IMPROVEMENTS.md  # This documentation
+└── old/                    # Archive folder
+    ├── README.md           # Archive documentation
+    ├── app-original.js     # Backup of original app.js
+    ├── index-original.html # Backup of original index.html
+    ├── app-new.js          # Development version (now active)
+    ├── index-new.html      # Development version (now active)
+    ├── test.html           # Basic import test
+    └── test-functionality.html # Comprehensive functionality test
 ```
 
 ## 🔧 **How to Use**
