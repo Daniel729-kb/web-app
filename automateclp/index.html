@@ -419,6 +419,13 @@
         gap: 15px;
         margin-top: 30px;
     }
+    
+    /* Limit to 5 cards per row maximum */
+    @media (min-width: 900px) {
+        .stats {
+            grid-template-columns: repeat(5, 1fr);
+        }
+    }
 
     .stat-card {
         background: linear-gradient(135deg, #667eea, #764ba2);
@@ -713,11 +720,12 @@
         <button class="calculate-btn" id="calculateBtn" type="button">🔄 積載プランを計算</button>
         <div class="form-group" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
         <label style="margin-bottom: 10px; color: #495057;">🐛 デバッグ機能</label>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
         <button type="button" id="debugStacking" style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">積み重ねテスト</button>
         <button type="button" id="debugGravity" style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">重心計算テスト</button>
         <button type="button" id="debugLayout" style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">レイアウト解析</button>
-        <button type="button" id="debugClear" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">デバッグクリア</button>
+        <button type="button" id="debugFixStacking" style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">積み重ね構造修正</button>
+        <button type="button" id="debugClear" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; grid-column: 1 / -1;">デバッグクリア</button>
         </div>
         <div id="debugOutput" style="margin-top: 10px; padding: 8px; background: white; border-radius: 4px; font-family: monospace; font-size: 11px; max-height: 100px; overflow-y: auto; display: none;"></div>
         </div>
@@ -1011,7 +1019,9 @@
                 
                 // 面積使用率計算
                 const totalArea = container.length * container.width;
-                const usedArea = placedPallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
+                // ✅ FIXED: Only count base pallets for floor area calculation
+                const basePallets = placedPallets.filter(p => !p.stackedOn);
+                const usedArea = basePallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
                 const areaUtilization = (usedArea / totalArea) * 100;
                 
                 this.log('面積使用率:', `${areaUtilization.toFixed(2)}%`);
@@ -1337,6 +1347,9 @@
                 elements.loadingAnimation.style.display = 'none';
                 elements.manualInstructions.style.display = 'block';
                 elements.exportBtn.style.display = 'block';
+                
+                // ✅ ADDED: Fix stacking structure before rendering
+                fixStackingStructure();
                 
                 renderAllPallets(container);
                 updateStats(container);
@@ -1675,6 +1688,9 @@
                 }
             });
             
+            // ✅ ADDED: Fix stacking structure after 3D stacking
+            fixStackingStructure();
+            
             // 重心計算と安定性チェック
             const stabilityResult = calculateStackingStability(placedPallets);
             console.log('積み重ね安定性:', stabilityResult);
@@ -1848,6 +1864,54 @@
                 totalWeight,
                 distanceFromCenter: Math.round(distanceFromCenter)
             };
+        }
+        
+        // ✅ ADDED: Improved stacking structure detection
+        function fixStackingStructure() {
+            allPalletsGenerated.forEach(pallet => {
+                if (pallet.placed && !pallet.deleted) {
+                    // Check if pallet is stacked on another
+                    const isStacked = allPalletsGenerated.some(other => 
+                        other !== pallet && 
+                        other.placed && 
+                        !other.deleted &&
+                        pallet.x >= other.x && 
+                        pallet.x < other.x + other.finalLength &&
+                        pallet.y >= other.y && 
+                        pallet.y < other.y + other.finalWidth &&
+                        pallet.z > other.z
+                    );
+                    
+                    if (isStacked && !pallet.stackedOn) {
+                        // Find the base pallet this is stacked on
+                        const basePallet = allPalletsGenerated.find(other => 
+                            other !== pallet && 
+                            other.placed && 
+                            !other.deleted &&
+                            pallet.x >= other.x && 
+                            pallet.x < other.x + other.finalLength &&
+                            pallet.y >= other.y && 
+                            pallet.y < other.y + other.finalWidth &&
+                            pallet.z > other.z
+                        );
+                        
+                        if (basePallet) {
+                            pallet.stackedOn = basePallet;
+                            if (!basePallet.stackedBy) basePallet.stackedBy = [];
+                            basePallet.stackedBy.push({
+                                id: pallet.id,
+                                instance: pallet.instance
+                            });
+                        }
+                    }
+                }
+            });
+            
+            debugLog('積み重ね構造修正完了', {
+                totalPallets: allPalletsGenerated.filter(p => p.placed && !p.deleted).length,
+                stackedPallets: allPalletsGenerated.filter(p => p.placed && !p.deleted && p.stackedOn).length,
+                basePallets: allPalletsGenerated.filter(p => p.placed && !p.deleted && p.stackedBy && p.stackedBy.length > 0).length
+            });
         }
         
         // エリア分割配置戦略
@@ -2463,15 +2527,23 @@
             const insidePallets = visiblePallets.filter(p => !isOutsideContainer(p, container));
             
             const containerArea = (container.length * container.width) / 10000; // m²
-            const usedArea = insidePallets.reduce((sum, p) => 
-                sum + (p.finalLength * p.finalWidth) / 10000, 0
+            
+            // ✅ FIXED: Separate base pallets from stacked pallets for floor area calculation
+            const basePallets = insidePallets.filter(p => !p.stackedOn);
+            const stackedPallets = insidePallets.filter(p => p.stackedOn);
+            
+            // ✅ FIXED: Only count base pallets for floor area (not stacked ones)
+            const baseUsedArea = basePallets.reduce((sum, p) => 
+                sum + (p.finalLength * p.finalWidth), 0
             );
+            const baseUsedAreaM2 = baseUsedArea / 10000; // Convert cm² to m²
+            
+            // ✅ FIXED: Calculate remaining area correctly
+            const remainingArea = containerArea - baseUsedAreaM2;
             
             // 3D積み重ね情報
             let stackingInfo = '';
             if (elements.enableStacking.checked) {
-                const stackedPallets = insidePallets.filter(p => p.stackedOn);
-                const basePallets = insidePallets.filter(p => p.stackedBy.length > 0);
                 const maxHeight = Math.max(...insidePallets.map(p => p.z + p.finalHeight), 0);
                 const totalWeight = insidePallets.reduce((sum, p) => sum + (p.weight || 0), 0);
                 
@@ -2493,14 +2565,29 @@
             
             const totalInputPallets = pallets.reduce((sum, p) => sum + p.qty, 0);
             
+            // ✅ FIXED: Use correct area utilization calculation
+            const areaUtilization = containerArea > 0 ? (baseUsedAreaM2 / containerArea) * 100 : 0;
+            
             document.getElementById('inputPallets').textContent = totalInputPallets;
             document.getElementById('visiblePallets').textContent = visiblePallets.length;
             document.getElementById('loadedPallets').textContent = insidePallets.length;
             document.getElementById('loadingRate').textContent = 
                 `${totalInputPallets > 0 ? Math.round((insidePallets.length / totalInputPallets) * 100) : 0}%`;
             document.getElementById('efficiency').textContent = 
-                `${containerArea > 0 ? Math.round((usedArea / containerArea) * 100) : 0}%`;
-            document.getElementById('remainingArea').textContent = `${(containerArea - usedArea).toFixed(2)}m²`;
+                `${Math.round(areaUtilization)}%`;
+            document.getElementById('remainingArea').textContent = `${remainingArea.toFixed(2)}m²`;
+            
+            // Debug logging for area calculation
+            debugLog('床面積計算', {
+                basePallets: basePallets.length,
+                stackedPallets: stackedPallets.length,
+                totalPlaced: insidePallets.length,
+                containerArea: containerArea.toFixed(2) + 'm²',
+                baseUsedArea: baseUsedArea + 'cm²',
+                baseUsedAreaM2: baseUsedAreaM2.toFixed(2) + 'm²',
+                remainingArea: remainingArea.toFixed(2) + 'm²',
+                areaUtilization: areaUtilization.toFixed(2) + '%'
+            });
             
             // 3D情報を追加
             if (stackingInfo) {
@@ -2573,6 +2660,10 @@
             document.getElementById('debugStacking').addEventListener('click', () => debug.testStacking());
             document.getElementById('debugGravity').addEventListener('click', () => debug.testGravity());
             document.getElementById('debugLayout').addEventListener('click', () => debug.testLayout());
+            document.getElementById('debugFixStacking').addEventListener('click', () => {
+                fixStackingStructure();
+                utils.showSuccess('積み重ね構造を修正しました。デバッグ出力を確認してください。');
+            });
             document.getElementById('debugClear').addEventListener('click', () => debug.clear());
             
             // Enterキーでの追加
