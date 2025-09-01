@@ -1014,8 +1014,8 @@
                 const basePallets = placedPallets.filter(p => !p.stackedOn);
                 const stackedPallets = placedPallets.filter(p => p.stackedOn);
                 const usedArea = basePallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
-                const remainingArea = Math.max(0, totalArea - usedArea);
-                const areaUtilization = Math.min(100, (usedArea / totalArea) * 100);
+                const remainingArea = totalArea - usedArea;
+                const areaUtilization = (usedArea / totalArea) * 100;
                 
                 this.log('床面積計算:', {
                     basePallets: basePallets.length,
@@ -2509,10 +2509,11 @@
                 `${totalInputPallets > 0 ? Math.round((insidePallets.length / totalInputPallets) * 100) : 0}%`;
             document.getElementById('efficiency').textContent = 
                 `${containerArea > 0 ? Math.round((usedArea / containerArea) * 100) : 0}%`;
-            // Calculate remaining area using only base pallets (not stacked)
+            // Calculate remaining floor area: Container Area - Base Pallets Area
             const basePallets = insidePallets.filter(p => !p.stackedOn);
+            const stackedPallets = insidePallets.filter(p => p.stackedOn);
             const baseUsedArea = basePallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
-            const remainingArea = Math.max(0, containerArea - baseUsedArea);
+            const remainingArea = containerArea - baseUsedArea;
             document.getElementById('remainingArea').textContent = `${remainingArea.toFixed(2)}m²`;
             
             // 3D情報を追加
