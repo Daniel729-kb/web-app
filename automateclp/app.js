@@ -258,7 +258,7 @@ const debug = {
         const container = containers[elements.containerType.value];
         this.log('コンテナ情報:', {
             type: elements.containerType.value,
-            dimensions: `${container.length}×${container.width}×${container.height}cm`,
+            dimensions: `${container.length}×${container.width}×${container.width}cm`,
             clearance: `${utils.getCurrentClearance()}cm`
         });
         if (allPalletsGenerated.length === 0) { this.log('パレットが配置されていません'); return; }
@@ -309,6 +309,42 @@ const debug = {
         }
         const totalWeight = placedPallets.reduce((sum, p) => sum + (p.weight || 0), 0);
         this.log('総重量:', `${totalWeight}kg`);
+        
+        // Additional debugging for stacking
+        if (stackedPallets.length > 0) {
+            this.log('積み重ね詳細:', {
+                stackedPallets: stackedPallets.map(p => `#${p.palletNumber} on #${p.stackedOn.palletNumber}`).slice(0, 10),
+                stackingLevels: [...new Set(stackedPallets.map(p => Math.floor(p.z / 100)))]
+            });
+        }
+        
+        // If no stacking occurred, try to manually trigger it
+        if (stackedPallets.length === 0 && unplacedPallets.length === 0 && elements.enableStacking.checked) {
+            this.log('⚠️ 積み重ねが発生していません。手動で積み重ねを試行します...');
+            this.forceStacking();
+        }
+    },
+    forceStacking: function() {
+        this.log('=== 強制積み重ねテスト開始 ===');
+        const container = containers[elements.containerType.value];
+        const placedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted);
+        
+        // Try to stack some pallets manually
+        let stackedCount = 0;
+        placedPallets.forEach((basePallet, index) => {
+            if (index < 10 && basePallet.canStackAbove) { // Only try first 10 pallets
+                const palletToStack = placedPallets.find(p => p !== basePallet && p.canStackBelow && !p.stackedOn);
+                if (palletToStack) {
+                    // Simple stacking
+                    palletToStack.stackedOn = basePallet;
+                    palletToStack.z = basePallet.z + basePallet.finalHeight;
+                    stackedCount++;
+                    this.log(`✅ 手動積み重ね: パレット#${palletToStack.palletNumber} を パレット#${basePallet.palletNumber} の上に配置`);
+                }
+            }
+        });
+        
+        this.log(`手動積み重ね完了: ${stackedCount}個のパレットを積み重ね`);
     },
     test3DStacking: function() {
         this.log('=== 3D積み重ねアルゴリズムテスト開始 ===');
@@ -791,7 +827,7 @@ function packPallets2D(palletsToPlace, container, clearance) {
     const samplePallet = palletsToPlace[0];
     const cols = Math.floor(container.length / (samplePallet.length + clearance));
     const rows = Math.floor(container.width / (samplePallet.width + clearance));
-    const maxFloorPallets = Math.min(palletsToPlace.length, cols * rows, 12); // Limit floor placement
+    const maxFloorPallets = Math.min(palletsToPlace.length, cols * rows, Math.floor(palletsToPlace.length / 2)); // Limit floor placement to allow stacking
     
     console.log(`グリッド配置: ${cols}列×${rows}行, 最大${maxFloorPallets}個を床に配置`);
     
@@ -827,6 +863,8 @@ function packPallets2D(palletsToPlace, container, clearance) {
         if (stackingResult) {
             console.log('積み重ね結果:', stackingResult);
         }
+    } else {
+        console.log('積み重ねが無効になっています');
     }
     
     const unplaced = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
@@ -857,6 +895,11 @@ function perform3DStacking() {
     let unplacedPallets = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
     
     console.log(`初期状態: 配置済み ${placedPallets.length}個, 未配置 ${unplacedPallets.length}個`);
+    
+    // Debug: Check stacking permissions
+    const canStackBelow = unplacedPallets.filter(p => p.canStackBelow).length;
+    const canStackAbove = placedPallets.filter(p => p.canStackAbove).length;
+    console.log(`積み重ね権限: 未配置パレット(下積み可): ${canStackBelow}個, 配置済みパレット(上積み可): ${canStackAbove}個`);
     
     if (unplacedPallets.length === 0) {
         console.log('積み重ね対象のパレットがありません');
