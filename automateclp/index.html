@@ -2513,7 +2513,8 @@
             const basePallets = insidePallets.filter(p => !p.stackedOn);
             const stackedPallets = insidePallets.filter(p => p.stackedOn);
             const baseUsedArea = basePallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
-            const remainingArea = containerArea - baseUsedArea;
+            const baseUsedAreaM2 = baseUsedArea / 10000; // Convert cm² to m²
+            const remainingArea = containerArea - baseUsedAreaM2;
             document.getElementById('remainingArea').textContent = `${remainingArea.toFixed(2)}m²`;
             
             // 3D情報を追加
