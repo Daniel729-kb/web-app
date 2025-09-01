@@ -274,6 +274,15 @@ const debug = {
         // Only count base pallets (not stacked) for floor area calculation
         const basePallets = placedPallets.filter(p => !p.stackedOn);
         const stackedPallets = placedPallets.filter(p => p.stackedOn);
+        
+        // Debug: Check pallet structure
+        this.log('パレット構造デバッグ:', {
+            totalPlaced: placedPallets.length,
+            withStackedOn: placedPallets.filter(p => p.stackedOn).length,
+            withoutStackedOn: placedPallets.filter(p => !p.stackedOn).length,
+            stackedOnValues: placedPallets.map(p => p.stackedOn ? 'yes' : 'no').slice(0, 5) // Show first 5
+        });
+        
         this.log('床面積計算:', {
             basePallets: basePallets.length,
             stackedPallets: stackedPallets.length,
@@ -282,6 +291,15 @@ const debug = {
         const usedArea = basePallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
         const remainingArea = totalArea - usedArea;
         const areaUtilization = (usedArea / totalArea) * 100;
+        
+        // Debug: Show area calculations
+        this.log('面積計算デバッグ:', {
+            totalArea: `${totalArea}cm² (${(totalArea / 10000).toFixed(2)}m²)`,
+            usedArea: `${usedArea}cm² (${(usedArea / 10000).toFixed(2)}m²)`,
+            basePalletsCount: basePallets.length,
+            averagePalletArea: basePallets.length > 0 ? (usedArea / basePallets.length).toFixed(0) : 'N/A'
+        });
+        
         this.log('面積使用率:', `${areaUtilization.toFixed(2)}%`);
         this.log('残り床面積:', `${remainingArea.toFixed(2)}cm² (${(remainingArea / 10000).toFixed(2)}m²)`);
         if (elements.enableStacking.checked) {
