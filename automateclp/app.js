@@ -255,7 +255,8 @@ const debug = {
     },
     testLayout: function() {
         this.log('=== レイアウト解析テスト開始 ===');
-        this.log('DEBUG: testLayout function is being called');
+        this.log('DEBUG: testLayout function is being called - VERSION 2');
+        this.log('TEST: This should appear if the function is working');
         const container = containers[elements.containerType.value];
         this.log('コンテナ情報:', {
             type: elements.containerType.value,
