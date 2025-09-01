@@ -2244,9 +2244,9 @@
                 // 3D情報を表示
                 let stackInfo = '';
                 if (elements.enableStacking.checked && pallet.stackedOn) {
-                    stackInfo = `<div style="font-size: 10px; color: #e74c3c; font-weight: bold;">↑積み重ね</div>`;
+                    stackInfo = `<div style="font-size: 10px; color: #e74c3c; font-weight: bold; background: rgba(255,255,255,0.9); padding: 1px 3px; border-radius: 2px; border: 1px solid #e74c3c;">上段</div>`;
                 } else if (elements.enableStacking.checked && pallet.stackedBy.length > 0) {
-                    stackInfo = `<div style="font-size: 10px; color: #27ae60; font-weight: bold;">↓${pallet.stackedBy.length}個積載</div>`;
+                    stackInfo = `<div style="font-size: 10px; color: #27ae60; font-weight: bold; background: rgba(255,255,255,0.9); padding: 1px 3px; border-radius: 2px; border: 1px solid #27ae60;">下段</div>`;
                 }
                 
                 const heightInfo = pallet.finalHeight > 0 ? ` H:${pallet.finalHeight}` : '';

@@ -9,7 +9,19 @@ const CONSTANTS = {
     CONTAINER_DISPLAY_HEIGHT: 300,
     MIN_DRAG_MARGIN: 10,
     EPSILON: 0.01,
-    ANIMATION_DELAY: 500
+    ANIMATION_DELAY: 500,
+    // 3D Stacking Configuration
+    STACKING: {
+        MAX_STACK_WEIGHT: 2500, // Increased maximum weight a stack can support
+        MIN_BASE_WEIGHT: 400,   // Reduced minimum weight for a base pallet
+        WEIGHT_RATIO_LIMIT: 3.0, // Increased maximum weight ratio (stacked/base)
+        HEIGHT_PREFERENCE: 0.5,  // Increased weight for height preference in scoring
+        SIZE_FIT_WEIGHT: 50,     // Weight for size compatibility
+        PERFECT_FIT_BONUS: 200,  // Bonus for perfect size match
+        CENTER_PENALTY: 0.02,    // Reduced penalty for distance from center
+        STACK_HEIGHT_PENALTY: 3, // Reduced penalty for tall stacks (encourages multi-level)
+        WEIGHT_BALANCE_PENALTY: 0.05 // Reduced penalty for unbalanced weight distribution
+    }
 };
 
 // グローバル変数
@@ -144,6 +156,84 @@ const debug = {
             this.log('生成済みパレット数:', allPalletsGenerated.length);
             this.log('配置済みパレット数:', allPalletsGenerated.filter(p => p.placed).length);
             this.log('積み重ね済みパレット数:', allPalletsGenerated.filter(p => p.stackedOn).length);
+            
+            // Enhanced stacking analysis
+            const placedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted);
+            const stackedPallets = placedPallets.filter(p => p.stackedOn);
+            const basePallets = placedPallets.filter(p => !p.stackedOn);
+            const unplacedPallets = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
+            
+            const maxStackHeight = Math.max(...placedPallets.map(p => p.z + p.finalHeight));
+            const maxLevel = Math.floor(maxStackHeight / 100);
+            const levelDescription = maxLevel === 0 ? '床のみ' : maxLevel === 1 ? '下段まで' : maxLevel === 2 ? '中段まで' : `${maxLevel}段目まで`;
+            
+            this.log('積み重ね詳細分析:', {
+                basePallets: basePallets.length,
+                stackedPallets: stackedPallets.length,
+                unplacedPallets: unplacedPallets.length,
+                maxStackHeight: maxStackHeight,
+                averageStackHeight: placedPallets.reduce((sum, p) => sum + p.z, 0) / placedPallets.length,
+                stackingLevels: `${maxLevel}段 (${levelDescription})`,
+                weightDistribution: {
+                    total: placedPallets.reduce((sum, p) => sum + (p.weight || 0), 0),
+                    base: basePallets.reduce((sum, p) => sum + (p.weight || 0), 0),
+                    stacked: stackedPallets.reduce((sum, p) => sum + (p.weight || 0), 0)
+                }
+            });
+            
+            // Check for stacking issues
+            stackedPallets.forEach(pallet => {
+                const basePallet = allPalletsGenerated.find(p => 
+                    p.id === pallet.stackedOn.id && p.instance === pallet.stackedOn.instance
+                );
+                if (basePallet) {
+                    const weightRatio = pallet.weight / basePallet.weight;
+                    if (weightRatio > 1.5) {
+                        this.log(`⚠️ 重量警告: パレット#${pallet.palletNumber} (${pallet.weight}kg) が パレット#${basePallet.palletNumber} (${basePallet.weight}kg) の上に配置 - 比率: ${weightRatio.toFixed(2)}`);
+                    }
+                }
+            });
+            
+            // Analyze why stacking might not be working
+            if (stackedPallets.length === 0 && unplacedPallets.length > 0) {
+                this.log('❌ 積み重ねが発生していません。原因を分析中...');
+                this.log('未配置パレットの積み重ね可能性をチェック中...');
+                
+                const container = containers[elements.containerType.value];
+                const clearance = utils.getCurrentClearance();
+                
+                // Test first few unplaced pallets
+                unplacedPallets.slice(0, 3).forEach(pallet => {
+                    const potentialBases = basePallets.filter(basePallet => {
+                        if (!pallet.canStackBelow || !basePallet.canStackAbove) return false;
+                        const canFitLength = pallet.length <= basePallet.finalLength && pallet.width <= basePallet.finalWidth;
+                        const canFitWidth = pallet.width <= basePallet.finalLength && pallet.length <= basePallet.finalWidth;
+                        return canFitLength || canFitWidth;
+                    });
+                    
+                    this.log(`パレット#${pallet.palletNumber} 積み重ね可能性:`, {
+                        canStackBelow: pallet.canStackBelow,
+                        canStackAbove: pallet.canStackAbove,
+                        potentialBases: potentialBases.length,
+                        weightMatch: potentialBases.filter(b => b.weight === pallet.weight).length,
+                        sizeMatch: potentialBases.filter(b => 
+                            (pallet.length <= b.finalLength && pallet.width <= b.finalWidth) ||
+                            (pallet.width <= b.finalLength && pallet.length <= b.finalWidth)
+                        ).length,
+                        permissionIssues: basePallets.filter(b => !pallet.canStackBelow || !b.canStackAbove).length
+                    });
+                });
+                
+                // Check stacking permissions for all pallets
+                const stackingPermissions = {
+                    canStackBelow: unplacedPallets.filter(p => p.canStackBelow).length,
+                    cannotStackBelow: unplacedPallets.filter(p => !p.canStackBelow).length,
+                    baseCanStackAbove: basePallets.filter(p => p.canStackAbove).length,
+                    baseCannotStackAbove: basePallets.filter(p => !p.canStackAbove).length
+                };
+                
+                this.log('積み重ね権限分析:', stackingPermissions);
+            }
         }
     },
     testGravity: function() {
@@ -191,6 +281,265 @@ const debug = {
         }
         const totalWeight = placedPallets.reduce((sum, p) => sum + (p.weight || 0), 0);
         this.log('総重量:', `${totalWeight}kg`);
+    },
+    test3DStacking: function() {
+        this.log('=== 3D積み重ねアルゴリズムテスト開始 ===');
+        if (allPalletsGenerated.length === 0) { this.log('パレットが配置されていません'); return; }
+        
+        const placedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted);
+        const unplacedPallets = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
+        
+        this.log('積み重ね前の状況:', {
+            placed: placedPallets.length,
+            unplaced: unplacedPallets.length,
+            stackingEnabled: elements.enableStacking.checked
+        });
+        
+        if (unplacedPallets.length === 0) {
+            this.log('積み重ね対象のパレットがありません');
+            return;
+        }
+        
+        // Test stacking algorithm manually
+        const container = containers[elements.containerType.value];
+        const clearance = utils.getCurrentClearance();
+        
+        this.log('積み重ねテスト実行中...');
+        const startTime = performance.now();
+        
+        // Simulate the stacking process
+        let stackedCount = 0;
+        unplacedPallets.forEach(pallet => {
+            const bestPosition = findBestStackPosition(pallet, placedPallets, container, clearance);
+            if (bestPosition) {
+                this.log(`✅ パレット#${pallet.palletNumber} 積み重ね可能:`, {
+                    position: `(${bestPosition.x}, ${bestPosition.y}, ${bestPosition.z})`,
+                    basePallet: `#${bestPosition.stackedOn.palletNumber}`,
+                    rotated: bestPosition.rotated,
+                    weight: `${pallet.weight}kg`,
+                    baseWeight: `${bestPosition.stackedOn.weight}kg`,
+                    stackingLevel: Math.floor(bestPosition.z / 100)
+                });
+                stackedCount++;
+            } else {
+                this.log(`❌ パレット#${pallet.palletNumber} 積み重ね不可:`, {
+                    weight: `${pallet.weight}kg`,
+                    size: `${pallet.length}×${pallet.width}×${pallet.height}cm`,
+                    canStackBelow: pallet.canStackBelow,
+                    canStackAbove: pallet.canStackAbove
+                });
+            }
+        });
+        
+        const endTime = performance.now();
+        this.log('積み重ねテスト完了:', {
+            duration: `${(endTime - startTime).toFixed(2)}ms`,
+            stackable: stackedCount,
+            unstackable: unplacedPallets.length - stackedCount,
+            successRate: `${((stackedCount / unplacedPallets.length) * 100).toFixed(1)}%`
+        });
+    },
+    testMultiLevelStacking: function() {
+        this.log('=== マルチレベル積み重ねテスト開始 ===');
+        if (allPalletsGenerated.length === 0) { this.log('パレットが配置されていません'); return; }
+        
+        const placedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted);
+        
+        // Analyze stacking levels
+        const stackingLevels = {};
+        placedPallets.forEach(pallet => {
+            const level = Math.floor(pallet.z / 100);
+            if (!stackingLevels[level]) stackingLevels[level] = [];
+            stackingLevels[level].push(pallet);
+        });
+        
+        const levelNames = {
+            0: '床',
+            1: '下段',
+            2: '中段',
+            3: '上段'
+        };
+        
+        this.log('積み重ねレベル分析:', {
+            totalLevels: Object.keys(stackingLevels).length,
+            levelDistribution: Object.entries(stackingLevels).map(([level, pallets]) => {
+                const levelName = levelNames[level] || `${level}段目`;
+                return `${levelName}: ${pallets.length}個`;
+            }).join(', '),
+            maxHeight: Math.max(...placedPallets.map(p => p.z + p.finalHeight)),
+            avgHeight: placedPallets.reduce((sum, p) => sum + p.z, 0) / placedPallets.length
+        });
+        
+        // Check for multi-level stacks
+        const multiLevelStacks = [];
+        placedPallets.forEach(pallet => {
+            if (pallet.stackedBy && pallet.stackedOn) {
+                const stackHeight = getStackHeight(pallet);
+                const stackWeight = calculateStackWeight(pallet);
+                multiLevelStacks.push({
+                    basePallet: `#${pallet.palletNumber}`,
+                    stackHeight: stackHeight,
+                    stackWeight: stackWeight,
+                    palletsInStack: 1 + pallet.stackedBy.length
+                });
+            }
+        });
+        
+        if (multiLevelStacks.length > 0) {
+            this.log('マルチレベル積み重ね検出:', multiLevelStacks);
+        } else {
+            this.log('❌ マルチレベル積み重ねが検出されませんでした');
+        }
+        
+        // Test stacking potential
+        const unplacedPallets = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
+        if (unplacedPallets.length > 0) {
+            this.log('未配置パレットの積み重ね可能性をテスト中...');
+            const container = containers[elements.containerType.value];
+            const clearance = utils.getCurrentClearance();
+            
+            const levelNames = {
+                0: '床',
+                1: '下段',
+                2: '中段',
+                3: '上段'
+            };
+            
+            unplacedPallets.forEach(pallet => {
+                const bestPosition = findBestStackPosition(pallet, placedPallets, container, clearance);
+                if (bestPosition) {
+                    const level = Math.floor(bestPosition.z / 100);
+                    const levelName = levelNames[level] || `${level}段目`;
+                    this.log(`✅ パレット#${pallet.palletNumber} ${levelName}に積み重ね可能`);
+                }
+            });
+        }
+    },
+    analyzeIdenticalPallets: function() {
+        this.log('=== 同一パレット積み重ね分析 ===');
+        if (allPalletsGenerated.length === 0) { this.log('パレットが配置されていません'); return; }
+        
+        // Group pallets by characteristics
+        const palletGroups = {};
+        allPalletsGenerated.forEach(pallet => {
+            const key = `${pallet.length}×${pallet.width}×${pallet.height}-${pallet.weight}kg`;
+            if (!palletGroups[key]) palletGroups[key] = [];
+            palletGroups[key].push(pallet);
+        });
+        
+        this.log('パレットグループ分析:', Object.entries(palletGroups).map(([key, pallets]) => 
+            `${key}: ${pallets.length}個`
+        ));
+        
+        // Analyze identical pallet stacking
+        Object.entries(palletGroups).forEach(([key, pallets]) => {
+            if (pallets.length > 1) {
+                const placed = pallets.filter(p => p.placed);
+                const unplaced = pallets.filter(p => !p.placed);
+                const stacked = placed.filter(p => p.stackedOn);
+                
+                this.log(`同一パレット ${key}:`, {
+                    total: pallets.length,
+                    placed: placed.length,
+                    unplaced: unplaced.length,
+                    stacked: stacked.length,
+                    stackingRate: `${((stacked.length / pallets.length) * 100).toFixed(1)}%`
+                });
+                
+                // Check weight constraints for identical pallets
+                const samplePallet = pallets[0];
+                const maxStackWeight = getMaxStackWeight(samplePallet);
+                const maxStackable = Math.floor((maxStackWeight - samplePallet.weight) / samplePallet.weight);
+                
+                this.log(`重量制約分析 (${key}):`, {
+                    palletWeight: samplePallet.weight,
+                    maxStackWeight: maxStackWeight,
+                    maxStackable: maxStackable,
+                    theoreticalStacking: `${maxStackable}個まで積み重ね可能`
+                });
+            }
+        });
+        
+        // Check for stacking issues
+        const placedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted);
+        const unplacedPallets = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
+        
+        if (unplacedPallets.length > 0) {
+            this.log('未配置パレットの積み重ね制約を分析中...');
+            const container = containers[elements.containerType.value];
+            const clearance = utils.getCurrentClearance();
+            
+            unplacedPallets.slice(0, 5).forEach(pallet => { // Test first 5 for efficiency
+                const potentialBases = placedPallets.filter(basePallet => {
+                    if (!pallet.canStackBelow || !basePallet.canStackAbove) return false;
+                    const canFitLength = pallet.length <= basePallet.finalLength && pallet.width <= basePallet.finalWidth;
+                    const canFitWidth = pallet.width <= basePallet.finalLength && pallet.length <= basePallet.finalWidth;
+                    return canFitLength || canFitWidth;
+                });
+                
+                this.log(`パレット#${pallet.palletNumber} (${pallet.length}×${pallet.width}×${pallet.height}, ${pallet.weight}kg):`, {
+                    canStackBelow: pallet.canStackBelow,
+                    canStackAbove: pallet.canStackAbove,
+                    potentialBases: potentialBases.length,
+                    weightMatch: potentialBases.filter(b => b.weight === pallet.weight).length,
+                    weightRatio: potentialBases.map(b => (pallet.weight / b.weight).toFixed(2))
+                });
+            });
+        }
+    },
+    analyzeStackingPermissions: function() {
+        this.log('=== 積み重ね権限詳細分析 ===');
+        if (allPalletsGenerated.length === 0) { this.log('パレットが配置されていません'); return; }
+        
+        const allPallets = allPalletsGenerated.filter(p => !p.deleted);
+        const placedPallets = allPallets.filter(p => p.placed);
+        const unplacedPallets = allPallets.filter(p => !p.placed);
+        
+        // Analyze stacking permissions by type
+        const permissionTypes = {
+            'canStackBoth': allPallets.filter(p => p.canStackAbove && p.canStackBelow).length,
+            'canStackAboveOnly': allPallets.filter(p => p.canStackAbove && !p.canStackBelow).length,
+            'canStackBelowOnly': allPallets.filter(p => !p.canStackAbove && p.canStackBelow).length,
+            'cannotStack': allPallets.filter(p => !p.canStackAbove && !p.canStackBelow).length
+        };
+        
+        this.log('積み重ね権限タイプ別分析:', permissionTypes);
+        
+        // Analyze placed vs unplaced permissions
+        const placedPermissions = {
+            'canStackBoth': placedPallets.filter(p => p.canStackAbove && p.canStackBelow).length,
+            'canStackAboveOnly': placedPallets.filter(p => p.canStackAbove && !p.canStackBelow).length,
+            'canStackBelowOnly': placedPallets.filter(p => !p.canStackAbove && p.canStackBelow).length,
+            'cannotStack': placedPallets.filter(p => !p.canStackAbove && !p.canStackBelow).length
+        };
+        
+        const unplacedPermissions = {
+            'canStackBoth': unplacedPallets.filter(p => p.canStackAbove && p.canStackBelow).length,
+            'canStackAboveOnly': unplacedPallets.filter(p => p.canStackAbove && !p.canStackBelow).length,
+            'canStackBelowOnly': unplacedPallets.filter(p => !p.canStackAbove && p.canStackBelow).length,
+            'cannotStack': unplacedPallets.filter(p => !p.canStackAbove && !p.canStackBelow).length
+        };
+        
+        this.log('配置済みパレットの権限:', placedPermissions);
+        this.log('未配置パレットの権限:', unplacedPermissions);
+        
+        // Check stacking compatibility
+        if (unplacedPallets.length > 0 && placedPallets.length > 0) {
+            this.log('積み重ね互換性チェック...');
+            
+            unplacedPallets.slice(0, 3).forEach(pallet => {
+                const compatibleBases = placedPallets.filter(basePallet => 
+                    pallet.canStackBelow && basePallet.canStackAbove
+                );
+                
+                this.log(`パレット#${pallet.palletNumber} 積み重ね互換性:`, {
+                    canStackBelow: pallet.canStackBelow,
+                    compatibleBases: compatibleBases.length,
+                    totalPlaced: placedPallets.length,
+                    compatibilityRate: `${((compatibleBases.length / placedPallets.length) * 100).toFixed(1)}%`
+                });
+            });
+        }
     }
 };
 
@@ -265,12 +614,30 @@ function runTestCase() {
     elements.containerType.value = '40ft';
     elements.clearanceValue.value = '1';
     elements.enableStacking.checked = true;
+    
+    // Test case with identical stackable pallets for maximum stacking
     const testData = [
-        { l: 110, w: 110, h: 120, wt: 800, q: 12, c: '#f39c12', above: true, below: true },
-        { l: 100, w: 125, h: 100, wt: 600, q: 8, c: '#3498db', above: true, below: true }
+        // Identical stackable pallets (all can stack and be stacked on)
+        { l: 100, w: 125, h: 100, wt: 600, q: 40, c: '#e74c3c', above: true, below: true }
     ];
-    testData.forEach((p, i) => pallets.push({ id: Date.now() + i, palletNumber: i + 1, length: p.l, width: p.w, height: p.h, weight: p.wt, qty: p.q, canStackAbove: p.above, canStackBelow: p.below, color: p.c }));
-    updatePalletList(); updateContainerInfo(); clearResults(); utils.showSuccess('🎯 3D積み重ねテスト: 110×110×120cm (12個) + 100×125×100cm (8個)');
+    
+    testData.forEach((p, i) => pallets.push({ 
+        id: Date.now() + i, 
+        palletNumber: i + 1, 
+        length: p.l, 
+        width: p.w, 
+        height: p.h, 
+        weight: p.wt, 
+        qty: p.q, 
+        canStackAbove: p.above, 
+        canStackBelow: p.below, 
+        color: p.c 
+    }));
+    
+    updatePalletList(); 
+    updateContainerInfo(); 
+    clearResults(); 
+    utils.showSuccess('🎯 最大積み重ねテスト: 100×125×100cm, 600kg, 40個の同一パレットで高さ制限まで積み重ねをテスト');
 }
 
 function updatePalletList() {
@@ -390,58 +757,50 @@ function calculateLoading() {
 }
 
 function packPallets2D(palletsToPlace, container, clearance) {
-    const placed = [];
-    const stackingEnabled = elements.enableStacking.checked;
-    const groups = {};
-    palletsToPlace.forEach(pallet => { const key = `${pallet.length}x${pallet.width}`; if (!groups[key]) groups[key] = []; groups[key].push(pallet); });
-    console.log(`グループ数: ${Object.keys(groups).length}`);
-    Object.entries(groups).forEach(([key, pallets]) => { console.log(`  ${key}: ${pallets.length}個`); });
-    let specialMaxX = 0;
-    if (groups['100x125'] && groups['100x125'].length >= 8) {
-        const specialPlaced = trySpecialPattern100x125(groups['100x125'], container, clearance);
-        if (specialPlaced.length > 0) {
-            console.log(`100×125特殊パターンで ${specialPlaced.length} 個配置成功`);
-            specialPlaced.forEach(p => {
-                const original = allPalletsGenerated.find(pl => pl.id === p.id && pl.instance === p.instance);
-                if (original) { original.placed = true; original.x = p.x; original.y = p.y; original.finalLength = p.finalLength; original.finalWidth = p.finalWidth; original.rotated = p.rotated; }
-                placed.push({ x: p.x, y: p.y, length: p.finalLength, width: p.finalWidth });
-                specialMaxX = Math.max(specialMaxX, p.x + p.finalLength);
-            });
+    console.log(`2D配置開始: ${palletsToPlace.length}個のパレット`);
+    
+    // Simple grid placement - place enough pallets on the floor for stacking bases
+    const samplePallet = palletsToPlace[0];
+    const cols = Math.floor(container.length / (samplePallet.length + clearance));
+    const rows = Math.floor(container.width / (samplePallet.width + clearance));
+    const maxFloorPallets = Math.min(palletsToPlace.length, cols * rows, 12); // Limit floor placement
+    
+    console.log(`グリッド配置: ${cols}列×${rows}行, 最大${maxFloorPallets}個を床に配置`);
+    
+    let placedCount = 0;
+    
+    for (let i = 0; i < maxFloorPallets; i++) {
+        const pallet = palletsToPlace[i];
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        
+        const x = col * (pallet.length + clearance);
+        const y = row * (pallet.width + clearance);
+        
+        if (y + pallet.width <= container.width) {
+            pallet.placed = true;
+            pallet.x = x;
+            pallet.y = y;
+            pallet.finalLength = pallet.length;
+            pallet.finalWidth = pallet.width;
+            pallet.rotated = false;
+            placedCount++;
         }
     }
-    if (groups['110x110']) {
-        const startX = specialMaxX + clearance;
-        const gridPlaced = placeGridPattern(groups['110x110'], container, clearance, placed, startX);
-        gridPlaced.forEach(p => {
-            const original = allPalletsGenerated.find(pl => pl.id === p.id && pl.instance === p.instance);
-            if (original) { original.placed = true; original.x = p.x; original.y = p.y; original.finalLength = p.finalLength; original.finalWidth = p.finalWidth; original.rotated = p.rotated; }
-            placed.push({ x: p.x, y: p.y, length: p.finalLength, width: p.finalWidth });
-        });
-    }
-    const remainingPallets = palletsToPlace.filter(p => !p.placed);
-    console.log(`残りパレット数: ${remainingPallets.length}`);
-    remainingPallets.sort((a, b) => (b.length * b.width) - (a.length * a.width));
-    remainingPallets.forEach(pallet => {
-        let bestPosition = null; let bestScore = Infinity; let bestRotated = false;
-        const orientations = pallet.length !== pallet.width ? [[pallet.length, pallet.width, false], [pallet.width, pallet.length, true]] : [[pallet.length, pallet.width, false]];
-        orientations.forEach(([length, width, rotated]) => {
-            for (let y = 0; y <= container.width - width; y += 5) {
-                for (let x = 0; x <= container.length - length; x += 5) {
-                    if (canPlace2D(x, y, length, width, placed, clearance)) {
-                        const score = x + y * 2;
-                        if (score < bestScore) { bestScore = score; bestPosition = { x, y }; bestRotated = rotated; }
-                    }
-                }
-            }
-        });
-        if (bestPosition) {
-            pallet.placed = true; pallet.x = bestPosition.x; pallet.y = bestPosition.y; pallet.rotated = bestRotated;
-            if (bestRotated) { pallet.finalLength = pallet.width; pallet.finalWidth = pallet.length; } else { pallet.finalLength = pallet.length; pallet.finalWidth = pallet.width; }
-            placed.push({ x: pallet.x, y: pallet.y, length: pallet.finalLength, width: pallet.finalWidth });
+    
+    console.log(`2D配置完了: ${placedCount}個のパレットを床に配置`);
+    
+    const floorPlacedCount = allPalletsGenerated.filter(p => p.placed).length;
+    console.log(`床配置完了: ${floorPlacedCount}個のパレットを床に配置`);
+    
+    if (stackingEnabled) { 
+        console.log('3D積み重ね処理を開始...'); 
+        const stackingResult = perform3DStacking();
+        if (stackingResult) {
+            console.log('積み重ね結果:', stackingResult);
         }
-    });
-    console.log(`通常配置で追加配置: ${remainingPallets.filter(p => p.placed).length}個`);
-    if (stackingEnabled) { console.log('3D積み重ね処理を開始...'); perform3DStacking(palletsToPlace, container, clearance, placed); }
+    }
+    
     const unplaced = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
     if (unplaced.length > 0) {
         console.log(`未配置パレット: ${unplaced.length}個`);
@@ -455,107 +814,291 @@ function packPallets2D(palletsToPlace, container, clearance) {
     }
 }
 
-function trySpecialPattern100x125(pallets, container, clearance) {
-    const placedPallets = []; const areaPlaced = [];
-    const topPattern = [true, false, true, false];
-    const bottomPattern = [false, true, false, true];
-    const startX = 0; const startY = 0; let topX = startX; let colHeights = [];
-    topPattern.forEach((rotated, col) => {
-        if (placedPallets.length >= pallets.length) return;
-        const pallet = pallets[placedPallets.length];
-        const length = rotated ? 125 : 100; const width = rotated ? 100 : 125; const x = topX; const y = startY;
-        if (canPlace2D(x, y, length, width, areaPlaced, clearance, container)) {
-            placedPallets.push({ ...pallet, x, y, finalLength: length, finalWidth: width, rotated, placed: true });
-            areaPlaced.push({ x, y, length, width }); colHeights[col] = width; topX += length + clearance;
-        }
-    });
-    let bottomX = startX;
-    bottomPattern.forEach((rotated, col) => {
-        if (placedPallets.length >= pallets.length) return;
-        const pallet = pallets[placedPallets.length];
-        const length = rotated ? 125 : 100; const width = rotated ? 100 : 125; const x = bottomX; const y = startY + (colHeights[col] || 0) + clearance;
-        if (y + width <= container.width && canPlace2D(x, y, length, width, areaPlaced, clearance, container)) {
-            placedPallets.push({ ...pallet, x, y, finalLength: length, finalWidth: width, rotated, placed: true });
-            areaPlaced.push({ x, y, length, width }); bottomX += length + clearance;
-        }
-    });
-    return placedPallets;
-}
+// Removed trySpecialPattern100x125 function - replaced with simpler grid placement
 
-function placeGridPattern(pallets, container, clearance, alreadyPlaced, startX) {
-    const placedPallets = []; const length = 110; const width = 110;
-    const cols = Math.floor((container.length - startX) / (length + clearance));
-    const rows = Math.floor(container.width / (width + clearance));
-    let palletIndex = 0;
-    for (let row = 0; row < rows && palletIndex < pallets.length; row++) {
-        for (let col = 0; col < cols && palletIndex < pallets.length; col++) {
-            const x = startX + col * (length + clearance);
-            const y = row * (width + clearance);
-            if (canPlace2D(x, y, length, width, alreadyPlaced, clearance)) {
-                const pallet = pallets[palletIndex++];
-                placedPallets.push({ ...pallet, x, y, finalLength: length, finalWidth: width, rotated: false, placed: true });
-            }
-        }
+// Removed placeGridPattern function - replaced with simpler grid placement
+
+function perform3DStacking() {
+    console.log('=== 3D積み重ね処理開始 ===');
+    
+    const container = containers[elements.containerType.value];
+    const clearance = utils.getCurrentClearance();
+    
+    // Get all pallets
+    let placedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted);
+    let unplacedPallets = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
+    
+    console.log(`初期状態: 配置済み ${placedPallets.length}個, 未配置 ${unplacedPallets.length}個`);
+    
+    if (unplacedPallets.length === 0) {
+        console.log('積み重ね対象のパレットがありません');
+        return;
     }
-    console.log(`110×110 グリッド配置: ${cols}列×${rows}行で${placedPallets.length}個配置`);
-    return placedPallets;
-}
-
-function perform3DStacking(palletsToPlace, container, clearance, placed2D) {
-    console.log('3D積み重ね処理を実行中...');
-    const placedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted);
-    const unplacedPallets = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
-    if (unplacedPallets.length === 0) { console.log('積み重ね対象のパレットがありません'); return; }
-    unplacedPallets.sort((a, b) => { const wd = (b.weight || 0) - (a.weight || 0); if (wd !== 0) return wd; return (b.height || 0) - (a.height || 0); });
-    console.log(`積み重ね対象パレット: ${unplacedPallets.length}個`);
-    unplacedPallets.forEach(pallet => {
-        if (pallet.placed) return;
-        const bestStackPosition = findBestStackPosition(pallet, placedPallets, container, clearance);
-        if (bestStackPosition) {
-            pallet.x = bestStackPosition.x; pallet.y = bestStackPosition.y; pallet.z = bestStackPosition.z;
-            pallet.placed = true; pallet.stackedOn = bestStackPosition.stackedOn;
-            if (bestStackPosition.stackedOn) {
-                const basePallet = allPalletsGenerated.find(p => p.id === bestStackPosition.stackedOn.id && p.instance === bestStackPosition.stackedOn.instance);
-                if (basePallet) { basePallet.stackedBy.push({ id: pallet.id, instance: pallet.instance }); }
+    
+    // Simple stacking algorithm: try to stack each unplaced pallet on any placed pallet
+    let stackingAttempts = 0;
+    const maxAttempts = unplacedPallets.length * 5;
+    
+    while (unplacedPallets.length > 0 && stackingAttempts < maxAttempts) {
+        let anyStacked = false;
+        
+        // Try to stack each unplaced pallet
+        for (let i = 0; i < unplacedPallets.length; i++) {
+            const pallet = unplacedPallets[i];
+            
+            // Find best base pallet for this pallet
+            let bestBase = null;
+            let bestScore = -Infinity;
+            
+            for (const basePallet of placedPallets) {
+                // Check stacking permissions
+                if (!pallet.canStackBelow || !basePallet.canStackAbove) {
+                    continue;
+                }
+                
+                // Check if pallet fits on base (try both orientations)
+                const orientations = [
+                    { length: pallet.length, width: pallet.width, rotated: false },
+                    { length: pallet.width, width: pallet.length, rotated: true }
+                ];
+                
+                for (const orientation of orientations) {
+                    if (orientation.length > basePallet.finalLength || orientation.width > basePallet.finalWidth) {
+                        continue;
+                    }
+                    
+                    // Check height constraint
+                    const topZ = getTopZForBase(basePallet);
+                    const totalHeight = topZ + pallet.finalHeight;
+                    
+                    if (totalHeight > container.height) {
+                        continue;
+                    }
+                    
+                    // Check weight constraint
+                    const totalWeight = calculateStackWeight(basePallet) + pallet.weight;
+                    const maxStackWeight = getMaxStackWeight(basePallet);
+                    
+                    if (totalWeight > maxStackWeight) {
+                        continue;
+                    }
+                    
+                    // Calculate score (prefer identical pallets and lower positions)
+                    let score = 1000 - topZ; // Prefer lower positions
+                    
+                    if (pallet.weight === basePallet.weight) {
+                        score += 500; // Bonus for identical weight
+                    }
+                    
+                    if (orientation.length === basePallet.finalLength && orientation.width === basePallet.finalWidth) {
+                        score += 200; // Bonus for perfect fit
+                    }
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestBase = { pallet: basePallet, orientation: orientation };
+                    }
+                }
             }
-            console.log(`パレット#${pallet.palletNumber} を積み重ね配置: (${pallet.x}, ${pallet.y}, ${pallet.z})`);
+            
+            // If we found a good base, stack the pallet
+            if (bestBase) {
+                const { pallet: basePallet, orientation } = bestBase;
+                const topZ = getTopZForBase(basePallet);
+                
+                // Place the pallet
+                pallet.x = basePallet.x;
+                pallet.y = basePallet.y;
+                pallet.z = topZ;
+                pallet.placed = true;
+                pallet.stackedOn = basePallet;
+                pallet.finalLength = orientation.length;
+                pallet.finalWidth = orientation.width;
+                pallet.rotated = orientation.rotated;
+                
+                // Update base pallet's stackedBy array
+                if (!basePallet.stackedBy) basePallet.stackedBy = [];
+                basePallet.stackedBy.push({ id: pallet.id, instance: pallet.instance });
+                
+                const stackingLevel = Math.floor(topZ / 100);
+                const levelText = stackingLevel === 0 ? '床' : stackingLevel === 1 ? '下段' : stackingLevel === 2 ? '中段' : `${stackingLevel}段目`;
+                console.log(`✅ 積み重ね成功: パレット#${pallet.palletNumber} を パレット#${basePallet.palletNumber} の上に配置 (${levelText}, 回転: ${orientation.rotated})`);
+                
+                anyStacked = true;
+                
+                // Remove from unplaced and add to placed
+                unplacedPallets.splice(i, 1);
+                placedPallets.push(pallet);
+                break; // Move to next iteration
+            }
         }
+        
+        if (!anyStacked) {
+            console.log('❌ これ以上の積み重ねができません');
+            break;
+        }
+        
+        stackingAttempts++;
+    }
+    
+    // Final results
+    const finalPlacedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted);
+    const finalUnplacedPallets = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
+    const stackedCount = finalPlacedPallets.filter(p => p.stackedOn).length;
+    const maxStackHeight = Math.max(...finalPlacedPallets.map(p => p.z + p.finalHeight));
+    
+    console.log('=== 3D積み重ね完了 ===');
+    const maxLevel = Math.floor(maxStackHeight / 100);
+    const levelDescription = maxLevel === 0 ? '床のみ' : maxLevel === 1 ? '下段まで' : maxLevel === 2 ? '中段まで' : `${maxLevel}段目まで`;
+    
+    console.log('最終結果:', {
+        totalPlaced: finalPlacedPallets.length,
+        stackedCount: stackedCount,
+        unplacedCount: finalUnplacedPallets.length,
+        maxStackHeight: maxStackHeight,
+        stackingLevels: `${maxLevel}段 (${levelDescription})`,
+        attempts: stackingAttempts
     });
-    const stabilityResult = calculateStackingStability(placedPallets);
+    
+    // Calculate stability
+    const stabilityResult = calculateStackingStability(finalPlacedPallets);
     console.log('積み重ね安定性:', stabilityResult);
-    debugLog('3D積み重ね完了', { totalPlaced: placedPallets.length + unplacedPallets.filter(p => p.placed).length, stackedCount: unplacedPallets.filter(p => p.placed && p.stackedOn).length, stability: stabilityResult });
+    
+    return {
+        totalPlaced: finalPlacedPallets.length,
+        stackedCount: stackedCount,
+        unplacedCount: finalUnplacedPallets.length,
+        maxStackHeight: maxStackHeight,
+        stability: stabilityResult
+    };
 }
 
-function findBestStackPosition(pallet, placedPallets, container, clearance) {
-    let bestPosition = null; let bestScore = -Infinity;
-    placedPallets.forEach(basePallet => {
-        if (!pallet.canStackBelow || !basePallet.canStackAbove) return;
-        if (pallet.finalLength > basePallet.finalLength || pallet.finalWidth > basePallet.finalWidth) return;
-        const containerHeight = containers[elements.containerType.value].height;
-        const topZ = getTopZForBase(basePallet);
-        const totalHeight = topZ + pallet.finalHeight;
-        if (totalHeight > containerHeight) return;
-        const totalWeight = calculateStackWeight(basePallet) + pallet.weight;
-        if (totalWeight > 2000) return;
-        const x = basePallet.x; const y = basePallet.y; const z = topZ;
-        const score = calculateStackingScore(pallet, basePallet, x, y, z);
-        if (score > bestScore) { bestScore = score; bestPosition = { x, y, z, stackedOn: basePallet }; }
+// Removed findBestStackPosition function - replaced with simpler logic in perform3DStacking
+
+// Helper function to get Japanese level names
+function getLevelName(level) {
+    const levelNames = {
+        0: '床',
+        1: '下段',
+        2: '中段',
+        3: '上段'
+    };
+    return levelNames[level] || `${level}段目`;
+}
+
+function isPositionAvailable(position, placedPallets, clearance) {
+    // Check for overlap with other pallets at the same Z level
+    return !placedPallets.some(otherPallet => {
+        if (Math.abs(otherPallet.z - position.z) < 0.1) { // Same Z level
+            return rectanglesOverlapWithClearance(
+                { x: position.x, y: position.y, length: position.length, width: position.width },
+                { x: otherPallet.x, y: otherPallet.y, length: otherPallet.finalLength, width: otherPallet.finalWidth },
+                clearance
+            );
+        }
+        return false;
     });
-    return bestPosition;
 }
 
-function calculateStackingScore(pallet, basePallet, x, y, z) {
-    let score = 0; score += z * 0.1; if (pallet.weight < basePallet.weight) score += 50;
-    const lengthFit = 1 - Math.abs(pallet.finalLength - basePallet.finalLength) / basePallet.finalLength;
-    const widthFit = 1 - Math.abs(pallet.finalWidth - basePallet.finalWidth) / basePallet.finalWidth;
-    score += (lengthFit + widthFit) * 25;
-    const centerX = (basePallet.x + basePallet.finalLength / 2 + pallet.finalLength / 2) / 2;
-    const centerY = (basePallet.y + basePallet.finalWidth / 2 + pallet.finalWidth / 2) / 2;
+function getMaxStackWeight(basePallet) {
+    // Dynamic weight limit based on base pallet strength
+    // Heavier base pallets can support more weight
+    const baseWeight = basePallet.weight || 0;
+    
+    // For identical pallets, allow more stacking
+    const isIdenticalPallet = allPalletsGenerated.some(p => 
+        p.id === basePallet.id && 
+        p.length === basePallet.length && 
+        p.width === basePallet.width && 
+        p.height === basePallet.height && 
+        p.weight === basePallet.weight
+    );
+    
+    let weightRatio = CONSTANTS.STACKING.WEIGHT_RATIO_LIMIT;
+    if (isIdenticalPallet) {
+        // Allow more stacking for identical pallets
+        weightRatio = 4.0; // Allow 4x weight for identical pallets
+    }
+    
+    const baseStrength = Math.min(CONSTANTS.STACKING.MAX_STACK_WEIGHT, baseWeight * weightRatio);
+    return Math.max(CONSTANTS.STACKING.MIN_BASE_WEIGHT, baseStrength);
+}
+
+function calculateStackingScore(pallet, basePallet, position, orientation) {
+    let score = 0;
+    
+    // Height preference (higher stacking gets more points)
+    score += position.z * CONSTANTS.STACKING.HEIGHT_PREFERENCE;
+    
+    // Weight stability (lighter pallets on top of heavier ones)
+    if (pallet.weight < basePallet.weight) {
+        score += 100;
+    } else if (pallet.weight <= basePallet.weight * 1.2) {
+        score += 50; // Slightly heavier is acceptable
+    } else if (pallet.weight === basePallet.weight) {
+        score += 75; // Same weight is acceptable for identical pallets
+    } else {
+        score -= 100; // Much heavier is bad
+    }
+    
+    // Size compatibility (better fit gets more points)
+    const lengthFit = 1 - Math.abs(orientation.length - basePallet.finalLength) / basePallet.finalLength;
+    const widthFit = 1 - Math.abs(orientation.width - basePallet.finalWidth) / basePallet.finalWidth;
+    score += (lengthFit + widthFit) * CONSTANTS.STACKING.SIZE_FIT_WEIGHT;
+    
+    // Perfect fit bonus
+    if (orientation.length === basePallet.finalLength && orientation.width === basePallet.finalWidth) {
+        score += CONSTANTS.STACKING.PERFECT_FIT_BONUS;
+    }
+    
+    // Center alignment preference
+    const centerX = position.x + orientation.length / 2;
+    const centerY = position.y + orientation.width / 2;
     const containerCenterX = containers[elements.containerType.value].length / 2;
     const containerCenterY = containers[elements.containerType.value].width / 2;
-    const distanceFromCenter = Math.sqrt(Math.pow(centerX - containerCenterX, 2) + Math.pow(centerY - containerCenterY, 2));
-    score -= distanceFromCenter * 0.01; return score;
+    const distanceFromCenter = Math.sqrt(
+        Math.pow(centerX - containerCenterX, 2) + 
+        Math.pow(centerY - containerCenterY, 2)
+    );
+    score -= distanceFromCenter * CONSTANTS.STACKING.CENTER_PENALTY;
+    
+    // Stack height preference (reduced penalty to encourage multi-level stacking)
+    const stackHeight = getStackHeight(basePallet);
+    score -= stackHeight * (CONSTANTS.STACKING.STACK_HEIGHT_PENALTY * 0.3); // Reduced penalty
+    
+    // Weight distribution (prefer balanced stacks)
+    const stackWeight = calculateStackWeight(basePallet);
+    const weightBalance = Math.abs(stackWeight - basePallet.weight * 2);
+    score -= weightBalance * CONSTANTS.STACKING.WEIGHT_BALANCE_PENALTY;
+    
+    return score;
 }
+
+function getStackHeight(basePallet) {
+    let maxHeight = 0;
+    const stack = [basePallet];
+    
+    while (stack.length > 0) {
+        const current = stack.pop();
+        const currentHeight = (current.z || 0) + (current.finalHeight || 0);
+        maxHeight = Math.max(maxHeight, currentHeight);
+        
+        if (current.stackedBy) {
+            current.stackedBy.forEach(stackedRef => {
+                const stackedPallet = allPalletsGenerated.find(p => 
+                    p.id === stackedRef.id && p.instance === stackedRef.instance
+                );
+                if (stackedPallet) {
+                    stack.push(stackedPallet);
+                }
+            });
+        }
+    }
+    
+    return maxHeight;
+}
+
+// Removed forceStackingForIdenticalPallets function - replaced with simpler logic in perform3DStacking
 
 function calculateStackWeight(basePallet) {
     let totalWeight = basePallet.weight || 0;
@@ -619,6 +1162,10 @@ function setupEventListeners() {
     document.getElementById('debugStacking').addEventListener('click', () => debug.testStacking());
     document.getElementById('debugGravity').addEventListener('click', () => debug.testGravity());
     document.getElementById('debugLayout').addEventListener('click', () => debug.testLayout());
+    document.getElementById('debug3DStacking').addEventListener('click', () => debug.test3DStacking());
+    document.getElementById('debugMultiLevel').addEventListener('click', () => debug.testMultiLevelStacking());
+    document.getElementById('debugIdentical').addEventListener('click', () => debug.analyzeIdenticalPallets());
+    document.getElementById('debugPermissions').addEventListener('click', () => debug.analyzeStackingPermissions());
     document.getElementById('debugClear').addEventListener('click', () => debug.clear());
     [elements.palletLength, elements.palletWidth, elements.palletHeight, elements.palletWeight, elements.palletQty].forEach(input => {
         input.addEventListener('keypress', e => { if (e.key === 'Enter') palletManager.add(); });
