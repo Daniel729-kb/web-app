@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutomateCLP - How to Run Locally</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .step {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .success {
+            background: #d1edff;
+            border-left-color: #28a745;
+        }
+        code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .button {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 AutomateCLP - How to Run Locally</h1>
+    
+    <div class="step error">
+        <h3>❌ Why it's not working with file:// protocol</h3>
+        <p>The app uses ES6 modules (import/export statements) which require a web server to work properly. Opening the HTML file directly in a browser won't work due to CORS restrictions.</p>
+    </div>
+
+    <div class="step success">
+        <h3>✅ Solution: Use a Local Web Server</h3>
+        <p>You need to serve the files through a web server. Here are several ways to do this:</p>
+    </div>
+
+    <div class="step">
+        <h3>Method 1: Python (Recommended)</h3>
+        <p>If you have Python installed:</p>
+        <ol>
+            <li>Open terminal/command prompt</li>
+            <li>Navigate to the automateclp folder: <code>cd path/to/automateclp</code></li>
+            <li>Run: <code>python3 -m http.server 8000</code> (Python 3) or <code>python -m http.server 8000</code> (Python 2)</li>
+            <li>Open browser and go to: <code>http://localhost:8000</code></li>
+        </ol>
+        <a href="http://localhost:8000" class="button" target="_blank">Open App (if server is running)</a>
+    </div>
+
+    <div class="step">
+        <h3>Method 2: Node.js</h3>
+        <p>If you have Node.js installed:</p>
+        <ol>
+            <li>Install a simple server: <code>npm install -g http-server</code></li>
+            <li>Navigate to the automateclp folder</li>
+            <li>Run: <code>http-server -p 8000</code></li>
+            <li>Open browser and go to: <code>http://localhost:8000</code></li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <h3>Method 3: Live Server (VS Code Extension)</h3>
+        <p>If you're using Visual Studio Code:</p>
+        <ol>
+            <li>Install the "Live Server" extension</li>
+            <li>Right-click on <code>index.html</code></li>
+            <li>Select "Open with Live Server"</li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <h3>Method 4: PHP</h3>
+        <p>If you have PHP installed:</p>
+        <ol>
+            <li>Navigate to the automateclp folder</li>
+            <li>Run: <code>php -S localhost:8000</code></li>
+            <li>Open browser and go to: <code>http://localhost:8000</code></li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <h3>🔧 Quick Test</h3>
+        <p>To verify the server is working, you should see the AutomateCLP interface with:</p>
+        <ul>
+            <li>Container type selector (20ft, 40ft, 40HQ)</li>
+            <li>Pallet input forms</li>
+            <li>Add pallet and calculate buttons</li>
+            <li>Visualization area</li>
+        </ul>
+    </div>
+
+    <div class="step error">
+        <h3>🚨 Common Issues</h3>
+        <ul>
+            <li><strong>Port already in use:</strong> Try a different port (8001, 8002, etc.)</li>
+            <li><strong>Permission denied:</strong> Make sure you're in the correct directory</li>
+            <li><strong>Module not found:</strong> Ensure all .js files are in the same directory</li>
+            <li><strong>Browser cache:</strong> Try hard refresh (Ctrl+F5 or Cmd+Shift+R)</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h3>📁 File Structure Check</h3>
+        <p>Make sure these files are in your automateclp folder:</p>
+        <ul>
+            <li><code>index.html</code> ✅</li>
+            <li><code>app.js</code> ✅</li>
+            <li><code>utils.js</code> ✅</li>
+            <li><code>algorithms.js</code> ✅</li>
+            <li><code>ui.js</code> ✅</li>
+            <li><code>styles.css</code> ✅</li>
+        </ul>
+    </div>
+
+    <script>
+        // Check if we can access the main app
+        fetch('./index.html')
+            .then(response => {
+                if (response.ok) {
+                    document.body.innerHTML += '<div class="step success"><h3>✅ Server Check</h3><p>Great! The server is working and files are accessible.</p></div>';
+                }
+            })
+            .catch(error => {
+                document.body.innerHTML += '<div class="step error"><h3>❌ Server Check</h3><p>Server not running. Please start a local web server.</p></div>';
+            });
+    </script>
+</body>
+</html>
