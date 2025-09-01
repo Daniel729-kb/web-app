@@ -2509,7 +2509,11 @@
                 `${totalInputPallets > 0 ? Math.round((insidePallets.length / totalInputPallets) * 100) : 0}%`;
             document.getElementById('efficiency').textContent = 
                 `${containerArea > 0 ? Math.round((usedArea / containerArea) * 100) : 0}%`;
-            document.getElementById('remainingArea').textContent = `${(containerArea - usedArea).toFixed(2)}m²`;
+            // Calculate remaining area using only base pallets (not stacked)
+            const basePallets = insidePallets.filter(p => !p.stackedOn);
+            const baseUsedArea = basePallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
+            const remainingArea = Math.max(0, containerArea - baseUsedArea);
+            document.getElementById('remainingArea').textContent = `${remainingArea.toFixed(2)}m²`;
             
             // 3D情報を追加
             if (stackingInfo) {
