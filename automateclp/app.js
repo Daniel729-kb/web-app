@@ -317,7 +317,7 @@ const debug = {
         // Check for multi-level stacks
         const multiLevelStacks = [];
         placedPallets.forEach(pallet => {
-            if (pallet.stackedBy && pallet.stackedBy.length > 0) {
+            if (pallet.stackedBy && pallet.stackedOn) {
                 const stackHeight = getStackHeight(pallet);
                 const stackWeight = calculateStackWeight(pallet);
                 multiLevelStacks.push({
@@ -348,6 +348,76 @@ const debug = {
                     const level = Math.floor(bestPosition.z / 100);
                     this.log(`✅ パレット#${pallet.palletNumber} レベル${level}に積み重ね可能`);
                 }
+            });
+        }
+    },
+    analyzeIdenticalPallets: function() {
+        this.log('=== 同一パレット積み重ね分析 ===');
+        if (allPalletsGenerated.length === 0) { this.log('パレットが配置されていません'); return; }
+        
+        // Group pallets by characteristics
+        const palletGroups = {};
+        allPalletsGenerated.forEach(pallet => {
+            const key = `${pallet.length}×${pallet.width}×${pallet.height}-${pallet.weight}kg`;
+            if (!palletGroups[key]) palletGroups[key] = [];
+            palletGroups[key].push(pallet);
+        });
+        
+        this.log('パレットグループ分析:', Object.entries(palletGroups).map(([key, pallets]) => 
+            `${key}: ${pallets.length}個`
+        ));
+        
+        // Analyze identical pallet stacking
+        Object.entries(palletGroups).forEach(([key, pallets]) => {
+            if (pallets.length > 1) {
+                const placed = pallets.filter(p => p.placed);
+                const unplaced = pallets.filter(p => !p.placed);
+                const stacked = placed.filter(p => p.stackedOn);
+                
+                this.log(`同一パレット ${key}:`, {
+                    total: pallets.length,
+                    placed: placed.length,
+                    unplaced: unplaced.length,
+                    stacked: stacked.length,
+                    stackingRate: `${((stacked.length / pallets.length) * 100).toFixed(1)}%`
+                });
+                
+                // Check weight constraints for identical pallets
+                const samplePallet = pallets[0];
+                const maxStackWeight = getMaxStackWeight(samplePallet);
+                const maxStackable = Math.floor((maxStackWeight - samplePallet.weight) / samplePallet.weight);
+                
+                this.log(`重量制約分析 (${key}):`, {
+                    palletWeight: samplePallet.weight,
+                    maxStackWeight: maxStackWeight,
+                    maxStackable: maxStackable,
+                    theoreticalStacking: `${maxStackable}個まで積み重ね可能`
+                });
+            }
+        });
+        
+        // Check for stacking issues
+        const placedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted);
+        const unplacedPallets = allPalletsGenerated.filter(p => !p.placed && !p.deleted);
+        
+        if (unplacedPallets.length > 0) {
+            this.log('未配置パレットの積み重ね制約を分析中...');
+            const container = containers[elements.containerType.value];
+            const clearance = utils.getCurrentClearance();
+            
+            unplacedPallets.slice(0, 5).forEach(pallet => { // Test first 5 for efficiency
+                const potentialBases = placedPallets.filter(basePallet => {
+                    if (!pallet.canStackBelow || !basePallet.canStackAbove) return false;
+                    const canFitLength = pallet.length <= basePallet.finalLength && pallet.width <= basePallet.finalWidth;
+                    const canFitWidth = pallet.width <= basePallet.finalLength && pallet.length <= basePallet.finalWidth;
+                    return canFitLength || canFitWidth;
+                });
+                
+                this.log(`パレット#${pallet.palletNumber} (${pallet.length}×${pallet.width}×${pallet.height}, ${pallet.weight}kg):`, {
+                    potentialBases: potentialBases.length,
+                    weightMatch: potentialBases.filter(b => b.weight === pallet.weight).length,
+                    weightRatio: potentialBases.map(b => (pallet.weight / b.weight).toFixed(2))
+                });
             });
         }
     }
@@ -425,22 +495,10 @@ function runTestCase() {
     elements.clearanceValue.value = '1';
     elements.enableStacking.checked = true;
     
-    // Multi-level stacking test case
+    // Test case for identical pallets (100×125×100cm, 600kg, 40 pieces)
     const testData = [
-        // Large base pallets (can support multiple levels)
-        { l: 120, w: 120, h: 150, wt: 1200, q: 4, c: '#e74c3c', above: true, below: true },
-        { l: 100, w: 100, h: 120, wt: 1000, q: 4, c: '#3498db', above: true, below: true },
-        
-        // Medium pallets (can be stacked and can support others)
-        { l: 100, w: 100, h: 100, wt: 600, q: 8, c: '#2ecc71', above: true, below: true },
-        { l: 90, w: 90, h: 90, wt: 500, q: 8, c: '#f39c12', above: true, below: true },
-        
-        // Small pallets (lightweight, perfect for top stacking)
-        { l: 80, w: 80, h: 80, wt: 300, q: 12, c: '#9b59b6', above: true, below: true },
-        { l: 70, w: 70, h: 70, wt: 200, q: 12, c: '#1abc9c', above: true, below: true },
-        
-        // Very small pallets (for multi-level stacking)
-        { l: 60, w: 60, h: 60, wt: 150, q: 16, c: '#e67e22', above: true, below: true }
+        // Identical pallets for double stacking test
+        { l: 100, w: 125, h: 100, wt: 600, q: 40, c: '#e74c3c', above: true, below: true }
     ];
     
     testData.forEach((p, i) => pallets.push({ 
@@ -459,7 +517,7 @@ function runTestCase() {
     updatePalletList(); 
     updateContainerInfo(); 
     clearResults(); 
-    utils.showSuccess('🎯 マルチレベル積み重ねテスト: 7種類のパレットで3-4レベル積み重ねをテスト');
+    utils.showSuccess('🎯 同一パレット積み重ねテスト: 100×125×100cm, 600kg, 40個でダブル積み重ねをテスト');
 }
 
 function updatePalletList() {
@@ -700,13 +758,16 @@ function perform3DStacking(palletsToPlace, container, clearance, placed2D) {
         return; 
     }
     
-    // Improved sorting: prioritize by weight, then height, then area
+    // Improved sorting: prioritize by weight, then height, then area, then instance number for identical pallets
     unplacedPallets.sort((a, b) => {
         const weightDiff = (b.weight || 0) - (a.weight || 0);
         if (weightDiff !== 0) return weightDiff;
         const heightDiff = (b.height || 0) - (a.height || 0);
         if (heightDiff !== 0) return heightDiff;
-        return (b.length * b.width) - (a.length * a.width);
+        const areaDiff = (b.length * b.width) - (a.length * a.width);
+        if (areaDiff !== 0) return areaDiff;
+        // For identical pallets, sort by instance number to ensure consistent ordering
+        return a.instance - b.instance;
     });
     
     console.log(`積み重ね対象パレット: ${unplacedPallets.length}個`);
@@ -893,6 +954,8 @@ function calculateStackingScore(pallet, basePallet, position, orientation) {
         score += 100;
     } else if (pallet.weight <= basePallet.weight * 1.2) {
         score += 50; // Slightly heavier is acceptable
+    } else if (pallet.weight === basePallet.weight) {
+        score += 75; // Same weight is acceptable for identical pallets
     } else {
         score -= 100; // Much heavier is bad
     }
@@ -1018,6 +1081,7 @@ function setupEventListeners() {
     document.getElementById('debugLayout').addEventListener('click', () => debug.testLayout());
     document.getElementById('debug3DStacking').addEventListener('click', () => debug.test3DStacking());
     document.getElementById('debugMultiLevel').addEventListener('click', () => debug.testMultiLevelStacking());
+    document.getElementById('debugIdentical').addEventListener('click', () => debug.analyzeIdenticalPallets());
     document.getElementById('debugClear').addEventListener('click', () => debug.clear());
     [elements.palletLength, elements.palletWidth, elements.palletHeight, elements.palletWeight, elements.palletQty].forEach(input => {
         input.addEventListener('keypress', e => { if (e.key === 'Enter') palletManager.add(); });
