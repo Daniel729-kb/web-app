@@ -271,9 +271,19 @@ const debug = {
             deleted: allPalletsGenerated.filter(p => p.deleted).length
         });
         const totalArea = container.length * container.width;
-        const usedArea = placedPallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
+        // Only count base pallets (not stacked) for floor area calculation
+        const basePallets = placedPallets.filter(p => !p.stackedOn);
+        const stackedPallets = placedPallets.filter(p => p.stackedOn);
+        this.log('床面積計算:', {
+            basePallets: basePallets.length,
+            stackedPallets: stackedPallets.length,
+            totalPlaced: placedPallets.length
+        });
+        const usedArea = basePallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
+        const remainingArea = totalArea - usedArea;
         const areaUtilization = (usedArea / totalArea) * 100;
         this.log('面積使用率:', `${areaUtilization.toFixed(2)}%`);
+        this.log('残り床面積:', `${remainingArea.toFixed(2)}cm² (${(remainingArea / 10000).toFixed(2)}m²)`);
         if (elements.enableStacking.checked) {
             const maxHeight = Math.max(...placedPallets.map(p => p.z + p.finalHeight));
             const heightUtilization = (maxHeight / container.height) * 100;
