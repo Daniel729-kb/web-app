@@ -1009,12 +1009,21 @@
                     deleted: allPalletsGenerated.filter(p => p.deleted).length
                 });
                 
-                // 面積使用率計算
+                // 面積使用率計算 - 修正版（積み重ねパレットを除外）
                 const totalArea = container.length * container.width;
-                const usedArea = placedPallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
-                const areaUtilization = (usedArea / totalArea) * 100;
+                const basePallets = placedPallets.filter(p => !p.stackedOn);
+                const stackedPallets = placedPallets.filter(p => p.stackedOn);
+                const usedArea = basePallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
+                const remainingArea = Math.max(0, totalArea - usedArea);
+                const areaUtilization = Math.min(100, (usedArea / totalArea) * 100);
                 
+                this.log('床面積計算:', {
+                    basePallets: basePallets.length,
+                    stackedPallets: stackedPallets.length,
+                    totalPlaced: placedPallets.length
+                });
                 this.log('面積使用率:', `${areaUtilization.toFixed(2)}%`);
+                this.log('残り床面積:', `${remainingArea.toFixed(2)}cm² (${(remainingArea / 10000).toFixed(2)}m²)`);
                 
                 // 高さ使用率計算（積み重ね時）
                 if (elements.enableStacking.checked) {
