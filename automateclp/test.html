@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>AutomateCLP Test</title>
+</head>
+<body>
+    <h1>Testing Modular Structure</h1>
+    <div id="test-output"></div>
+    
+    <script type="module">
+        import { CONSTANTS, containers, utils } from './utils.js';
+        import { canPlace2D } from './algorithms.js';
+        import { getElements } from './ui.js';
+        
+        console.log('Testing imports...');
+        console.log('CONSTANTS:', CONSTANTS);
+        console.log('containers:', containers);
+        console.log('utils:', utils);
+        console.log('canPlace2D function:', typeof canPlace2D);
+        console.log('getElements function:', typeof getElements);
+        
+        document.getElementById('test-output').innerHTML = `
+            <p>✅ All modules imported successfully!</p>
+            <p>CONSTANTS loaded: ${Object.keys(CONSTANTS).length} items</p>
+            <p>Containers loaded: ${Object.keys(containers).length} types</p>
+            <p>Utils loaded: ${Object.keys(utils).length} functions</p>
+        `;
+    </script>
+</body>
+</html>

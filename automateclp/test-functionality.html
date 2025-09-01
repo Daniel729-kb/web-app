@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>AutomateCLP Functionality Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        #test-results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>AutomateCLP Functionality Test</h1>
+    
+    <div class="test-section info">
+        <h3>Test Controls</h3>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="testImports()">Test Imports</button>
+        <button onclick="testAlgorithms()">Test Algorithms</button>
+        <button onclick="testUI()">Test UI Functions</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+    
+    <div id="test-results"></div>
+    
+    <script type="module">
+        let testResults = [];
+        
+        function logTest(testName, success, message) {
+            testResults.push({ testName, success, message });
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            const container = document.getElementById('test-results');
+            container.innerHTML = testResults.map(result => `
+                <div class="test-section ${result.success ? 'success' : 'error'}">
+                    <strong>${result.testName}:</strong> ${result.success ? '✅ PASS' : '❌ FAIL'}<br>
+                    ${result.message}
+                </div>
+            `).join('');
+        }
+        
+        function clearResults() {
+            testResults = [];
+            updateDisplay();
+        }
+        
+        async function testImports() {
+            try {
+                const { CONSTANTS, containers, utils } = await import('./utils.js');
+                logTest('Utils Import', true, `Loaded ${Object.keys(CONSTANTS).length} constants, ${Object.keys(containers).length} container types, ${Object.keys(utils).length} utility functions`);
+                
+                const { canPlace2D, calculateStackingStability } = await import('./algorithms.js');
+                logTest('Algorithms Import', true, `Loaded core algorithms: canPlace2D, calculateStackingStability`);
+                
+                const { getElements, updatePalletList } = await import('./ui.js');
+                logTest('UI Import', true, `Loaded UI functions: getElements, updatePalletList`);
+                
+            } catch (error) {
+                logTest('Module Imports', false, `Import error: ${error.message}`);
+            }
+        }
+        
+        async function testAlgorithms() {
+            try {
+                const { canPlace2D, rectanglesOverlapWithClearance, calculateStackingStability } = await import('./algorithms.js');
+                
+                // Test canPlace2D function
+                const testPlaced = [{ x: 0, y: 0, length: 100, width: 100 }];
+                const canPlace = canPlace2D(150, 150, 50, 50, testPlaced, 5);
+                logTest('canPlace2D Function', canPlace, `Can place pallet at (150,150): ${canPlace}`);
+                
+                // Test rectanglesOverlapWithClearance
+                const r1 = { x: 0, y: 0, length: 100, width: 100 };
+                const r2 = { x: 50, y: 50, length: 100, width: 100 };
+                const overlap = rectanglesOverlapWithClearance(r1, r2, 0);
+                logTest('Rectangle Overlap Detection', overlap, `Rectangles overlap: ${overlap}`);
+                
+                // Test calculateStackingStability
+                const testPallets = [
+                    { x: 0, y: 0, z: 0, finalLength: 100, finalWidth: 100, finalHeight: 50, weight: 100 }
+                ];
+                const stability = calculateStackingStability(testPallets);
+                logTest('Stacking Stability Calculation', stability.stable !== undefined, `Stability calculated: ${stability.stable ? 'Stable' : 'Unstable'}`);
+                
+            } catch (error) {
+                logTest('Algorithm Tests', false, `Algorithm error: ${error.message}`);
+            }
+        }
+        
+        async function testUI() {
+            try {
+                const { getElements, utils } = await import('./ui.js');
+                
+                // Test getElements function
+                const elements = getElements();
+                const hasRequiredElements = elements.containerType && elements.palletLength;
+                logTest('UI Element Access', hasRequiredElements, `Required UI elements found: ${hasRequiredElements}`);
+                
+                // Test utils functions
+                const randomColor = utils.getRandomColor();
+                const isValidColor = randomColor.startsWith('#') && randomColor.length === 7;
+                logTest('Random Color Generation', isValidColor, `Generated color: ${randomColor}`);
+                
+                const scale = utils.calculateScale({ length: 1200, width: 235 });
+                const isValidScale = scale > 0 && scale < 1;
+                logTest('Scale Calculation', isValidScale, `Calculated scale: ${scale.toFixed(3)}`);
+                
+            } catch (error) {
+                logTest('UI Tests', false, `UI error: ${error.message}`);
+            }
+        }
+        
+        async function runAllTests() {
+            clearResults();
+            logTest('Test Suite', true, 'Starting comprehensive test suite...');
+            await testImports();
+            await testAlgorithms();
+            await testUI();
+            
+            const passed = testResults.filter(r => r.success).length;
+            const total = testResults.length;
+            logTest('Overall Results', passed === total, `${passed}/${total} tests passed`);
+        }
+        
+        // Make functions globally available
+        window.testImports = testImports;
+        window.testAlgorithms = testAlgorithms;
+        window.testUI = testUI;
+        window.runAllTests = runAllTests;
+        window.clearResults = clearResults;
+        
+        // Auto-run tests on load
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(runAllTests, 100);
+        });
+    </script>
+</body>
+</html>
