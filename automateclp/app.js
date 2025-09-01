@@ -272,6 +272,7 @@ const debug = {
         });
         const totalArea = container.length * container.width;
         // Only count base pallets (not stacked) for floor area calculation
+        // Only count base pallets (not stacked) for floor area calculation
         const basePallets = placedPallets.filter(p => !p.stackedOn);
         const stackedPallets = placedPallets.filter(p => p.stackedOn);
         
@@ -280,7 +281,8 @@ const debug = {
             totalPlaced: placedPallets.length,
             withStackedOn: placedPallets.filter(p => p.stackedOn).length,
             withoutStackedOn: placedPallets.filter(p => !p.stackedOn).length,
-            stackedOnValues: placedPallets.map(p => p.stackedOn ? 'yes' : 'no').slice(0, 5) // Show first 5
+            stackedOnValues: placedPallets.map(p => p.stackedOn ? 'yes' : 'no').slice(0, 5), // Show first 5
+            zValues: placedPallets.map(p => p.z).slice(0, 5) // Show Z coordinates of first 5 pallets
         });
         
         this.log('床面積計算:', {
@@ -289,8 +291,8 @@ const debug = {
             totalPlaced: placedPallets.length
         });
         const usedArea = basePallets.reduce((sum, p) => sum + (p.finalLength * p.finalWidth), 0);
-        const remainingArea = totalArea - usedArea;
-        const areaUtilization = (usedArea / totalArea) * 100;
+        const remainingArea = Math.max(0, totalArea - usedArea); // Ensure remaining area is never negative
+        const areaUtilization = Math.min(100, (usedArea / totalArea) * 100); // Cap utilization at 100%
         
         // Debug: Show area calculations
         this.log('面積計算デバッグ:', {
@@ -323,6 +325,14 @@ const debug = {
             this.log('⚠️ 積み重ねが発生していません。手動で積み重ねを試行します...');
             this.forceStacking();
         }
+        
+        // Additional check: if we have pallets with z > 0 but no stackedOn, fix the structure
+        const palletsWithZ = placedPallets.filter(p => p.z > 0);
+        const palletsWithoutStackedOn = palletsWithZ.filter(p => !p.stackedOn);
+        if (palletsWithoutStackedOn.length > 0) {
+            this.log('⚠️ 高さのあるパレットでstackedOnが設定されていません。修正を試行します...');
+            this.fixStackingStructure();
+        }
     },
     forceStacking: function() {
         this.log('=== 強制積み重ねテスト開始 ===');
@@ -345,6 +355,33 @@ const debug = {
         });
         
         this.log(`手動積み重ね完了: ${stackedCount}個のパレットを積み重ね`);
+    },
+    fixStackingStructure: function() {
+        this.log('=== 積み重ね構造修正開始 ===');
+        const placedPallets = allPalletsGenerated.filter(p => p.placed && !p.deleted);
+        
+        // Find pallets that are elevated but don't have stackedOn set
+        const elevatedPallets = placedPallets.filter(p => p.z > 0 && !p.stackedOn);
+        const basePallets = placedPallets.filter(p => p.z === 0);
+        
+        let fixedCount = 0;
+        elevatedPallets.forEach(pallet => {
+            // Find the base pallet that this pallet is stacked on
+            const basePallet = basePallets.find(base => 
+                pallet.x >= base.x && 
+                pallet.x < base.x + base.finalLength &&
+                pallet.y >= base.y && 
+                pallet.y < base.y + base.finalWidth
+            );
+            
+            if (basePallet) {
+                pallet.stackedOn = basePallet;
+                fixedCount++;
+                this.log(`✅ 構造修正: パレット#${pallet.palletNumber} を パレット#${basePallet.palletNumber} の上に設定`);
+            }
+        });
+        
+        this.log(`積み重ね構造修正完了: ${fixedCount}個のパレットを修正`);
     },
     test3DStacking: function() {
         this.log('=== 3D積み重ねアルゴリズムテスト開始 ===');
