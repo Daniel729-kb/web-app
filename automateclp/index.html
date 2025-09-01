@@ -10,145 +10,158 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🚢 コンテナ積載計画ツール</h1>
-            <p>3D積み重ね対応の自動パレット配置システム</p>
-            <button id="darkModeToggle">🌙</button>
-        </header>
+        <div class="header">
+            <div class="header-controls">
+                <button class="dark-mode-toggle" id="darkModeToggle" title="ダークモード切り替え">
+                    🌙
+                </button>
+            </div>
+            <h1>AutoCLP - コンテナローディングプランナー</h1>
+            <p>パレット情報と枚数を入力→ワンクリックで自動配置</p>
+        </div>
 
         <div class="main-content">
             <!-- 入力パネル -->
-            <div class="input-panel">
-                <h2>パレット設定</h2>
+            <div class="sidebar">
                 
-                <div class="input-group">
-                    <label for="containerType">コンテナタイプ:</label>
+                <div class="form-group">
+                    <label for="containerType">コンテナタイプ</label>
                     <select id="containerType">
-                        <option value="20ft">20ft</option>
-                        <option value="40ft">40ft</option>
-                        <option value="40HQ">40HQ</option>
+                        <option value="20ft">20ftコンテナ (5.898m × 2.350m × 2.350m 内寸)</option>
+                        <option value="40ft">40ftコンテナ (12.032m × 2.350m × 2.350m 内寸)</option>
+                        <option value="40HQ">40HQコンテナ (12.032m × 2.350m × 2.288m 内寸)</option>
                     </select>
                 </div>
 
-                <div class="input-group">
-                    <label for="clearanceValue">クリアランス (cm):</label>
-                    <input type="number" id="clearanceValue" value="1" min="0" max="10">
-                </div>
-
-                <div class="input-group">
+                <div class="form-group">
                     <label>
-                        <input type="checkbox" id="enableStacking" checked>
-                        3D積み重ねを有効にする
+                        <input type="checkbox" id="enableStacking" style="margin-right: 8px; width: auto;">
+                        パレット積み重ねを有効にする
                     </label>
+                    <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
+                        チェックすると、パレットを3Dで積み重ねて配置します（重量と重心を考慮）
+                    </small>
                 </div>
 
                 <hr>
 
-                <div class="input-group">
-                    <label for="palletLength">長さ (cm):</label>
-                    <input type="number" id="palletLength" placeholder="例: 100">
-                </div>
-
-                <div class="input-group">
-                    <label for="palletWidth">幅 (cm):</label>
-                    <input type="number" id="palletWidth" placeholder="例: 125">
-                </div>
-
-                <div class="input-group">
-                    <label for="palletHeight">高さ (cm):</label>
-                    <input type="number" id="palletHeight" placeholder="例: 120">
-                </div>
-
-                <div class="input-group">
-                    <label for="palletWeight">重量 (kg):</label>
-                    <input type="number" id="palletWeight" placeholder="例: 500">
-                </div>
-
-                <div class="input-group">
-                    <label for="palletQty">数量:</label>
-                    <input type="number" id="palletQty" value="1" min="1" max="100">
-                </div>
-
-                <div class="stacking-options">
-                    <label>
-                        <input type="checkbox" id="canStackAbove" checked>
-                        上積み可
-                    </label>
-                    <label>
-                        <input type="checkbox" id="canStackBelow" checked>
-                        下積み可
-                    </label>
-                </div>
-
-                <button id="addPalletBtn" class="btn-primary">パレット追加</button>
-
-                <!-- プリセットボタン -->
-                <div class="preset-buttons">
-                    <button class="preset-btn" data-length="100" data-width="125" data-height="120" data-weight="500">100×125</button>
-                    <button class="preset-btn" data-length="110" data-width="110" data-height="120" data-weight="800">110×110</button>
-                    <button class="preset-btn" data-length="120" data-width="100" data-height="100" data-weight="600">120×100</button>
-                </div>
-
-                <hr>
-
-                <div class="action-buttons">
-                    <button id="calculateBtn" class="btn-success">計算開始</button>
-                    <button id="testBtn" class="btn-info">テストケース</button>
-                </div>
-
-                <div id="containerInfo" class="container-info"></div>
-            </div>
-
-            <!-- パレットリスト -->
-            <div class="pallet-list-panel">
-                <h3>パレットリスト</h3>
-                <div id="palletList"></div>
-            </div>
-
-            <!-- 可視化エリア -->
-            <div class="visualization">
-                <div class="visualization-header">
-                    <h3>積載計画</h3>
-                    <div class="controls">
-                        <button id="exportBtn" class="btn-secondary" style="display: none;">画像エクスポート</button>
+                <div class="form-group">
+                    <label>パレット寸法 (cm)</label>
+                    <div class="dimensions-grid">
+                        <input id="palletLength" max="300" min="1" placeholder="長さ" type="number"/>
+                        <input id="palletWidth" max="300" min="1" placeholder="幅" type="number"/>
+                    </div>
+                    <div class="dimensions-grid" style="margin-top: 10px;">
+                        <input id="palletHeight" max="300" min="1" placeholder="高さ" type="number"/>
+                        <input id="palletWeight" max="2000" min="1" placeholder="重量(kg)" type="number"/>
+                    </div>
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label style="margin-bottom: 10px;">積み重ね制約</label>
+                        <div style="display: flex; gap: 15px; align-items: center;">
+                            <label style="display: flex; align-items: center; font-weight: normal; font-size: 14px;">
+                                <input type="checkbox" id="canStackAbove" checked style="margin-right: 6px; width: auto;">
+                                他のパレットの上に積める
+                            </label>
+                            <label style="display: flex; align-items: center; font-weight: normal; font-size: 14px;">
+                                <input type="checkbox" id="canStackBelow" checked style="margin-right: 6px; width: auto;">
+                                他のパレットの下に積まれる
+                            </label>
+                        </div>
+                        <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
+                            両方チェック解除すると積み重ね不可、片方のみで制限付き積み重ね
+                        </small>
+                    </div>
+                    <div class="preset-pallets">
+                        <button class="preset-btn" data-length="120" data-width="100" data-height="120" data-weight="600" type="button">
+                            EUR<br/>(120×100×120)
+                        </button>
+                        <button class="preset-btn" data-length="120" data-width="80" data-height="100" data-weight="400" type="button">
+                            EUR2<br/>(120×80×100)
+                        </button>
+                        <button class="preset-btn" data-length="122" data-width="102" data-height="120" data-weight="700" type="button">
+                            US<br/>(122×102×120)
+                        </button>
+                        <button class="preset-btn" data-length="110" data-width="110" data-height="120" data-weight="500" type="button">
+                            正方形<br/>(110×110×120)
+                        </button>
+                        <button class="preset-btn" data-length="100" data-width="125" data-height="100" data-weight="600" type="button">
+                            カスタム<br/>(100×125×100)
+                        </button>
                     </div>
                 </div>
-
-                <div class="work-area">
-                    <div id="containerFloor" class="container-floor"></div>
+                <div class="form-group">
+                    <label for="palletQty">数量</label>
+                    <input id="palletQty" max="100" min="1" placeholder="パレット数" type="number" value="1"/>
                 </div>
 
-                <div id="loadingAnimation" class="loading-animation" style="display: none;">
+                <div class="form-group">
+                    <label for="clearanceValue">クリアランス (cm)</label>
+                    <input id="clearanceValue" max="15" min="1" placeholder="クリアランス" step="0.5" type="number" value="1"/>
+                    <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
+                        パレット間の最小間隔を設定（0.5cm刻み調整可能）<br/>
+                        <strong>※計算時に適用されます（0=隙間なし配置で最大積載）</strong>
+                    </small>
+                </div>
+                <button class="add-pallet-btn" id="addPalletBtn" type="button">➕ パレットタイプを追加</button>
+
+                <hr>
+
+                <div class="form-group" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                    <label style="margin-bottom: 10px; color: #495057;">🐛 デバッグ機能</label>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button type="button" id="debugStacking" style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">積み重ねテスト</button>
+                        <button type="button" id="debugGravity" style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">重心計算テスト</button>
+                        <button type="button" id="debugLayout" style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">レイアウト解析</button>
+                        <button type="button" id="debugClear" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">デバッグクリア</button>
+                    </div>
+                    <div id="debugOutput" style="margin-top: 10px; padding: 8px; background: white; border-radius: 4px; font-family: monospace; font-size: 11px; max-height: 100px; overflow-y: auto; display: none;"></div>
+                </div>
+                <button class="export-btn" id="exportBtn" style="display: none;" type="button">🖼️ 配置図を画像で保存</button>
+            </div>
+            <div class="visualization">
+                <div class="error-message" id="errorMessage"></div>
+                <div class="success-message" id="successMessage"></div>
+                <div class="container-info" id="containerInfo">
+                    コンテナタイプを選択してパレットを追加してください
+                </div>
+                <div class="loading-animation" id="loadingAnimation">
                     <div class="spinner"></div>
-                    <p>配置計算中...</p>
+                    <p>最適な積載プランを計算中...</p>
                 </div>
-
-                <div id="manualInstructions" class="manual-instructions" style="display: none;">
-                    <h4>マニュアル調整</h4>
+                <div class="manual-instructions" id="manualInstructions" style="display: none;">
+                    <h4>📋 マニュアル調整ガイド</h4>
                     <ul>
-                        <li>パレットをドラッグして移動</li>
-                        <li>↻ボタンで回転</li>
-                        <li>✕ボタンで削除</li>
+                        <li>🖱️ パレットをドラッグして自由に位置調整</li>
+                        <li>↻ 回転ボタンで向きを変更</li>
+                        <li>🗑️ 削除ボタンで不要なパレットを除去</li>
+                        <li>🔴 赤い枠線はコンテナ枠外配置を示します</li>
+                        <li>📦 グレー枠線は下側配置（自動で配置されたもの）</li>
+                        <li>🔄 同じサイズでも個別に向きを変更可能</li>
+                        <li>✨ 境界制限なし：コンテナ枠線ぴったりまで配置可能</li>
                         <li>ダブルクリックで自動配置</li>
                     </ul>
                 </div>
-            </div>
-
-            <!-- 統計情報 -->
-            <div class="stats-panel">
-                <h3>統計情報</h3>
-                <div id="stats" class="stats-grid" style="display: none;">
+                <div class="legend" id="legend" style="display: none;">
+                </div>
+                <div class="unloaded-summary" id="unloadedSummary" style="display: none;"></div>
+                <div class="container-view">
+                    <div class="work-area">
+                        <div class="container-floor" id="containerFloor">
+                        </div>
+                    </div>
+                </div>
+                <div class="stats" id="stats" style="display: none;">
                     <div class="stat-card">
                         <div class="stat-value" id="inputPallets">0</div>
-                        <div class="stat-label">入力パレット</div>
+                        <div class="stat-label">入力パレット数</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="visiblePallets">0</div>
-                        <div class="stat-label">表示パレット</div>
+                        <div class="stat-label">表示パレット数</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="loadedPallets">0</div>
-                        <div class="stat-label">積載パレット</div>
+                        <div class="stat-label">枠内パレット数</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="loadingRate">0%</div>
