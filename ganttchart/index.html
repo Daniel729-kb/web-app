@@ -1318,16 +1318,43 @@ gantt.$container.addEventListener('dblclick', function(e) {
         function exportData() {
             if (typeof gantt === 'undefined') return;
             const projectName = document.getElementById('projectTitle').value || 'gantt_project';
-            const ganttData = gantt.serialize();
-            
-            // プロジェクト名を含めたデータ構造
+
+            // Helper: serialize all tasks and links explicitly to ensure inclusion
+            const toStr = gantt.date.date_to_str("%Y-%m-%d %H:%i");
+            const manualSerialize = () => {
+                const tasks = [];
+                gantt.eachTask(function(t){
+                    const copy = Object.assign({}, t);
+                    if (copy.start_date instanceof Date) copy.start_date = toStr(copy.start_date);
+                    if (copy.end_date instanceof Date) copy.end_date = toStr(copy.end_date);
+                    tasks.push(copy);
+                });
+                const links = [];
+                (gantt.getLinks() || []).forEach(l => links.push(Object.assign({}, l)));
+                return { data: tasks, links: links };
+            };
+
+            // Default serialize
+            let ganttData = gantt.serialize();
+
+            // Validate counts; fall back to manual if mismatch
+            let totalTasks = 0;
+            gantt.eachTask(() => { totalTasks++; });
+            if (!ganttData || !ganttData.data || ganttData.data.length !== totalTasks) {
+                try {
+                    ganttData = manualSerialize();
+                } catch (e) {
+                    console.warn('Manual serialization failed, using default serialize', e);
+                }
+            }
+
             const exportData = {
                 projectName: projectName,
                 projectData: ganttData,
                 exportDate: new Date().toISOString(),
                 version: "1.0"
             };
-            
+
             const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
