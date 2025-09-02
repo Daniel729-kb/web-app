@@ -1710,8 +1710,7 @@ gantt.$container.addEventListener('dblclick', function(e) {
                     duration: duration,
                     priority: formData.get('priority'),
                     progress: parseInt(formData.get('progress')) / 100,
-                    department: formData.get('department'),
-                    parent: selectedTaskId || 0
+                    department: formData.get('department')
                 };
                 
                 if (editingTaskId) {
@@ -1719,9 +1718,7 @@ gantt.$container.addEventListener('dblclick', function(e) {
                     Object.assign(task, taskData);
                     gantt.updateTask(editingTaskId);
                 } else {
-                    if (selectedTaskId) {
-                        taskData.parent = selectedTaskId;
-                    }
+                    taskData.parent = selectedTaskId || 0;
                     gantt.addTask(taskData);
                 }
                 
