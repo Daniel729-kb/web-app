@@ -1260,6 +1260,26 @@ gantt.$container.addEventListener('dblclick', function(e) {
             hideContextMenu();
         }
         
+        function normalizeGanttData(dataset) {
+            try {
+                if (!dataset || !Array.isArray(dataset.data)) return dataset;
+                const ids = new Set(dataset.data.map(t => (typeof t.id === 'string' ? t.id.trim() : t.id)));
+                dataset.data.forEach(t => {
+                    // Coerce parent to same type as id when possible
+                    const tid = t.id;
+                    let parent = t.parent;
+                    // Treat empty strings/null/undefined as root
+                    if (parent === '' || parent === null || parent === undefined) parent = 0;
+                    // If parent equals self or parent doesn't exist, reset to root
+                    if (parent === tid || !ids.has(parent)) parent = 0;
+                    t.parent = parent;
+                });
+            } catch (e) {
+                console.warn('Normalization failed, proceeding without changes', e);
+            }
+            return dataset;
+        }
+
         function importData(event) {
             const file = event.target.files[0];
             if (!file || typeof gantt === 'undefined') return;
@@ -1299,9 +1319,10 @@ gantt.$container.addEventListener('dblclick', function(e) {
                         localStorage.setItem('gantt_project_name', projectName);
                     }
                     
-                    // ガントデータを読み込み
+                    // ガントデータを読み込み（不正な親参照を修正）
+                    const safeData = normalizeGanttData(data);
                     gantt.clearAll();
-                    gantt.parse(data);
+                    gantt.parse(safeData);
                     updateStats();
                     
                     alert(`プロジェクト「${projectName || '無名'}」が正常にインポートされました！`);
@@ -1318,16 +1339,43 @@ gantt.$container.addEventListener('dblclick', function(e) {
         function exportData() {
             if (typeof gantt === 'undefined') return;
             const projectName = document.getElementById('projectTitle').value || 'gantt_project';
-            const ganttData = gantt.serialize();
-            
-            // プロジェクト名を含めたデータ構造
+
+            // Helper: serialize all tasks and links explicitly to ensure inclusion
+            const toStr = gantt.date.date_to_str("%Y-%m-%d %H:%i");
+            const manualSerialize = () => {
+                const tasks = [];
+                gantt.eachTask(function(t){
+                    const copy = Object.assign({}, t);
+                    if (copy.start_date instanceof Date) copy.start_date = toStr(copy.start_date);
+                    if (copy.end_date instanceof Date) copy.end_date = toStr(copy.end_date);
+                    tasks.push(copy);
+                });
+                const links = [];
+                (gantt.getLinks() || []).forEach(l => links.push(Object.assign({}, l)));
+                return { data: tasks, links: links };
+            };
+
+            // Default serialize
+            let ganttData = gantt.serialize();
+
+            // Validate counts; fall back to manual if mismatch
+            let totalTasks = 0;
+            gantt.eachTask(() => { totalTasks++; });
+            if (!ganttData || !ganttData.data || ganttData.data.length !== totalTasks) {
+                try {
+                    ganttData = manualSerialize();
+                } catch (e) {
+                    console.warn('Manual serialization failed, using default serialize', e);
+                }
+            }
+
             const exportData = {
                 projectName: projectName,
                 projectData: ganttData,
                 exportDate: new Date().toISOString(),
                 version: "1.0"
             };
-            
+
             const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1662,8 +1710,7 @@ gantt.$container.addEventListener('dblclick', function(e) {
                     duration: duration,
                     priority: formData.get('priority'),
                     progress: parseInt(formData.get('progress')) / 100,
-                    department: formData.get('department'),
-                    parent: selectedTaskId || 0
+                    department: formData.get('department')
                 };
                 
                 if (editingTaskId) {
@@ -1671,9 +1718,7 @@ gantt.$container.addEventListener('dblclick', function(e) {
                     Object.assign(task, taskData);
                     gantt.updateTask(editingTaskId);
                 } else {
-                    if (selectedTaskId) {
-                        taskData.parent = selectedTaskId;
-                    }
+                    taskData.parent = selectedTaskId || 0;
                     gantt.addTask(taskData);
                 }
                 
