@@ -1260,6 +1260,26 @@ gantt.$container.addEventListener('dblclick', function(e) {
             hideContextMenu();
         }
         
+        function normalizeGanttData(dataset) {
+            try {
+                if (!dataset || !Array.isArray(dataset.data)) return dataset;
+                const ids = new Set(dataset.data.map(t => (typeof t.id === 'string' ? t.id.trim() : t.id)));
+                dataset.data.forEach(t => {
+                    // Coerce parent to same type as id when possible
+                    const tid = t.id;
+                    let parent = t.parent;
+                    // Treat empty strings/null/undefined as root
+                    if (parent === '' || parent === null || parent === undefined) parent = 0;
+                    // If parent equals self or parent doesn't exist, reset to root
+                    if (parent === tid || !ids.has(parent)) parent = 0;
+                    t.parent = parent;
+                });
+            } catch (e) {
+                console.warn('Normalization failed, proceeding without changes', e);
+            }
+            return dataset;
+        }
+
         function importData(event) {
             const file = event.target.files[0];
             if (!file || typeof gantt === 'undefined') return;
@@ -1299,9 +1319,10 @@ gantt.$container.addEventListener('dblclick', function(e) {
                         localStorage.setItem('gantt_project_name', projectName);
                     }
                     
-                    // ガントデータを読み込み
+                    // ガントデータを読み込み（不正な親参照を修正）
+                    const safeData = normalizeGanttData(data);
                     gantt.clearAll();
-                    gantt.parse(data);
+                    gantt.parse(safeData);
                     updateStats();
                     
                     alert(`プロジェクト「${projectName || '無名'}」が正常にインポートされました！`);
