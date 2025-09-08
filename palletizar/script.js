@@ -4,8 +4,6 @@ window.currentPallets = [];
 // 高さ制限のグローバル変数
 let maxHeightLimit = 158; // デフォルトは158cm（パレット台座14cm含む）
 
-// パレット重量のグローバル変数
-let palletWeight = 20; // デフォルトは20KG
 
 // 初期データ（拡張サンプル）
 let cartonData = [
@@ -14,13 +12,13 @@ let cartonData = [
 ];
 
 const allPalletSizes = [
-    { name: '1100×1000', width: 110.0, depth: 100.0, description: '標準パレット' },
-    { name: '1100×1100', width: 110.0, depth: 110.0, description: '正方形パレット' },
-    { name: '1200×1000', width: 120.0, depth: 100.0, description: '大型パレット' },
-    { name: '1200×1100', width: 120.0, depth: 110.0, description: '特大パレット' },
-    { name: '1200×800', width: 120.0, depth: 80.0, description: 'ISO標準・欧州' },
-    { name: '1219×1016', width: 121.9, depth: 101.6, description: 'US標準・北米' },
-    { name: '1140×1140', width: 114.0, depth: 114.0, description: 'アジア・コンテナ最適' }
+    { name: '1100×1000', width: 110.0, depth: 100.0, description: '標準パレット', weight: 18 },
+    { name: '1100×1100', width: 110.0, depth: 110.0, description: '正方形パレット', weight: 20 },
+    { name: '1200×1000', width: 120.0, depth: 100.0, description: '大型パレット', weight: 25 },
+    { name: '1200×1100', width: 120.0, depth: 110.0, description: '特大パレット', weight: 28 },
+    { name: '1200×800', width: 120.0, depth: 80.0, description: 'ISO標準・欧州', weight: 20 },
+    { name: '1219×1016', width: 121.9, depth: 101.6, description: 'US標準・北米', weight: 17 },
+    { name: '1140×1140', width: 114.0, depth: 114.0, description: 'アジア・コンテナ最適', weight: 20 }
 ];
 
 let selectedPalletSizes = allPalletSizes.slice(0, 4); // デフォルトで最初の4つのみ選択
@@ -72,38 +70,11 @@ function setHeightLimit(height) {
     }
 }
 
-// === パレット重量設定機能 ===
-function setPalletWeight(weight) {
-    const input = document.getElementById('palletWeightInput');
-    const display = document.getElementById('palletWeightDisplay');
-    
-    // 値を更新
-    input.value = weight;
-    palletWeight = weight;
-    display.textContent = weight;
-    
-    // プリセットボタンの状態更新
-    document.querySelectorAll('.weight-preset-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    event.target.classList.add('active');
-    
-    console.log(`パレット重量を${weight}KGに設定しました`);
-    
-    // 既に計算結果がある場合は影響を通知
-    if (window.currentPallets && window.currentPallets.length > 0) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-warning';
-        alertDiv.innerHTML = `⚠️ パレット重量変更: 総重量計算に影響します。再計算を推奨します。`;
-        document.getElementById('errors').appendChild(alertDiv);
-    }
-}
 
-function updatePalletWeightFromInput() {
-    const input = document.getElementById('palletWeightInput');
-    const display = document.getElementById('palletWeightDisplay');
-    
+// === 個別パレット重量更新機能 ===
+function updateIndividualPalletWeight(event) {
+    const input = event.target;
+    const palletIndex = parseInt(input.getAttribute('data-pallet-index'));
     let weight = parseFloat(input.value);
     
     // バリデーション
@@ -115,20 +86,18 @@ function updatePalletWeightFromInput() {
         input.value = 100;
     }
     
-    palletWeight = weight;
-    display.textContent = weight;
+    // パレット重量を更新
+    allPalletSizes[palletIndex].weight = weight;
     
-    // プリセットボタンの状態更新（該当する値の場合）
-    document.querySelectorAll('.weight-preset-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
+    console.log(`パレット${allPalletSizes[palletIndex].name}の重量を${weight}KGに更新しました`);
     
-    const matchingPreset = document.querySelector(`[onclick="setPalletWeight(${weight})"]`);
-    if (matchingPreset) {
-        matchingPreset.classList.add('active');
+    // 既に計算結果がある場合は影響を通知
+    if (window.currentPallets && window.currentPallets.length > 0) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-warning';
+        alertDiv.innerHTML = `⚠️ パレット重量変更: 総重量計算に影響します。再計算を推奨します。`;
+        document.getElementById('errors').appendChild(alertDiv);
     }
-    
-    console.log(`パレット重量を${weight}KGに更新しました`);
 }
 
 function updateHeightLimitFromInput() {
@@ -200,12 +169,6 @@ function initializeHeightLimit() {
         input.addEventListener('blur', updateHeightLimitFromInput);
     }
     
-    // パレット重量入力のイベントリスナー
-    const palletWeightInput = document.getElementById('palletWeightInput');
-    if (palletWeightInput) {
-        palletWeightInput.addEventListener('input', updatePalletWeightFromInput);
-        palletWeightInput.addEventListener('blur', updatePalletWeightFromInput);
-    }
 }
 
 function setupEventListeners() {
@@ -300,12 +263,32 @@ function initializePalletSelection() {
                 <div class="pallet-option-name">${pallet.name}</div>
                 <div class="pallet-option-size">${pallet.description} - ${pallet.width}cm × ${pallet.depth}cm</div>
             </div>
+            <div class="pallet-weight-input-container">
+                <label class="pallet-weight-label">重量:</label>
+                <div class="pallet-weight-input-wrapper">
+                    <input type="number" 
+                           class="pallet-weight-input" 
+                           value="${pallet.weight}" 
+                           min="0" 
+                           max="100" 
+                           step="0.1"
+                           data-pallet-index="${index}"
+                           onclick="event.stopPropagation()">
+                    <span class="pallet-weight-unit">KG</span>
+                </div>
+            </div>
         `;
         
         palletOptions.appendChild(option);
     });
 
     updateSelectedPalletsInfo();
+    
+    // 個別パレット重量入力のイベントリスナーを追加
+    document.querySelectorAll('.pallet-weight-input').forEach(input => {
+        input.addEventListener('input', updateIndividualPalletWeight);
+        input.addEventListener('blur', updateIndividualPalletWeight);
+    });
 }
 
 function togglePalletSelection(index) {
@@ -1168,8 +1151,8 @@ function calculateSmallQuantityMixedPallet(availableItems, palletSize) {
         cartons: selectedCartons,
         layers: layers,
         height: currentHeight,
-        totalWeight: totalWeight + palletWeight, // パレット重量を含む
-        palletWeight: palletWeight, // パレット重量を個別に記録
+        totalWeight: totalWeight + palletSize.weight, // パレット重量を含む
+        palletWeight: palletSize.weight, // パレット重量を個別に記録
         safetyWarnings: []
     };
 }
@@ -1239,8 +1222,8 @@ function calculateLargeQuantityDedicatedPallet(availableItems, palletSize) {
         cartons: selectedCartons,
         layers: layers,
         height: currentHeight,
-        totalWeight: totalWeight + palletWeight, // パレット重量を含む
-        palletWeight: palletWeight, // パレット重量を個別に記録
+        totalWeight: totalWeight + palletSize.weight, // パレット重量を含む
+        palletWeight: palletSize.weight, // パレット重量を個別に記録
         safetyWarnings: []
     };
 }
@@ -1421,8 +1404,8 @@ function calculatePalletConfigurationForItem(availableItems, palletSize, priorit
         cartons: selectedCartons,
         layers: layers,
         height: currentHeight,
-        totalWeight: totalWeight + palletWeight, // パレット重量を含む
-        palletWeight: palletWeight, // パレット重量を個別に記録
+        totalWeight: totalWeight + palletSize.weight, // パレット重量を含む
+        palletWeight: palletSize.weight, // パレット重量を個別に記録
         safetyWarnings: []
     };
 }
@@ -3082,16 +3065,18 @@ function addCustomPallet() {
     const nameInput = document.getElementById('customPalletName');
     const widthInput = document.getElementById('customPalletWidth');
     const depthInput = document.getElementById('customPalletDepth');
+    const weightInput = document.getElementById('customPalletWeight');
     const descInput = document.getElementById('customPalletDesc');
     
     const name = nameInput.value.trim();
     const width = parseFloat(widthInput.value);
     const depth = parseFloat(depthInput.value);
+    const weight = parseFloat(weightInput.value);
     const description = descInput.value.trim();
     
     // バリデーション
-    if (!name || isNaN(width) || isNaN(depth) || width <= 0 || depth <= 0) {
-        alert('有効なパレット情報を入力してください。\n幅と奥行は0より大きい数値である必要があります。');
+    if (!name || isNaN(width) || isNaN(depth) || isNaN(weight) || width <= 0 || depth <= 0 || weight < 0) {
+        alert('有効なパレット情報を入力してください。\n幅と奥行は0より大きい数値、重量は0以上の数値である必要があります。');
         return;
     }
     
@@ -3100,11 +3085,17 @@ function addCustomPallet() {
         return;
     }
     
+    if (weight > 100) {
+        alert('パレット重量が大きすぎます。重量は100KG以下にしてください。');
+        return;
+    }
+    
     // カスタムパレットを追加
     const customPallet = {
         name: name,
         width: width,
         depth: depth,
+        weight: weight,
         description: description || 'カスタムパレット',
         custom: true
     };
@@ -3126,6 +3117,7 @@ function clearCustomPallet() {
     document.getElementById('customPalletName').value = '';
     document.getElementById('customPalletWidth').value = '';
     document.getElementById('customPalletDepth').value = '';
+    document.getElementById('customPalletWeight').value = '20';
     document.getElementById('customPalletDesc').value = '';
 }
 

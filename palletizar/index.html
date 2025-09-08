@@ -147,41 +147,6 @@
             </div>
         </div>
 
-        <!-- パレット重量設定 -->
-        <div class="pallet-weight-setting">
-            <h3>⚖️ パレット重量設定</h3>
-            <div class="pallet-weight-controls">
-                <div class="weight-input-group">
-                    <label for="palletWeightInput">パレット重量 (KG)</label>
-                    <div class="weight-input-wrapper">
-                        <input type="number" id="palletWeightInput" value="20" min="0" max="100" step="0.1">
-                        <span class="weight-unit">KG</span>
-                    </div>
-                    <div class="weight-current-display">
-                        現在の設定: <span id="palletWeightDisplay">20</span>KG
-                    </div>
-                    <div class="weight-presets">
-                        <button class="weight-preset-btn" onclick="setPalletWeight(15)">軽量パレット (15KG)</button>
-                        <button class="weight-preset-btn active" onclick="setPalletWeight(20)">標準パレット (20KG)</button>
-                        <button class="weight-preset-btn" onclick="setPalletWeight(25)">重量パレット (25KG)</button>
-                        <button class="weight-preset-btn" onclick="setPalletWeight(30)">超重量パレット (30KG)</button>
-                    </div>
-                </div>
-                <div class="weight-info">
-                    <h4>💡 パレット重量について</h4>
-                    <ul>
-                        <li><strong>15KG:</strong> 軽量パレット（プラスチック製など）</li>
-                        <li><strong>20KG:</strong> 標準木製パレット</li>
-                        <li><strong>25KG:</strong> 強化木製パレット</li>
-                        <li><strong>30KG以上:</strong> 金属製・特殊パレット</li>
-                    </ul>
-                    <div class="weight-note">
-                        <strong>注意:</strong> パレット重量は総重量計算に含まれます。輸送重量の正確な計算に重要です。
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- パレット種類選択 -->
         <div class="pallet-selection">
             <h3>🏗️ 使用するパレット種類を選択</h3>
@@ -202,6 +167,7 @@
                         <input type="text" id="customPalletName" placeholder="パレット名" class="form-input">
                         <input type="number" id="customPalletWidth" placeholder="幅(cm)" step="0.1" class="form-input">
                         <input type="number" id="customPalletDepth" placeholder="奥行(cm)" step="0.1" class="form-input">
+                        <input type="number" id="customPalletWeight" placeholder="重量(KG)" step="0.1" min="0" max="100" value="20" class="form-input">
                         <input type="text" id="customPalletDesc" placeholder="説明" class="form-input">
                     </div>
                     <div class="flex gap-2">
