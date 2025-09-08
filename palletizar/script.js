@@ -4,6 +4,9 @@ window.currentPallets = [];
 // 高さ制限のグローバル変数
 let maxHeightLimit = 158; // デフォルトは158cm（パレット台座14cm含む）
 
+// パレット重量のグローバル変数
+let palletWeight = 20; // デフォルトは20KG
+
 // 初期データ（拡張サンプル）
 let cartonData = [
     { id: 1, code: 'SAMPLE A', qty: 362, weight: 6.70, l: 53.0, w: 38.5, h: 23.5 },
@@ -67,6 +70,65 @@ function setHeightLimit(height) {
             document.getElementById('errors').appendChild(alertDiv);
         }
     }
+}
+
+// === パレット重量設定機能 ===
+function setPalletWeight(weight) {
+    const input = document.getElementById('palletWeightInput');
+    const display = document.getElementById('palletWeightDisplay');
+    
+    // 値を更新
+    input.value = weight;
+    palletWeight = weight;
+    display.textContent = weight;
+    
+    // プリセットボタンの状態更新
+    document.querySelectorAll('.weight-preset-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    event.target.classList.add('active');
+    
+    console.log(`パレット重量を${weight}KGに設定しました`);
+    
+    // 既に計算結果がある場合は影響を通知
+    if (window.currentPallets && window.currentPallets.length > 0) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-warning';
+        alertDiv.innerHTML = `⚠️ パレット重量変更: 総重量計算に影響します。再計算を推奨します。`;
+        document.getElementById('errors').appendChild(alertDiv);
+    }
+}
+
+function updatePalletWeightFromInput() {
+    const input = document.getElementById('palletWeightInput');
+    const display = document.getElementById('palletWeightDisplay');
+    
+    let weight = parseFloat(input.value);
+    
+    // バリデーション
+    if (isNaN(weight) || weight < 0) {
+        weight = 0;
+        input.value = 0;
+    } else if (weight > 100) {
+        weight = 100;
+        input.value = 100;
+    }
+    
+    palletWeight = weight;
+    display.textContent = weight;
+    
+    // プリセットボタンの状態更新（該当する値の場合）
+    document.querySelectorAll('.weight-preset-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const matchingPreset = document.querySelector(`[onclick="setPalletWeight(${weight})"]`);
+    if (matchingPreset) {
+        matchingPreset.classList.add('active');
+    }
+    
+    console.log(`パレット重量を${weight}KGに更新しました`);
 }
 
 function updateHeightLimitFromInput() {
@@ -136,6 +198,13 @@ function initializeHeightLimit() {
     if (input) {
         input.addEventListener('input', updateHeightLimitFromInput);
         input.addEventListener('blur', updateHeightLimitFromInput);
+    }
+    
+    // パレット重量入力のイベントリスナー
+    const palletWeightInput = document.getElementById('palletWeightInput');
+    if (palletWeightInput) {
+        palletWeightInput.addEventListener('input', updatePalletWeightFromInput);
+        palletWeightInput.addEventListener('blur', updatePalletWeightFromInput);
     }
 }
 
@@ -684,7 +753,7 @@ function updateSummary() {
     const itemCount = cartonData.length;
 
     document.getElementById('totalCartons').textContent = `${totalCartons} 個`;
-    document.getElementById('totalWeight').textContent = `${totalWeight.toFixed(1)} kg`;
+    document.getElementById('totalWeight').textContent = `${totalWeight.toFixed(1)} KG`;
     document.getElementById('itemCount').textContent = `${itemCount} 種類`;
     
     const clearAllButton = document.getElementById('clearAllButton');
@@ -1099,7 +1168,8 @@ function calculateSmallQuantityMixedPallet(availableItems, palletSize) {
         cartons: selectedCartons,
         layers: layers,
         height: currentHeight,
-        totalWeight,
+        totalWeight: totalWeight + palletWeight, // パレット重量を含む
+        palletWeight: palletWeight, // パレット重量を個別に記録
         safetyWarnings: []
     };
 }
@@ -1169,7 +1239,8 @@ function calculateLargeQuantityDedicatedPallet(availableItems, palletSize) {
         cartons: selectedCartons,
         layers: layers,
         height: currentHeight,
-        totalWeight,
+        totalWeight: totalWeight + palletWeight, // パレット重量を含む
+        palletWeight: palletWeight, // パレット重量を個別に記録
         safetyWarnings: []
     };
 }
@@ -1350,7 +1421,8 @@ function calculatePalletConfigurationForItem(availableItems, palletSize, priorit
         cartons: selectedCartons,
         layers: layers,
         height: currentHeight,
-        totalWeight,
+        totalWeight: totalWeight + palletWeight, // パレット重量を含む
+        palletWeight: palletWeight, // パレット重量を個別に記録
         safetyWarnings: []
     };
 }
@@ -1946,7 +2018,7 @@ function displayResults(pallets) {
         </div>
         <div class="summary-card purple">
             <h3>総重量</h3>
-            <p>${totalWeight.toFixed(1)} kg</p>
+            <p>${totalWeight.toFixed(1)} KG</p>
         </div>
         <div class="summary-card orange">
             <h3>最大高さ / 制限</h3>
@@ -1994,7 +2066,15 @@ function displayResults(pallets) {
                 </div>
                 <div class="pallet-stat">
                     <p>総重量</p>
-                    <p>${pallet.totalWeight.toFixed(1)} kg</p>
+                    <p>${pallet.totalWeight.toFixed(1)} KG</p>
+                </div>
+                <div class="pallet-stat">
+                    <p>貨物重量</p>
+                    <p>${(pallet.totalWeight - pallet.palletWeight).toFixed(1)} KG</p>
+                </div>
+                <div class="pallet-stat">
+                    <p>パレット重量</p>
+                    <p>${pallet.palletWeight.toFixed(1)} KG</p>
                 </div>
                 <div class="pallet-stat">
                     <p>高さ / 制限</p>
@@ -2091,6 +2171,8 @@ function buildSummaryTable(pallets) {
         const palletSize = `${pallet.palletSize.width}×${pallet.palletSize.depth}`;
         const heightCompliantIcon = pallet.height <= maxHeightLimit ? '✅' : '❌';
         const weight = pallet.totalWeight.toFixed(1);
+        const cargoWeight = (pallet.totalWeight - pallet.palletWeight).toFixed(1);
+        const palletWeightDisplay = pallet.palletWeight.toFixed(1);
         const codes = Object.keys(cartonCounts).join(', ');
         const quantities = Object.values(cartonCounts).join(', ');
         
@@ -2100,6 +2182,8 @@ function buildSummaryTable(pallets) {
             <td><span class="pallet-link" onclick="scrollToPallet(${palletIndex})">${palletIndex + 1} ${heightCompliantIcon}</span></td>
             <td>${palletSize}</td>
             <td>${weight}</td>
+            <td>${cargoWeight}</td>
+            <td>${palletWeightDisplay}</td>
             <td>${codes}</td>
             <td>${quantities}</td>
         `;
@@ -2131,6 +2215,8 @@ function exportSummaryCsv() {
         const palletSize = `${pallet.palletSize.width}×${pallet.palletSize.depth}`;
         const heightCompliantIcon = pallet.height <= maxHeightLimit ? '✅' : '❌';
         const weight = pallet.totalWeight.toFixed(1);
+        const cargoWeight = (pallet.totalWeight - pallet.palletWeight).toFixed(1);
+        const palletWeightDisplay = pallet.palletWeight.toFixed(1);
         const codes = Object.keys(cartonCounts).join(', ');
         const quantities = Object.values(cartonCounts).join(', ');
         
@@ -2272,7 +2358,9 @@ function drawPalletDiagram(palletIndex, pallet) {
     dimensionsInfo.innerHTML = `
         <strong>パレット寸法:</strong> ${pallet.palletSize.width}cm × ${pallet.palletSize.depth}cm × ${pallet.height.toFixed(1)}cm<br>
         <strong>高さ制限:</strong> ${pallet.height.toFixed(1)}cm / ${maxHeightLimit}cm ${heightStatus}<br>
-        <strong>総重量:</strong> ${pallet.totalWeight.toFixed(1)}kg<br>
+        <strong>総重量:</strong> ${pallet.totalWeight.toFixed(1)}KG<br>
+        <strong>貨物重量:</strong> ${(pallet.totalWeight - pallet.palletWeight).toFixed(1)}KG<br>
+        <strong>パレット重量:</strong> ${pallet.palletWeight.toFixed(1)}KG<br>
         <strong>層数:</strong> ${pallet.layers.length}層
     `;
     diagramContainer.appendChild(dimensionsInfo);
