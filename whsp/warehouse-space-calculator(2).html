@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>倉庫保管スペース計算ツール</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            animation: fadeInDown 0.8s ease;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .item-info-section {
+            background: #f0f4ff;
+            padding: 25px;
+            margin: 20px;
+            border-radius: 15px;
+            border: 2px solid #667eea;
+            animation: slideIn 0.8s ease;
+        }
+        
+        .item-info-title {
+            color: #764ba2;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .item-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .item-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .item-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        .item-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .item-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .item-icon {
+            font-size: 1.5em;
+        }
+        
+        .item-specs {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .spec-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 0.95em;
+        }
+        
+        .spec-label {
+            color: #666;
+        }
+        
+        .spec-value {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .item-note {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+        
+        .input-section, .result-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            animation: fadeIn 1s ease;
+        }
+        
+        .section-title {
+            color: #764ba2;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+        
+        .input-wrapper {
+            position: relative;
+        }
+        
+        .input-wrapper input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .unit {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 0.9em;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        
+        .checkbox-group:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group label {
+            cursor: pointer;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .result-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+        
+        .result-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.12);
+        }
+        
+        .result-card h3 {
+            color: #764ba2;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .result-label {
+            color: #666;
+            font-size: 0.95em;
+        }
+        
+        .result-value {
+            color: #333;
+            font-weight: 600;
+            font-size: 1.05em;
+        }
+        
+        .total-result {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            animation: pulse 2s infinite;
+        }
+        
+        .total-result h2 {
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+        
+        .total-value {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 15px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .breakdown {
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 0.95em;
+        }
+        
+        .layout-section {
+            background: white;
+            padding: 30px;
+            margin: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .layout-title {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .layout-container {
+            display: flex;
+            gap: 30px;
+            align-items: start;
+        }
+        
+        .canvas-wrapper {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        #layoutCanvas {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+            cursor: grab;
+        }
+        
+        #layoutCanvas:active {
+            cursor: grabbing;
+        }
+        
+        .legend {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            min-width: 250px;
+        }
+        
+        .legend-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            margin-right: 12px;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .legend-label {
+            color: #555;
+            font-size: 0.95em;
+        }
+        
+        .legend-value {
+            margin-left: auto;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        .scale-info {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f0f4ff;
+            border-radius: 8px;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .layout-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        .layout-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .layout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .layout-btn:active {
+            transform: translateY(0);
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.02);
+            }
+        }
+        
+        @media (max-width: 968px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .item-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .layout-container {
+                flex-direction: column;
+            }
+            
+            .legend {
+                width: 100%;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .total-value {
+                font-size: 2.5em;
+            }
+        }
+        
+        .info-tooltip {
+            display: inline-block;
+            margin-left: 5px;
+            color: #999;
+            cursor: help;
+            font-size: 0.9em;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            color: #2d3436;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏭 倉庫保管スペース計算ツール</h1>
+            <p>条件を入力して、必要な保管スペースを自動計算＆レイアウト生成</p>
+        </div>
+        
+        <div class="item-info-section">
+            <h2 class="item-info-title">📦 保管物の詳細情報</h2>
+            <div class="item-cards">
+                <div class="item-card">
+                    <div class="item-name">
+                        <span class="item-icon">🟢</span>
+                        <span>グリーントレー</span>
+                    </div>
+                    <div class="item-specs">
+                        <div class="spec-row">
+                            <span class="spec-label">サイズ：</span>
+                            <span class="spec-value">49.5 × 59.5 × 6 cm</span>
+                        </div>
+                        <div class="spec-row">
+                            <span class="spec-label">積載方法：</span>
+                            <span class="spec-value">4列 × 25段</span>
+                        </div>
+                        <div class="spec-row">
+                            <span class="spec-label">合計個数/パレット：</span>
+                            <span class="spec-value">100個</span>
+                        </div>
+                    </div>
+                    <div class="item-note">
+                        入庫時はリリーパレットに積載、保管時はUSパレットに移し替え
+                    </div>
+                </div>
+                
+                <div class="item-card">
+                    <div class="item-name">
+                        <span class="item-icon">🔵</span>
+                        <span>リリーパレット</span>
+                    </div>
+                    <div class="item-specs">
+                        <div class="spec-row">
+                            <span class="spec-label">サイズ：</span>
+                            <span class="spec-value">110 × 110 × 15 cm</span>
+                        </div>
+                        <div class="spec-row">
+                            <span class="spec-label">床面積：</span>
+                            <span class="spec-value">1.21 ㎡</span>
+                        </div>
+                        <div class="spec-row">
+                            <span class="spec-label">最大積み段数：</span>
+                            <span class="spec-value">15段</span>
+                        </div>
+                    </div>
+                    <div class="item-note">
+                        240パレットで10トン車1台分（出庫単位）
+                    </div>
+                </div>
+                
+                <div class="item-card">
+                    <div class="item-name">
+                        <span class="item-icon">🟤</span>
+                        <span>USパレット（木製）</span>
+                    </div>
+                    <div class="item-specs">
+                        <div class="spec-row">
+                            <span class="spec-label">サイズ：</span>
+                            <span class="spec-value">121.9 × 101.6 cm</span>
+                        </div>
+                        <div class="spec-row">
+                            <span class="spec-label">床面積：</span>
+                            <span class="spec-value">1.24 ㎡</span>
+                        </div>
+                        <div class="spec-row">
+                            <span class="spec-label">最大積み段数：</span>
+                            <span class="spec-value">2段</span>
+                        </div>
+                    </div>
+                    <div class="item-note">
+                        36パレットで40FTコンテナ1本分（出庫単位）
+                    </div>
+                </div>
+            </div>
+            <div class="highlight-box">
+                💡 作業フロー：リリーパレットで入庫 → グリーントレーをUSパレットに移し替えて保管 → USパレットでコンテナ出庫
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <h2 class="section-title">⚙️ 入力条件</h2>
+                
+                <div class="input-group">
+                    <label>入庫頻度（回/日）</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="deliveryFrequency" value="7" min="1" max="20">
+                        <span class="unit">回/日</span>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>1回あたりの入庫量（リリーパレット数）</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="palletPerDelivery" value="8" min="1" max="50">
+                        <span class="unit">パレット</span>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>USパレット積み段数（最大）</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="usStackHeight" value="2" min="1" max="5">
+                        <span class="unit">段</span>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>リリーパレット積み段数（最大）</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="lilyStackHeight" value="15" min="1" max="20">
+                        <span class="unit">段</span>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>コンテナ出庫頻度（本/月）</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="containerFrequency" value="34" min="1" max="100">
+                        <span class="unit">本/月</span>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>リリーパレット出庫頻度（回/月）</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="lilyShipFrequency" value="5" min="1" max="20">
+                        <span class="unit">回/月</span>
+                    </div>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="includeAisle" checked>
+                    <label for="includeAisle">フォークリフト通路スペースを含める（保管面積の65%）</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="includeWork" checked>
+                    <label for="includeWork">作業エリアを含める（仮置き50㎡＋作業場30㎡）</label>
+                </div>
+            </div>
+            
+            <div class="result-section">
+                <h2 class="section-title">📊 計算結果</h2>
+                
+                <div class="result-card">
+                    <h3>📈 在庫量</h3>
+                    <div class="result-item">
+                        <span class="result-label">USパレット最大在庫</span>
+                        <span class="result-value" id="usMaxInventory">400</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">USパレット床面積換算</span>
+                        <span class="result-value" id="usFloorPallets">200</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">グリーントレー最大在庫</span>
+                        <span class="result-value" id="greenTrayInventory">40,000</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">リリーパレット最大在庫</span>
+                        <span class="result-value" id="lilyMaxInventory">240</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">リリーパレット床面積換算</span>
+                        <span class="result-value" id="lilyFloorPallets">16</span>
+                    </div>
+                </div>
+                
+                <div class="result-card">
+                    <h3>📐 必要スペース内訳</h3>
+                    <div class="result-item">
+                        <span class="result-label">USパレット保管エリア</span>
+                        <span class="result-value"><span id="usStorageArea">248</span> ㎡</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">リリーパレット保管エリア</span>
+                        <span class="result-value"><span id="lilyStorageArea">19.4</span> ㎡</span>
+                    </div>
+                    <div class="result-item" id="aisleRow">
+                        <span class="result-label">通路スペース</span>
+                        <span class="result-value"><span id="aisleArea">174</span> ㎡</span>
+                    </div>
+                    <div class="result-item" id="workRow">
+                        <span class="result-label">作業エリア</span>
+                        <span class="result-value"><span id="workArea">80</span> ㎡</span>
+                    </div>
+                </div>
+                
+                <div class="total-result">
+                    <h2>必要総床面積</h2>
+                    <div class="total-value">
+                        <span id="totalArea">520</span> ㎡
+                    </div>
+                    <div class="breakdown">
+                        <div class="breakdown-item">
+                            <span>保管エリア合計</span>
+                            <span><span id="storageTotal">267.4</span> ㎡</span>
+                        </div>
+                        <div class="breakdown-item" id="aisleBreakdown">
+                            <span>通路スペース</span>
+                            <span><span id="aisleTotal">174</span> ㎡</span>
+                        </div>
+                        <div class="breakdown-item" id="workBreakdown">
+                            <span>作業エリア</span>
+                            <span><span id="workTotal">80</span> ㎡</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="result-card" style="margin-top: 20px; background: #fff9e6; border-left-color: #ffc107;">
+                    <h3>📋 推奨仕様</h3>
+                    <div class="result-item">
+                        <span class="result-label">推奨天井高</span>
+                        <span class="result-value">6m以上</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">通路幅</span>
+                        <span class="result-value">3.5m以上</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">入出庫口</span>
+                        <span class="result-value">2箇所以上</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="layout-section">
+            <h2 class="layout-title">🗺️ 倉庫レイアウト図</h2>
+            <div class="layout-container">
+                <div class="canvas-wrapper">
+                    <canvas id="layoutCanvas" width="800" height="600"></canvas>
+                    <div class="scale-info">
+                        <strong>スケール：</strong> <span id="scaleText">1px = 0.5m</span>
+                    </div>
+                    <div class="layout-controls">
+                        <button class="layout-btn" onclick="changeLayout()">🔄 レイアウト変更</button>
+                        <button class="layout-btn" onclick="resetView()">🔍 表示リセット</button>
+                    </div>
+                </div>
+                <div class="legend">
+                    <div class="legend-title">エリア凡例</div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4CAF50;"></div>
+                        <span class="legend-label">USパレット保管</span>
+                        <span class="legend-value" id="usAreaLegend">248㎡</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #2196F3;"></div>
+                        <span class="legend-label">リリーパレット保管</span>
+                        <span class="legend-value" id="lilyAreaLegend">19.4㎡</span>
+                    </div>
+                    <div class="legend-item" id="aisleLegend">
+                        <div class="legend-color" style="background: #FFC107;"></div>
+                        <span class="legend-label">通路スペース</span>
+                        <span class="legend-value" id="aisleAreaLegend">174㎡</span>
+                    </div>
+                    <div class="legend-item" id="workLegend">
+                        <div class="legend-color" style="background: #9C27B0;"></div>
+                        <span class="legend-label">作業エリア</span>
+                        <span class="legend-value" id="workAreaLegend">80㎡</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #FF5722;"></div>
+                        <span class="legend-label">入出庫口</span>
+                        <span class="legend-value">2箇所</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLayout = 0;
+        let canvas = document.getElementById('layoutCanvas');
+        let ctx = canvas.getContext('2d');
+        let scale = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        function calculateSpace() {
+            // 入力値の取得
+            const deliveryFreq = parseFloat(document.getElementById('deliveryFrequency').value) || 7;
+            const palletPerDelivery = parseFloat(document.getElementById('palletPerDelivery').value) || 8;
+            const usStackHeight = parseFloat(document.getElementById('usStackHeight').value) || 2;
+            const lilyStackHeight = parseFloat(document.getElementById('lilyStackHeight').value) || 15;
+            const containerFreq = parseFloat(document.getElementById('containerFrequency').value) || 34;
+            const lilyShipFreq = parseFloat(document.getElementById('lilyShipFrequency').value) || 5;
+            const includeAisle = document.getElementById('includeAisle').checked;
+            const includeWork = document.getElementById('includeWork').checked;
+            
+            // 月間入庫量（リリーパレット）
+            const monthlyIncoming = deliveryFreq * palletPerDelivery * 20; // 20営業日
+            
+            // 月間出庫量（グリーントレー）
+            const monthlyOutgoingGreen = containerFreq * 36 * 100; // コンテナ数 × USパレット/コンテナ × トレー/パレット
+            
+            // USパレット最大在庫（約10日分の在庫）
+            const usMaxInventory = Math.ceil((monthlyOutgoingGreen / 30 * 10) / 100); // トレー数をパレット数に変換
+            const usFloorPallets = Math.ceil(usMaxInventory / usStackHeight);
+            const greenTrayInventory = usMaxInventory * 100; // グリーントレー在庫数
+            
+            // リリーパレット最大在庫（出庫単位）
+            const lilyMaxInventory = 240; // 10トン車1台分
+            const lilyFloorPallets = Math.ceil(lilyMaxInventory / lilyStackHeight);
+            
+            // 面積計算
+            const usStorageArea = usFloorPallets * 1.24; // USパレット: 121.9×101.6cm = 1.24㎡
+            const lilyStorageArea = lilyFloorPallets * 1.21; // リリーパレット: 110×110cm = 1.21㎡
+            
+            let aisleArea = 0;
+            if (includeAisle) {
+                aisleArea = (usStorageArea + lilyStorageArea) * 0.65; // 通路は保管面積の65%
+            }
+            
+            let workArea = 0;
+            if (includeWork) {
+                workArea = 80; // 仮置き場50㎡ + 作業場30㎡
+            }
+            
+            const storageTotal = usStorageArea + lilyStorageArea;
+            const totalArea = storageTotal + aisleArea + workArea;
+            
+            // 結果の表示
+            document.getElementById('usMaxInventory').textContent = usMaxInventory + ' パレット';
+            document.getElementById('usFloorPallets').textContent = usFloorPallets + ' パレット分';
+            document.getElementById('greenTrayInventory').textContent = greenTrayInventory.toLocaleString() + ' 個';
+            document.getElementById('lilyMaxInventory').textContent = lilyMaxInventory + ' パレット';
+            document.getElementById('lilyFloorPallets').textContent = lilyFloorPallets + ' パレット分';
+            
+            document.getElementById('usStorageArea').textContent = usStorageArea.toFixed(1);
+            document.getElementById('lilyStorageArea').textContent = lilyStorageArea.toFixed(1);
+            document.getElementById('aisleArea').textContent = aisleArea.toFixed(1);
+            document.getElementById('workArea').textContent = workArea.toFixed(1);
+            
+            document.getElementById('storageTotal').textContent = storageTotal.toFixed(1);
+            document.getElementById('aisleTotal').textContent = aisleArea.toFixed(1);
+            document.getElementById('workTotal').textContent = workArea.toFixed(1);
+            document.getElementById('totalArea').textContent = Math.ceil(totalArea);
+            
+            // レジェンドの更新
+            document.getElementById('usAreaLegend').textContent = usStorageArea.toFixed(1) + '㎡';
+            document.getElementById('lilyAreaLegend').textContent = lilyStorageArea.toFixed(1) + '㎡';
+            document.getElementById('aisleAreaLegend').textContent = aisleArea.toFixed(1) + '㎡';
+            document.getElementById('workAreaLegend').textContent = workArea.toFixed(1) + '㎡';
+            
+            // 表示/非表示の制御
+            document.getElementById('aisleRow').style.display = includeAisle ? 'flex' : 'none';
+            document.getElementById('workRow').style.display = includeWork ? 'flex' : 'none';
+            document.getElementById('aisleBreakdown').style.display = includeAisle ? 'flex' : 'none';
+            document.getElementById('workBreakdown').style.display = includeWork ? 'flex' : 'none';
+            document.getElementById('aisleLegend').style.display = includeAisle ? 'block' : 'none';
+            document.getElementById('workLegend').style.display = includeWork ? 'block' : 'none';
+            
+            // レイアウト図の描画
+            drawLayout(usStorageArea, lilyStorageArea, aisleArea, workArea, totalArea);
+        }
+        
+        function drawLayout(usArea, lilyArea, aisleArea, workArea, totalArea) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 総面積から倉庫の寸法を計算（長方形を想定）
+            const ratio = 1.5; // 幅：高さの比率
+            const totalWidth = Math.sqrt(totalArea * ratio);
+            const totalHeight = totalArea / totalWidth;
+            
+            // キャンバスに収まるようにスケールを計算
+            const padding = 50;
+            const scaleX = (canvas.width - padding * 2) / totalWidth;
+            const scaleY = (canvas.height - padding * 2) / totalHeight;
+            const pixelScale = Math.min(scaleX, scaleY) * 0.8;
+            
+            // 倉庫全体の描画位置
+            const warehouseWidth = totalWidth * pixelScale;
+            const warehouseHeight = totalHeight * pixelScale;
+            const startX = (canvas.width - warehouseWidth) / 2;
+            const startY = (canvas.height - warehouseHeight) / 2;
+            
+            // 背景
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 倉庫の外枠
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(startX, startY, warehouseWidth, warehouseHeight);
+            
+            // レイアウトパターンを選択
+            if (currentLayout === 0) {
+                // レイアウト1: 横並び配置
+                drawLayoutHorizontal(startX, startY, warehouseWidth, warehouseHeight, 
+                                   usArea, lilyArea, aisleArea, workArea, totalArea, pixelScale);
+            } else {
+                // レイアウト2: L字配置
+                drawLayoutLShape(startX, startY, warehouseWidth, warehouseHeight, 
+                               usArea, lilyArea, aisleArea, workArea, totalArea, pixelScale);
+            }
+            
+            // スケール表示の更新
+            const metersPerPixel = 1 / pixelScale;
+            document.getElementById('scaleText').textContent = `1px = ${metersPerPixel.toFixed(2)}m`;
+        }
+        
+        function drawLayoutHorizontal(startX, startY, width, height, usArea, lilyArea, aisleArea, workArea, totalArea, scale) {
+            let currentX = startX;
+            let currentY = startY;
+            
+            // USパレット保管エリア
+            const usWidth = Math.sqrt(usArea) * scale;
+            const usHeight = (usArea / Math.sqrt(usArea)) * scale;
+            
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(currentX, currentY, usWidth, usHeight);
+            ctx.strokeStyle = '#2E7D32';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(currentX, currentY, usWidth, usHeight);
+            
+            // パレットの描画
+            drawPallets(currentX, currentY, usWidth, usHeight, 'US');
+            
+            // ラベル
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText('USパレット', currentX + 10, currentY + 25);
+            
+            currentX += usWidth;
+            
+            // 通路（中央）
+            if (aisleArea > 0) {
+                const aisleWidth = (aisleArea / totalArea) * width * 0.5;
+                ctx.fillStyle = '#FFC107';
+                ctx.fillRect(currentX, currentY, aisleWidth, height);
+                
+                // 通路の矢印
+                drawArrows(currentX, currentY, aisleWidth, height);
+                
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 12px Arial';
+                ctx.fillText('通路', currentX + aisleWidth/2 - 15, startY + height/2);
+                
+                currentX += aisleWidth;
+            }
+            
+            // リリーパレット保管エリア
+            const lilyWidth = Math.sqrt(lilyArea) * scale;
+            const lilyHeight = (lilyArea / Math.sqrt(lilyArea)) * scale;
+            
+            ctx.fillStyle = '#2196F3';
+            ctx.fillRect(currentX, currentY, lilyWidth, lilyHeight);
+            ctx.strokeStyle = '#0D47A1';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(currentX, currentY, lilyWidth, lilyHeight);
+            
+            // パレットの描画
+            drawPallets(currentX, currentY, lilyWidth, lilyHeight, 'Lily');
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText('リリー', currentX + 10, currentY + 25);
+            
+            // 作業エリア
+            if (workArea > 0) {
+                const workWidth = (workArea / totalArea) * width;
+                const workHeight = height * 0.3;
+                const workX = startX + width - workWidth;
+                const workY = startY + height - workHeight;
+                
+                ctx.fillStyle = '#9C27B0';
+                ctx.fillRect(workX, workY, workWidth, workHeight);
+                ctx.strokeStyle = '#6A1B9A';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(workX, workY, workWidth, workHeight);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('作業エリア', workX + 10, workY + 25);
+            }
+            
+            // 入出庫口
+            drawDoors(startX, startY, width, height);
+        }
+        
+        function drawLayoutLShape(startX, startY, width, height, usArea, lilyArea, aisleArea, workArea, totalArea, scale) {
+            // L字型配置
+            const usWidth = width * 0.6;
+            const usHeight = (usArea / totalArea) * height * 1.5;
+            
+            // USパレット保管エリア（左側）
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(startX, startY, usWidth, usHeight);
+            ctx.strokeStyle = '#2E7D32';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(startX, startY, usWidth, usHeight);
+            drawPallets(startX, startY, usWidth, usHeight, 'US');
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText('USパレット', startX + 10, startY + 25);
+            
+            // リリーパレット保管エリア（下部）
+            const lilyWidth = width * 0.3;
+            const lilyHeight = height * 0.3;
+            
+            ctx.fillStyle = '#2196F3';
+            ctx.fillRect(startX + usWidth, startY + height - lilyHeight, lilyWidth, lilyHeight);
+            ctx.strokeStyle = '#0D47A1';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(startX + usWidth, startY + height - lilyHeight, lilyWidth, lilyHeight);
+            drawPallets(startX + usWidth, startY + height - lilyHeight, lilyWidth, lilyHeight, 'Lily');
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText('リリー', startX + usWidth + 10, startY + height - lilyHeight + 25);
+            
+            // 通路（L字型）
+            if (aisleArea > 0) {
+                ctx.fillStyle = '#FFC107';
+                // 横通路
+                ctx.fillRect(startX, startY + usHeight, usWidth, height * 0.15);
+                // 縦通路
+                ctx.fillRect(startX + usWidth, startY, width * 0.15, height - lilyHeight);
+                
+                drawArrows(startX, startY + usHeight, usWidth, height * 0.15);
+                drawArrows(startX + usWidth, startY, width * 0.15, height - lilyHeight);
+            }
+            
+            // 作業エリア（右上）
+            if (workArea > 0) {
+                const workWidth = width * 0.25;
+                const workHeight = height * 0.4;
+                
+                ctx.fillStyle = '#9C27B0';
+                ctx.fillRect(startX + width - workWidth, startY, workWidth, workHeight);
+                ctx.strokeStyle = '#6A1B9A';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(startX + width - workWidth, startY, workWidth, workHeight);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('作業エリア', startX + width - workWidth + 10, startY + 25);
+            }
+            
+            // 入出庫口
+            drawDoors(startX, startY, width, height);
+        }
+        
+        function drawPallets(x, y, width, height, type) {
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            ctx.strokeStyle = type === 'US' ? '#1B5E20' : '#01579B';
+            ctx.lineWidth = 1;
+            
+            const rows = type === 'US' ? 10 : 4;
+            const cols = type === 'US' ? 10 : 4;
+            const palletWidth = width / cols;
+            const palletHeight = height / rows;
+            
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    ctx.strokeRect(x + j * palletWidth, y + i * palletHeight, palletWidth, palletHeight);
+                }
+            }
+            ctx.restore();
+        }
+        
+        function drawArrows(x, y, width, height) {
+            ctx.save();
+            ctx.strokeStyle = '#F57C00';
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.5;
+            
+            const arrowCount = 3;
+            const spacing = Math.max(width, height) / (arrowCount + 1);
+            
+            if (width > height) {
+                // 横向きの矢印
+                for (let i = 1; i <= arrowCount; i++) {
+                    const arrowX = x + i * spacing;
+                    const arrowY = y + height / 2;
+                    drawArrow(arrowX - 20, arrowY, arrowX + 20, arrowY);
+                }
+            } else {
+                // 縦向きの矢印
+                for (let i = 1; i <= arrowCount; i++) {
+                    const arrowX = x + width / 2;
+                    const arrowY = y + i * spacing;
+                    drawArrow(arrowX, arrowY - 20, arrowX, arrowY + 20);
+                }
+            }
+            ctx.restore();
+        }
+        
+        function drawArrow(fromX, fromY, toX, toY) {
+            const headlen = 10;
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+            
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.stroke();
+        }
+        
+        function drawDoors(x, y, width, height) {
+            ctx.fillStyle = '#FF5722';
+            ctx.strokeStyle = '#D84315';
+            ctx.lineWidth = 2;
+            
+            // 入庫口（左側）
+            const doorWidth = 30;
+            const doorHeight = 40;
+            ctx.fillRect(x - doorWidth/2, y + height/2 - doorHeight/2, doorWidth, doorHeight);
+            ctx.strokeRect(x - doorWidth/2, y + height/2 - doorHeight/2, doorWidth, doorHeight);
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 10px Arial';
+            ctx.save();
+            ctx.translate(x - doorWidth/2 + 15, y + height/2);
+            ctx.rotate(-Math.PI/2);
+            ctx.fillText('入庫', -15, 0);
+            ctx.restore();
+            
+            // 出庫口（右側）
+            ctx.fillStyle = '#FF5722';
+            ctx.fillRect(x + width - doorWidth/2, y + height/2 - doorHeight/2, doorWidth, doorHeight);
+            ctx.strokeRect(x + width - doorWidth/2, y + height/2 - doorHeight/2, doorWidth, doorHeight);
+            
+            ctx.fillStyle = 'white';
+            ctx.save();
+            ctx.translate(x + width - doorWidth/2 + 15, y + height/2);
+            ctx.rotate(-Math.PI/2);
+            ctx.fillText('出庫', -15, 0);
+            ctx.restore();
+        }
+        
+        function changeLayout() {
+            currentLayout = (currentLayout + 1) % 2;
+            calculateSpace();
+        }
+        
+        function resetView() {
+            scale = 1;
+            offsetX = 0;
+            offsetY = 0;
+            calculateSpace();
+        }
+        
+        // イベントリスナーの設定
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', calculateSpace);
+            input.addEventListener('change', calculateSpace);
+        });
+        
+        // 初期計算
+        calculateSpace();
+    </script>
+</body>
+</html>
