@@ -3,178 +3,1292 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>倉庫空間計算・可視化システム</title>
-    <link rel="stylesheet" href="warehouse-space.css">
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <title>倉庫スペース計算機</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        /* New two-column layout inspired by reference */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .output-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 992px) {
+            .main-content { grid-template-columns: 1fr; }
+        }
+
+        .form-section {
+            margin-bottom: 0;
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .form-section h2 {
+            color: #1e293b;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-input[multiple] {
+            min-height: 120px;
+            padding: 0.5rem;
+        }
+
+        .form-input[multiple] option {
+            padding: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .form-input[multiple] option:checked {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .results {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-top: 0;
+        }
+
+        .results h3 {
+            color: #065f46;
+            margin-bottom: 1rem;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .result-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            border: 1px solid #d1d5db;
+        }
+
+        .result-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #3b82f6;
+            margin-bottom: 0.25rem;
+        }
+
+        .result-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .efficiency-bar {
+            background: #e5e7eb;
+            height: 1rem;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .efficiency-fill {
+            background: linear-gradient(90deg, #10b981, #059669);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .pallet-list {
+            margin-top: 1rem;
+        }
+
+        .pallet-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pallet-info h4 {
+            margin-bottom: 0.25rem;
+        }
+
+        .pallet-info p {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .pallet-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            width: auto;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* 2D Layout Styles */
+        .layout-section {
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .layout-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .layout-container {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            overflow: auto;
+            max-height: 500px;
+        }
+
+        .warehouse-layout {
+            position: relative;
+            background: #ffffff;
+            border: 3px solid #1f2937;
+            border-radius: 0.5rem;
+            margin: 0 auto;
+            min-height: 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .warehouse-outline {
+            position: absolute;
+            border: 3px solid #1f2937;
+            background: rgba(249, 250, 251, 0.9);
+            border-radius: 0.5rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .pallet-area {
+            position: absolute;
+            border: 2px solid #374151;
+            border-radius: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .pallet-area:hover {
+            transform: scale(1.08);
+            z-index: 10;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            border-color: #fbbf24;
+        }
+
+        .aisle {
+            position: absolute;
+            background: #f3f4f6;
+            border: 2px dashed #9ca3af;
+            opacity: 0.8;
+        }
+
+        .aisle.horizontal {
+            background: repeating-linear-gradient(
+                90deg,
+                #f3f4f6 0px,
+                #f3f4f6 8px,
+                #e5e7eb 8px,
+                #e5e7eb 16px
+            );
+        }
+
+        .aisle.vertical {
+            background: repeating-linear-gradient(
+                0deg,
+                #f3f4f6 0px,
+                #f3f4f6 8px,
+                #e5e7eb 8px,
+                #e5e7eb 16px
+            );
+        }
+
+        .layout-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 0.125rem;
+            border: 1px solid #6b7280;
+        }
+
+        .layout-info {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .layout-info h4 {
+            color: #0369a1;
+            margin-bottom: 0.5rem;
+        }
+
+        .layout-info p {
+            color: #0c4a6e;
+            font-size: 0.875rem;
+            margin: 0.25rem 0;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        /* Show a single border: container only */
+        .warehouse-outline { display: none; }
+        .warehouse-layout { border: 3px solid #1f2937; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        /* Faint grid background (10px = 1m → grid = 2m) */
+        .warehouse-layout {
+            background-color: #ffffff;
+            background-image:
+                repeating-linear-gradient(0deg, rgba(229, 231, 235, 0.6) 0, rgba(229, 231, 235, 0.6) 1px, transparent 1px, transparent 20px),
+                repeating-linear-gradient(90deg, rgba(229, 231, 235, 0.6) 0, rgba(229, 231, 235, 0.6) 1px, transparent 1px, transparent 20px);
+        }
+
+        /* Dimension label */
+        .dimension-label {
+            display: block;
+            margin-top: 6px; /* below the border without causing scrollbars */
+            text-align: right;
+            padding: 2px 8px;
+            font-size: 12px;
+            color: #4b5563;
+            background: rgba(255,255,255,0.95);
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+     </style>
 </head>
 <body>
-    <div class="app-container">
-        <header class="app-header">
-            <h1>🏢 倉庫空間計算・可視化システム</h1>
-            <div class="header-controls">
-                <button id="themeToggle" class="btn btn-secondary">🌙 ダークモード</button>
-                <button id="helpBtn" class="btn btn-info">❓ ヘルプ</button>
-            </div>
-        </header>
+    <div class="container">
+        <div class="header">
+            <h1>📦 倉庫スペース計算機</h1>
+            <p>パレットの寸法と数量から必要なスペースを計算します</p>
+        </div>
 
-        <div class="main-layout">
-            <!-- Left Panel - Controls -->
-            <div class="control-panel">
-                <!-- Warehouse Setup -->
-                <div class="control-section">
-                    <h2>🏗️ 倉庫設定</h2>
-                    <div class="form-group">
-                        <label for="warehouseName">倉庫名</label>
-                        <input type="text" id="warehouseName" placeholder="倉庫名" class="form-input">
+        <div class="content">
+            <div class="main-content">
+                <div class="input-section">
+                    <!-- Warehouse Settings -->
+                    <div class="form-section">
+                        <h2>🏗️ 倉庫設定</h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="warehouseName">倉庫名</label>
+                                <input type="text" id="warehouseName" class="form-input" placeholder="倉庫名（オプション）">
+                            </div>
+                            <div class="form-group">
+                                <label for="warehouseLength">長さ (m)</label>
+                                <input type="number" id="warehouseLength" class="form-input" value="50" min="1" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label for="warehouseWidth">幅 (m)</label>
+                                <input type="number" id="warehouseWidth" class="form-input" value="40" min="1" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label for="warehouseHeight">高さ (m)</label>
+                                <input type="number" id="warehouseHeight" class="form-input" value="9" min="1" step="0.1">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="warehouseLength">長さ (m)</label>
-                            <input type="number" id="warehouseLength" value="50" min="1" step="0.1" class="form-input">
+
+                    <!-- Pallet Management -->
+                    <div class="form-section">
+                        <h2>📦 パレット管理</h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="palletName">パレット名</label>
+                                <input type="text" id="palletName" class="form-input" placeholder="パレット名">
+                            </div>
+                            <div class="form-group">
+                                <label for="palletLength">長さ (m)</label>
+                                <input type="number" id="palletLength" class="form-input" value="1.1" min="0.1" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label for="palletWidth">幅 (m)</label>
+                                <input type="number" id="palletWidth" class="form-input" value="1.1" min="0.1" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label for="palletHeight">高さ (m)</label>
+                                <input type="number" id="palletHeight" class="form-input" value="1.1" min="0.1" step="0.1">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="warehouseWidth">幅 (m)</label>
-                            <input type="number" id="warehouseWidth" value="40" min="1" step="0.1" class="form-input">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="palletQuantity">数量</label>
+                                <input type="number" id="palletQuantity" class="form-input" value="10" min="1">
+                            </div>
+                            <div class="form-group">
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="isStackable" checked>
+                                    <label for="isStackable">段積み可能</label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="maxStackHeight">最大積み重ね高さ (m)</label>
+                                <input type="number" id="maxStackHeight" class="form-input" value="3.0" min="0.1" step="0.1">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="warehouseHeight">高さ (m)</label>
-                            <input type="number" id="warehouseHeight" value="9" min="1" step="0.1" class="form-input">
+                        <button id="addPalletBtn" class="btn">➕ パレット追加</button>
+                        
+                        <div id="palletList" class="pallet-list">
+                            <!-- Pallets will be added here -->
                         </div>
                     </div>
-                    <button id="createWarehouse" class="btn btn-primary">🏗️ 倉庫を作成</button>
+
+                    <!-- Space Calculation Controls -->
+                    <div class="form-section">
+                        <h2>📐 スペース計算</h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="selectedPallets">計算対象パレット（複数選択可能）</label>
+                                <select id="selectedPallets" class="form-input" multiple size="4">
+                                    <option value="">パレットを選択してください</option>
+                                </select>
+                                <small style="color: #6b7280; font-size: 0.875rem;">Ctrl+クリックで複数選択</small>
+                            </div>
+                            <div class="form-group">
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="includeAisles" checked>
+                                    <label for="includeAisles">通路を含める</label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="aisleWidth">通路幅 (m)</label>
+                                <input type="number" id="aisleWidth" class="form-input" value="2.5" min="0.5" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label for="palletClearance">パレット間クリアランス (cm)</label>
+                                <input type="number" id="palletClearance" class="form-input" value="5" min="0" step="1" max="100">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="calculationMode">計算モード</label>
+                                <select id="calculationMode" class="form-input">
+                                    <option value="combined">統合計算（全パレットを同時配置）</option>
+                                    <option value="separate">個別計算（各パレットタイプ別）</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button id="calculateBtn" class="btn">📐 スペース計算実行</button>
+                    </div>
                 </div>
 
-                <!-- Pallet Management -->
-                <div class="control-section">
-                    <h2>📦 パレット管理</h2>
-                    <div class="pallet-controls">
-                        <button id="addPalletBtn" class="btn btn-primary">➕ パレット追加</button>
-                    </div>
-                    <div id="palletList" class="pallet-list">
-                        <!-- Pallets will be added here -->
-                    </div>
-                </div>
-
-                <!-- Space Calculation -->
-                <div class="control-section">
-                    <h2>📐 自動スペース計算</h2>
-                    <div class="form-group">
-                        <label for="selectedPallet">計算対象パレット</label>
-                        <select id="selectedPallet" class="form-input">
-                            <option value="">パレットを選択</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="palletQuantity">数量</label>
-                        <input type="number" id="palletQuantity" value="10" min="1" class="form-input">
-                    </div>
-                    <div class="form-group">
-                        <label for="stackingMode">積み重ねモード</label>
-                        <select id="stackingMode" class="form-input">
-                            <option value="flat">平置きのみ</option>
-                            <option value="stack">段積み可能</option>
-                            <option value="auto">自動判定</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="maxStackHeight">最大積み重ね高さ (m)</label>
-                        <input type="number" id="maxStackHeight" value="3.0" min="1" step="0.1" class="form-input">
-                    </div>
-                    <button id="calculateSpace" class="btn btn-primary">📐 スペース計算</button>
-
-                    <div id="calculationResult" class="calculation-result" style="display: none;">
-                        <div class="result-item">
-                            <span class="result-label">必要面積:</span>
-                            <span id="requiredArea" class="result-value">0</span> m²
+                <div class="output-section">
+                    <div id="calculationResults" class="results hidden">
+                        <h3>📊 計算結果</h3>
+                        <div class="result-grid">
+                            <div class="result-item">
+                                <div class="result-value" id="requiredArea">0</div>
+                                <div class="result-label">必要面積 (m²)</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-value" id="stackingLevels">1</div>
+                                <div class="result-label">段積み段数</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-value" id="palletsPerRow">0</div>
+                                <div class="result-label">1列あたりのパレット数</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-value" id="totalRows">0</div>
+                                <div class="result-label">必要列数</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-value" id="utilizationRate">0%</div>
+                                <div class="result-label">倉庫利用率</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-value" id="efficiency">0%</div>
+                                <div class="result-label">配置効率</div>
+                            </div>
                         </div>
-                        <div class="result-item">
-                            <span class="result-label">段積み段数:</span>
-                            <span id="stackingLevels" class="result-value">1</span> 段
+                        <div style="margin-top: 1rem;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span>配置効率</span>
+                                <span id="efficiencyText">0%</span>
+                            </div>
+                            <div class="efficiency-bar">
+                                <div class="efficiency-fill" id="efficiencyBar" style="width: 0%"></div>
+                            </div>
                         </div>
-                        <div class="result-item">
-                            <span class="result-label">配置効率:</span>
-                            <span id="placementEfficiency" class="result-value">0</span> %
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Auto Placement -->
-                <div class="control-section">
-                    <h2>🎯 自動配置</h2>
-                    <div class="form-group">
-                        <label for="placementAlgorithm">配置アルゴリズム</label>
-                        <select id="placementAlgorithm" class="form-input">
-                            <option value="grid">グリッド配置</option>
-                            <option value="density">密度優先</option>
-                            <option value="efficiency">効率優先</option>
-                            <option value="accessibility">アクセシビリティ優先</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="aisleWidth">通路幅 (m)</label>
-                        <input type="number" id="aisleWidth" value="2.5" min="1" step="0.1" class="form-input">
-                    </div>
-                    <button id="autoPlaceBtn" class="btn btn-primary">🎯 自動配置実行</button>
-                    <button id="clearAllBtn" class="btn btn-danger">🗑️ すべてクリア</button>
-                </div>
-
-                <!-- Space Utilization -->
-                <div class="control-section">
-                    <h2>📊 空間利用率</h2>
-                    <div class="metrics-grid">
-                        <div class="metric-card">
-                            <div class="metric-value" id="totalArea">0</div>
-                            <div class="metric-label">総面積 (m²)</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-value" id="usedArea">0</div>
-                            <div class="metric-label">使用面積 (m²)</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-value" id="utilizationRate">0%</div>
-                            <div class="metric-label">利用率</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-value" id="placedPallets">0</div>
-                            <div class="metric-label">配置パレット数</div>
+                        
+                        <!-- 2D Layout Visualization -->
+                        <div id="layoutSection" class="layout-section hidden">
+                            <h3>🗺️ 推奨レイアウト</h3>
+                            <div class="layout-controls">
+                                <button id="generateLayoutBtn" class="btn btn-sm">🗺️ レイアウト生成</button>
+                                <button id="clearLayoutBtn" class="btn btn-sm btn-danger">🗑️ クリア</button>
+                            </div>
+                            <div id="layoutContainer" class="layout-container">
+                                <div id="warehouseLayout" class="warehouse-layout"></div>
+                            </div>
+                            <div id="layoutLegend" class="layout-legend"></div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Right Panel - 3D Visualization -->
-            <div class="visualization-panel">
-                <div class="view-controls">
-                    <button id="resetView" class="btn btn-sm btn-secondary">🔄 リセット</button>
-                    <button id="topView" class="btn btn-sm btn-secondary">⬆️ 上から</button>
-                    <button id="sideView" class="btn btn-sm btn-secondary">↔️ 横から</button>
-                    <button id="isoView" class="btn btn-sm btn-secondary">📐 等角</button>
-                </div>
-
-                <div id="warehouse3D" class="warehouse-3d"></div>
-
-                <div class="interaction-info">
-                    <div class="info-item">
-                        <span class="info-label">🖱️ 操作:</span>
-                        <span class="info-value">左クリック&ドラッグで回転</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">🔍 ズーム:</span>
-                        <span class="info-value">マウスホイール</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">📍 パン:</span>
-                        <span class="info-value">右クリック&ドラッグ</span>
-                    </div>
+                    <!-- Message Container -->
+                    <div id="messageContainer"></div>
                 </div>
             </div>
         </div>
-
-        <!-- Message Container -->
-        <div id="messageContainer" class="message-container"></div>
     </div>
 
-    <script src="warehouse-space.js"></script>
+    <script>
+        class SimpleWarehouseCalculator {
+            constructor() {
+                this.warehouse = {
+                    name: '',
+                    length: 50,
+                    width: 40,
+                    height: 9
+                };
+                this.pallets = [];
+                this.currentPalletId = 0;
+                
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.updateWarehouseInfo();
+            }
+
+            setupEventListeners() {
+                // Warehouse settings
+                document.getElementById('warehouseLength').addEventListener('input', () => { this.updateWarehouseInfo(); this.redrawLayoutIfActive(); });
+                document.getElementById('warehouseWidth').addEventListener('input', () => { this.updateWarehouseInfo(); this.redrawLayoutIfActive(); });
+                document.getElementById('warehouseHeight').addEventListener('input', () => { this.updateWarehouseInfo(); this.redrawLayoutIfActive(); });
+                document.getElementById('warehouseName').addEventListener('input', () => this.updateWarehouseInfo());
+
+                // Pallet management
+                document.getElementById('addPalletBtn').addEventListener('click', () => this.addPallet());
+                
+                // Calculation
+                document.getElementById('calculateBtn').addEventListener('click', () => this.calculateSpace());
+                
+                // Layout generation
+                document.getElementById('generateLayoutBtn').addEventListener('click', () => this.generateLayout());
+                document.getElementById('clearLayoutBtn').addEventListener('click', () => this.clearLayout());
+
+                // Dynamic redraw inputs
+                document.getElementById('aisleWidth').addEventListener('input', () => this.redrawLayoutIfActive());
+                document.getElementById('palletClearance').addEventListener('input', () => this.redrawLayoutIfActive());
+                document.getElementById('includeAisles').addEventListener('change', () => this.redrawLayoutIfActive());
+                document.getElementById('calculationMode').addEventListener('change', () => this.redrawLayoutIfActive());
+                document.getElementById('selectedPallets').addEventListener('change', () => this.redrawLayoutIfActive());
+            }
+
+            updateWarehouseInfo() {
+                this.warehouse.name = document.getElementById('warehouseName').value || '倉庫';
+                this.warehouse.length = parseFloat(document.getElementById('warehouseLength').value) || 50;
+                this.warehouse.width = parseFloat(document.getElementById('warehouseWidth').value) || 40;
+                this.warehouse.height = parseFloat(document.getElementById('warehouseHeight').value) || 9;
+            }
+
+            redrawLayoutIfActive() {
+                const layoutSection = document.getElementById('layoutSection');
+                if (!layoutSection || layoutSection.classList.contains('hidden')) {
+                    // No layout displayed; nothing to update
+                    return;
+                }
+                const selected = Array.from(document.getElementById('selectedPallets').selectedOptions);
+                if (selected.length === 0) {
+                    this.clearLayout();
+                    return;
+                }
+                const mode = document.getElementById('calculationMode').value;
+                const includeAisles = document.getElementById('includeAisles').checked;
+                const aisleWidth = includeAisles ? (parseFloat(document.getElementById('aisleWidth').value) || 2.5) : 0;
+                const palletClearance = (parseFloat(document.getElementById('palletClearance').value) || 5) / 100; // Convert cm to m
+                const indices = selected.map(o => parseInt(o.value));
+                const pallets = indices.map(i => this.pallets[i]).filter(Boolean);
+                this.clearLayout();
+                const plan = this.buildLayoutPlan(pallets, mode, aisleWidth, palletClearance);
+                if (!plan.shapes || plan.shapes.length === 0) {
+                    return;
+                }
+                this.renderLayout(plan);
+                this.createLegendWithStacks(pallets, plan.colors, document.getElementById('layoutLegend'));
+            }
+
+            addPallet() {
+                const name = document.getElementById('palletName').value.trim() || 'A';
+                const length = parseFloat(document.getElementById('palletLength').value);
+                const width = parseFloat(document.getElementById('palletWidth').value);
+                const height = parseFloat(document.getElementById('palletHeight').value);
+                const quantity = parseInt(document.getElementById('palletQuantity').value);
+                const isStackable = document.getElementById('isStackable').checked;
+                const maxStackHeight = parseFloat(document.getElementById('maxStackHeight').value);
+
+                if (!length || !width || !height || !quantity) {
+                    this.showMessage('寸法と数量を入力してください', 'error');
+                    return;
+                }
+
+                const pallet = {
+                    id: ++this.currentPalletId,
+                    name: name,
+                    length: length,
+                    width: width,
+                    height: height,
+                    quantity: quantity,
+                    isStackable: isStackable,
+                    maxStackHeight: maxStackHeight,
+                    volume: length * width * height
+                };
+
+                this.pallets.push(pallet);
+                this.updatePalletList();
+                this.updatePalletSelector();
+                this.clearPalletForm();
+
+                this.showMessage(`パレット「${name}」を追加しました`, 'success');
+            }
+
+            updatePalletList() {
+                const container = document.getElementById('palletList');
+                container.innerHTML = '';
+
+                if (this.pallets.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 1rem;">パレットがありません</p>';
+                    return;
+                }
+
+                this.pallets.forEach((pallet, index) => {
+                    const palletElement = document.createElement('div');
+                    palletElement.className = 'pallet-item';
+                    palletElement.innerHTML = `
+                        <div class="pallet-info">
+                            <h4>${pallet.name}</h4>
+                            <p>寸法: ${pallet.length}×${pallet.width}×${pallet.height}m | 数量: ${pallet.quantity}個 | 段積み: ${pallet.isStackable ? '可能' : '不可'}</p>
+                        </div>
+                        <div class="pallet-actions">
+                            <button class="btn btn-sm" onclick="calculator.editPallet(${index})">編集</button>
+                            <button class="btn btn-sm btn-danger" onclick="calculator.deletePallet(${index})">削除</button>
+                        </div>
+                    `;
+                    container.appendChild(palletElement);
+                });
+            }
+
+            updatePalletSelector() {
+                const selector = document.getElementById('selectedPallets');
+                selector.innerHTML = '';
+
+                this.pallets.forEach((pallet, index) => {
+                    const option = document.createElement('option');
+                    option.value = index.toString();
+                    option.textContent = `${pallet.name} (${pallet.length}×${pallet.width}×${pallet.height}m, ${pallet.quantity}個)`;
+                    option.selected = true; // Auto-select all pallets by default
+                    selector.appendChild(option);
+                });
+            }
+
+            clearPalletForm() {
+                document.getElementById('palletName').value = '';
+                document.getElementById('palletLength').value = '1.1';
+                document.getElementById('palletWidth').value = '1.1';
+                document.getElementById('palletHeight').value = '1.1';
+                document.getElementById('palletQuantity').value = '10';
+                document.getElementById('isStackable').checked = true;
+                document.getElementById('maxStackHeight').value = '3.0';
+            }
+
+            editPallet(index) {
+                const pallet = this.pallets[index];
+                if (!pallet) return;
+
+                document.getElementById('palletName').value = pallet.name;
+                document.getElementById('palletLength').value = pallet.length;
+                document.getElementById('palletWidth').value = pallet.width;
+                document.getElementById('palletHeight').value = pallet.height;
+                document.getElementById('palletQuantity').value = pallet.quantity;
+                document.getElementById('isStackable').checked = pallet.isStackable;
+                document.getElementById('maxStackHeight').value = pallet.maxStackHeight;
+
+                this.deletePallet(index);
+            }
+
+            deletePallet(index) {
+                if (confirm('このパレットを削除しますか？')) {
+                    this.pallets.splice(index, 1);
+                    this.updatePalletList();
+                    this.updatePalletSelector();
+                    this.showMessage('パレットを削除しました', 'success');
+                }
+            }
+
+            calculateSpace() {
+                const selectedPallets = Array.from(document.getElementById('selectedPallets').selectedOptions);
+                const calculationMode = document.getElementById('calculationMode').value;
+                
+                if (selectedPallets.length === 0) {
+                    this.showMessage('パレットを選択してください', 'error');
+                    return;
+                }
+
+                const aisleWidth = parseFloat(document.getElementById('aisleWidth').value) || 2.5;
+                const selectedPalletIndices = selectedPallets.map(option => parseInt(option.value));
+                const selectedPalletObjects = selectedPalletIndices.map(index => this.pallets[index]).filter(pallet => pallet);
+
+                if (selectedPalletObjects.length === 0) {
+                    this.showMessage('選択されたパレットが見つかりません', 'error');
+                    return;
+                }
+
+                if (calculationMode === 'combined') {
+                    this.calculateCombined(selectedPalletObjects, aisleWidth);
+                } else {
+                    this.calculateSeparate(selectedPalletObjects, aisleWidth);
+                }
+            }
+
+            calculateCombined(pallets, aisleWidth) {
+                // Calculate total area needed for all pallets combined
+                let totalRequiredArea = 0;
+                let totalPallets = 0;
+                let maxStackingLevels = 1;
+                let totalStacks = 0;
+
+                // Calculate for each pallet type
+                pallets.forEach(pallet => {
+                    // Calculate stacking levels for this pallet type
+                    let stackingLevels = 1;
+                    if (pallet.isStackable) {
+                        const maxLevelsByHeight = Math.floor(this.warehouse.height / pallet.height);
+                        const maxLevelsByStackHeight = Math.floor(pallet.maxStackHeight / pallet.height);
+                        stackingLevels = Math.min(maxLevelsByHeight, maxLevelsByStackHeight);
+                        stackingLevels = Math.max(1, stackingLevels);
+                    }
+
+                    const stacksNeeded = Math.ceil(pallet.quantity / stackingLevels);
+                    const palletArea = pallet.length * pallet.width;
+                    const requiredArea = stacksNeeded * palletArea;
+
+                    totalRequiredArea += requiredArea;
+                    totalPallets += pallet.quantity;
+                    maxStackingLevels = Math.max(maxStackingLevels, stackingLevels);
+                    totalStacks += stacksNeeded;
+                });
+
+                // Calculate layout for combined pallets (using average pallet size)
+                const avgPalletLength = pallets.reduce((sum, p) => sum + p.length, 0) / pallets.length;
+                const avgPalletWidth = pallets.reduce((sum, p) => sum + p.width, 0) / pallets.length;
+
+                const effectiveLength = this.warehouse.length - aisleWidth;
+                const palletsPerRow = Math.floor(effectiveLength / avgPalletLength);
+                
+                if (palletsPerRow <= 0) {
+                    this.showMessage('倉庫の長さが不足しています。通路幅を調整してください。', 'error');
+                    return;
+                }
+
+                const totalRows = Math.ceil(totalStacks / palletsPerRow);
+
+                // Calculate utilization rates
+                const warehouseArea = this.warehouse.length * this.warehouse.width;
+                const utilizationRate = warehouseArea > 0 ? (totalRequiredArea / warehouseArea) * 100 : 0;
+                
+                const availableArea = effectiveLength * (this.warehouse.width - aisleWidth);
+                const efficiency = availableArea > 0 ? (totalRequiredArea / availableArea) * 100 : 0;
+
+                // Display results
+                document.getElementById('requiredArea').textContent = totalRequiredArea.toFixed(2);
+                document.getElementById('stackingLevels').textContent = maxStackingLevels.toString();
+                document.getElementById('palletsPerRow').textContent = palletsPerRow.toString();
+                document.getElementById('totalRows').textContent = totalRows.toString();
+                document.getElementById('utilizationRate').textContent = utilizationRate.toFixed(1) + '%';
+                document.getElementById('efficiency').textContent = efficiency.toFixed(1) + '%';
+                document.getElementById('efficiencyText').textContent = efficiency.toFixed(1) + '%';
+                document.getElementById('efficiencyBar').style.width = Math.min(efficiency, 100) + '%';
+
+                document.getElementById('calculationResults').classList.remove('hidden');
+                document.getElementById('layoutSection').classList.remove('hidden');
+                this.showMessage(`統合計算完了: ${pallets.length}種類のパレット、合計${totalPallets}個`, 'success');
+            }
+
+            calculateSeparate(pallets, aisleWidth) {
+                // Calculate for each pallet type separately
+                let totalRequiredArea = 0;
+                let totalPallets = 0;
+                let maxStackingLevels = 1;
+                let totalRows = 0;
+
+                pallets.forEach((pallet, index) => {
+                    // Calculate stacking levels
+                    let stackingLevels = 1;
+                    if (pallet.isStackable) {
+                        const maxLevelsByHeight = Math.floor(this.warehouse.height / pallet.height);
+                        const maxLevelsByStackHeight = Math.floor(pallet.maxStackHeight / pallet.height);
+                        stackingLevels = Math.min(maxLevelsByHeight, maxLevelsByStackHeight);
+                        stackingLevels = Math.max(1, stackingLevels);
+                    }
+
+                    // Calculate pallets per row for this pallet type
+                    const effectiveLength = this.warehouse.length - aisleWidth;
+                    const palletsPerRow = Math.floor(effectiveLength / pallet.length);
+                    
+                    if (palletsPerRow <= 0) {
+                        this.showMessage(`パレット「${pallet.name}」: 倉庫の長さが不足しています`, 'error');
+                        return;
+                    }
+
+                    const stacksNeeded = Math.ceil(pallet.quantity / stackingLevels);
+                    const palletArea = pallet.length * pallet.width;
+                    const requiredArea = stacksNeeded * palletArea;
+                    const rowsNeeded = Math.ceil(stacksNeeded / palletsPerRow);
+
+                    totalRequiredArea += requiredArea;
+                    totalPallets += pallet.quantity;
+                    maxStackingLevels = Math.max(maxStackingLevels, stackingLevels);
+                    totalRows += rowsNeeded;
+                });
+
+                // Calculate utilization rates
+                const warehouseArea = this.warehouse.length * this.warehouse.width;
+                const utilizationRate = warehouseArea > 0 ? (totalRequiredArea / warehouseArea) * 100 : 0;
+                
+                const effectiveLength = this.warehouse.length - aisleWidth;
+                const availableArea = effectiveLength * (this.warehouse.width - aisleWidth);
+                const efficiency = availableArea > 0 ? (totalRequiredArea / availableArea) * 100 : 0;
+
+                // Display results
+                document.getElementById('requiredArea').textContent = totalRequiredArea.toFixed(2);
+                document.getElementById('stackingLevels').textContent = maxStackingLevels.toString();
+                document.getElementById('palletsPerRow').textContent = '複数種類';
+                document.getElementById('totalRows').textContent = totalRows.toString();
+                document.getElementById('utilizationRate').textContent = utilizationRate.toFixed(1) + '%';
+                document.getElementById('efficiency').textContent = efficiency.toFixed(1) + '%';
+                document.getElementById('efficiencyText').textContent = efficiency.toFixed(1) + '%';
+                document.getElementById('efficiencyBar').style.width = Math.min(efficiency, 100) + '%';
+
+                document.getElementById('calculationResults').classList.remove('hidden');
+                document.getElementById('layoutSection').classList.remove('hidden');
+                this.showMessage(`個別計算完了: ${pallets.length}種類のパレット、合計${totalPallets}個`, 'success');
+            }
+
+            showMessage(message, type = 'info') {
+                const container = document.getElementById('messageContainer');
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${type}`;
+                messageElement.textContent = message;
+
+                container.appendChild(messageElement);
+
+                setTimeout(() => {
+                    if (messageElement.parentNode) {
+                        messageElement.remove();
+                    }
+                }, 5000);
+            }
+
+            generateLayout() {
+                // Update warehouse info from input fields first
+                this.updateWarehouseInfo();
+                
+                const selectedPallets = Array.from(document.getElementById('selectedPallets').selectedOptions);
+                const calculationMode = document.getElementById('calculationMode').value;
+                const includeAisles = document.getElementById('includeAisles').checked;
+                const aisleWidth = includeAisles ? (parseFloat(document.getElementById('aisleWidth').value) || 2.5) : 0;
+                const palletClearance = (parseFloat(document.getElementById('palletClearance').value) || 5) / 100; // Convert cm to m
+
+                if (selectedPallets.length === 0) {
+                    this.showMessage('パレットを選択してください', 'error');
+                    return;
+                }
+
+                const selectedPalletIndices = selectedPallets.map(option => parseInt(option.value));
+                const pallets = selectedPalletIndices.map(index => this.pallets[index]).filter(Boolean);
+                if (pallets.length === 0) {
+                    this.showMessage('選択されたパレットが見つかりません', 'error');
+                    return;
+                }
+
+                this.clearLayout();
+                const plan = this.buildLayoutPlan(pallets, calculationMode, aisleWidth, palletClearance);
+
+                // Guard: nothing to place
+                if ((!plan.shapes || plan.shapes.length === 0) && (!plan.aisles || plan.aisles.length === 0)) {
+                    this.showMessage('レイアウトに配置できるスタックがありません。倉庫寸法や通路幅を見直してください。', 'error');
+                    return;
+                }
+
+                this.renderLayout(plan);
+                this.createLegendWithStacks(pallets, plan.colors, document.getElementById('layoutLegend'));
+
+                // Ensure sections are visible even if計算前
+                document.getElementById('calculationResults').classList.remove('hidden');
+                document.getElementById('layoutSection').classList.remove('hidden');
+
+                this.showMessage('2Dレイアウトを生成しました', 'success');
+            }
+
+            clearLayout() {
+                const layoutContainer = document.getElementById('warehouseLayout');
+                const legendContainer = document.getElementById('layoutLegend');
+                if (layoutContainer) {
+                    layoutContainer.innerHTML = '';
+                    layoutContainer.style.width = 'auto';
+                    layoutContainer.style.height = '300px';
+                    
+                    // Remove any existing dimension labels
+                    const existingLabels = layoutContainer.parentNode.querySelectorAll('.dimension-label');
+                    existingLabels.forEach(label => label.remove());
+                }
+                if (legendContainer) {
+                    legendContainer.innerHTML = '';
+                }
+            }
+
+            buildLayoutPlan(pallets, mode, aisleWidthMeters, palletClearanceMeters = 0.05) {
+                const pixelsPerMeter = 10; // Base scale; container will scroll if needed
+                const warehouseWidthPx = this.warehouse.width * pixelsPerMeter;
+                const warehouseHeightPx = this.warehouse.length * pixelsPerMeter;
+                const aislePx = Math.max(0, aisleWidthMeters * pixelsPerMeter);
+                const clearancePx = palletClearanceMeters * pixelsPerMeter;
+                const margin = 8; // small padding inside outline
+                const colors = this.getColorPalette();
+
+                const palletDefs = pallets.map((p, i) => {
+                    const stacks = Math.ceil(p.quantity / this.getStackingLevels(p));
+                    return {
+                        name: p.name,
+                        lengthM: p.length,
+                        widthM: p.width,
+                        stacks,
+                        color: colors[i % colors.length]
+                    };
+                });
+
+                const shapes = [];
+                const aisles = [];
+
+                if (mode === 'combined') {
+                    if (palletDefs.length === 0) return { widthPx: warehouseWidthPx, heightPx: warehouseHeightPx, scale: pixelsPerMeter, shapes, aisles, colors };
+                    // Use largest pallet footprint for unified grid
+                    const cellLenM = Math.max(...palletDefs.map(pd => pd.lengthM));
+                    const cellWidM = Math.max(...palletDefs.map(pd => pd.widthM));
+                    const cellW = cellLenM * pixelsPerMeter;
+                    const cellH = cellWidM * pixelsPerMeter;
+
+                    const usableW = Math.max(0, warehouseWidthPx - margin * 2);
+                    const usableH = Math.max(0, warehouseHeightPx - margin * 2);
+
+                    // Column fitting with grouped aisles (every 2 columns) and clearance
+                    const groupColumns = 2;
+                    let cols = 0;
+                    while (true) {
+                        const nextCols = cols + 1;
+                        const aislesNeeded = Math.floor(nextCols / groupColumns);
+                        const clearancesNeeded = Math.max(0, nextCols - 1);
+                        const totalWidth = nextCols * cellW + aislesNeeded * aislePx + clearancesNeeded * clearancePx;
+                        if (totalWidth <= usableW) {
+                            cols = nextCols;
+                        } else {
+                            break;
+                        }
+                    }
+                    // Rows without internal horizontal aisles
+                    const rows = Math.max(0, Math.floor(usableH / cellH));
+
+                    const totalCapacity = cols * rows;
+                    const totalStacks = palletDefs.reduce((s, pd) => s + pd.stacks, 0);
+                    if (totalCapacity === 0 || totalStacks === 0) {
+                        return { widthPx: warehouseWidthPx, heightPx: warehouseHeightPx, scale: pixelsPerMeter, shapes, aisles, colors };
+                    }
+
+                    // Place stacks in row-major order, adding an aisle after every 2 columns
+                    let placed = 0;
+                    let typeIndex = 0;
+                    let remainingOfType = palletDefs[0]?.stacks || 0;
+
+                    for (let r = 0; r < rows && placed < totalStacks; r++) {
+                        for (let c = 0; c < cols && placed < totalStacks; c++) {
+                            // x offset includes aisle after every 2 columns and clearance between pallets
+                            const aisleBlocksBefore = Math.floor(c / groupColumns);
+                            const clearancesBefore = c;
+                            const x = margin + c * cellW + aisleBlocksBefore * aislePx + clearancesBefore * clearancePx;
+                            const y = margin + r * cellH;
+
+                            // vertical aisle at group boundary (before column indices divisible by groupColumns, except first)
+                            if (c > 0 && c % groupColumns === 0 && aislePx > 0) {
+                                const ax = x - aislePx - clearancePx;
+                                aisles.push({ x: ax, y, w: aislePx, h: cellH, orientation: 'vertical' });
+                            }
+
+                            // assign current type color
+                            while (typeIndex < palletDefs.length && remainingOfType === 0) {
+                                typeIndex++;
+                                remainingOfType = palletDefs[typeIndex]?.stacks || 0;
+                            }
+                            const color = palletDefs[typeIndex]?.color || colors[0];
+                            const label = `S${placed + 1}`;
+
+                            shapes.push({ x, y, w: cellW, h: cellH, color, label });
+                            placed++;
+                            remainingOfType = Math.max(0, remainingOfType - 1);
+                        }
+
+                        // Draw full-height vertical aisles for remaining rows at group boundaries
+                        for (let c = groupColumns; c < cols; c += groupColumns) {
+                            const aisleBlocksBefore = Math.floor(c / groupColumns);
+                            const clearancesBefore = c;
+                            const ax = margin + c * cellW + (aisleBlocksBefore - 1) * aislePx + clearancesBefore * clearancePx;
+                            const already = aisles.find(a => a.orientation === 'vertical' && Math.abs(a.x - ax) < 0.5 && a.h >= cellH * rows);
+                            if (!already && aislePx > 0) {
+                                aisles.push({ x: ax, y: margin, w: aislePx, h: rows * cellH, orientation: 'vertical' });
+                            }
+                        }
+                    }
+                } else {
+                    // Separate mode: allocate vertical bands per type with vertical aisles between bands
+                    let cursorX = margin;
+
+                    palletDefs.forEach((pd, idx) => {
+                        const cellW = pd.lengthM * pixelsPerMeter;
+                        const cellH = pd.widthM * pixelsPerMeter;
+
+                        const usableW = Math.max(0, warehouseWidthPx - cursorX - margin);
+                        const usableH = Math.max(0, warehouseHeightPx - margin * 2);
+                        const cols = Math.max(1, Math.floor(usableW / Math.max(1, cellW + clearancePx)));
+                        const rows = Math.max(1, Math.ceil(pd.stacks / cols));
+
+                        for (let s = 0; s < pd.stacks; s++) {
+                            const r = Math.floor(s / cols);
+                            const c = s % cols;
+                            const x = cursorX + c * (cellW + clearancePx);
+                            const y = margin + r * (cellH + aislePx);
+
+                            if (r > 0 && aislePx > 0) {
+                                aisles.push({ x, y: y - aislePx, w: cellW, h: aislePx, orientation: 'horizontal' });
+                            }
+
+                            // If exceeds height, stop placing further rows for this band
+                            if (y + cellH > margin + usableH) break;
+
+                            shapes.push({ x, y, w: cellW, h: cellH, color: pd.color, label: `${pd.name.charAt(0)}${s + 1}` });
+                        }
+
+                        // vertical aisle between bands
+                        if (idx < palletDefs.length - 1 && aislePx > 0) {
+                            const aisleX = cursorX + Math.min(pd.stacks, cols) * (cellW + clearancePx) + 4;
+                            aisles.push({ x: aisleX, y: margin, w: aislePx, h: Math.max(0, warehouseHeightPx - margin * 2), orientation: 'vertical' });
+                            cursorX = aisleX + aislePx + 4;
+                        } else {
+                            cursorX += Math.min(pd.stacks, cols) * (cellW + clearancePx);
+                        }
+                    });
+                }
+
+                return {
+                    widthPx: warehouseWidthPx,
+                    heightPx: warehouseHeightPx,
+                    scale: pixelsPerMeter,
+                    shapes,
+                    aisles,
+                    colors
+                };
+            }
+
+            renderLayout(plan) {
+                const layoutContainer = document.getElementById('warehouseLayout');
+                
+                // Clear any existing content first
+                layoutContainer.innerHTML = '';
+                
+                // Update container size to match warehouse dimensions
+                layoutContainer.style.width = plan.widthPx + 'px';
+                layoutContainer.style.height = plan.heightPx + 'px';
+
+                // Outline
+                const outline = document.createElement('div');
+                outline.className = 'warehouse-outline';
+                outline.style.width = plan.widthPx + 'px';
+                outline.style.height = plan.heightPx + 'px';
+                outline.style.left = '0px';
+                outline.style.top = '0px';
+                layoutContainer.appendChild(outline);
+
+                // Dimension label placed after the container
+                const dim = document.createElement('div');
+                dim.className = 'dimension-label';
+                dim.textContent = `幅 ${this.warehouse.width}m × 長さ ${this.warehouse.length}m`;
+                // append after layoutContainer to avoid scrollbars
+                layoutContainer.parentNode.appendChild(dim);
+
+                // Aisles
+                plan.aisles.forEach(a => {
+                    const aisle = document.createElement('div');
+                    aisle.className = 'aisle ' + (a.orientation === 'vertical' ? 'vertical' : 'horizontal');
+                    aisle.style.left = a.x + 'px';
+                    aisle.style.top = a.y + 'px';
+                    aisle.style.width = a.w + 'px';
+                    aisle.style.height = a.h + 'px';
+                    layoutContainer.appendChild(aisle);
+                });
+
+                // Pallet shapes
+                plan.shapes.forEach((s, i) => {
+                    const d = document.createElement('div');
+                    d.className = 'pallet-area';
+                    d.style.left = s.x + 'px';
+                    d.style.top = s.y + 'px';
+                    d.style.width = s.w + 'px';
+                    d.style.height = s.h + 'px';
+                    d.style.backgroundColor = s.color;
+                    d.textContent = s.label;
+                    layoutContainer.appendChild(d);
+                });
+            }
+
+            getStackingLevels(pallet) {
+                if (!pallet.isStackable) return 1;
+                const byHeight = Math.floor(this.warehouse.height / pallet.height);
+                const byMax = Math.floor(pallet.maxStackHeight / pallet.height);
+                return Math.max(1, Math.min(byHeight, byMax));
+            }
+
+            getColorPalette() {
+                return ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'];
+            }
+
+            createLegendWithStacks(pallets, colors, container) {
+                container.innerHTML = '';
+
+                const warehouseInfo = document.createElement('div');
+                warehouseInfo.className = 'legend-item';
+                warehouseInfo.innerHTML = `
+                    <div class="legend-color" style="background-color: #374151;"></div>
+                    <span>倉庫境界</span>
+                `;
+                container.appendChild(warehouseInfo);
+
+                const aisleInfo = document.createElement('div');
+                aisleInfo.className = 'legend-item';
+                aisleInfo.innerHTML = `
+                    <div class="legend-color" style="background: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 50%, #e5e7eb 100%);"></div>
+                    <span>通路</span>
+                `;
+                container.appendChild(aisleInfo);
+
+                pallets.forEach((pallet, index) => {
+                    const stacks = Math.ceil(pallet.quantity / this.getStackingLevels(pallet));
+                    const legendItem = document.createElement('div');
+                    legendItem.className = 'legend-item';
+                    legendItem.innerHTML = `
+                        <div class="legend-color" style="background-color: ${colors[index % colors.length]};"></div>
+                        <span>${pallet.name}（${stacks}スタック）</span>
+                    `;
+                    container.appendChild(legendItem);
+                });
+            }
+
+            createLayoutVisualization(pallets, mode, aisleWidth) {
+                // Deprecated in favor of buildLayoutPlan + renderLayout; keep for compatibility if referenced
+                const plan = this.buildLayoutPlan(pallets, mode, aisleWidth);
+                this.renderLayout(plan);
+            }
+
+            createCombinedLayout() { /* Rebuilt by buildLayoutPlan */ }
+
+            createSeparateLayout() { /* Rebuilt by buildLayoutPlan */ }
+
+            createGridAisles() { /* Rebuilt by buildLayoutPlan */ }
+
+            createAisles() { /* Rebuilt by buildLayoutPlan */ }
+        }
+
+        // Initialize the calculator
+        const calculator = new SimpleWarehouseCalculator();
+    </script>
 </body>
 </html>

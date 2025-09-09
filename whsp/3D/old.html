@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>倉庫空間計算・可視化システム</title>
+    <link rel="stylesheet" href="warehouse-space.css">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>🏢 倉庫空間計算・可視化システム</h1>
+            <div class="header-controls">
+                <button id="themeToggle" class="btn btn-secondary">🌙 ダークモード</button>
+                <button id="helpBtn" class="btn btn-info">❓ ヘルプ</button>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <!-- Left Panel - Controls -->
+            <div class="control-panel">
+                <!-- Warehouse Setup -->
+                <div class="control-section">
+                    <h2>🏗️ 倉庫設定</h2>
+                    <div class="form-group">
+                        <label for="warehouseName">倉庫名</label>
+                        <input type="text" id="warehouseName" placeholder="倉庫名" class="form-input">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="warehouseLength">長さ (m)</label>
+                            <input type="number" id="warehouseLength" value="50" min="1" step="0.1" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="warehouseWidth">幅 (m)</label>
+                            <input type="number" id="warehouseWidth" value="40" min="1" step="0.1" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="warehouseHeight">高さ (m)</label>
+                            <input type="number" id="warehouseHeight" value="9" min="1" step="0.1" class="form-input">
+                        </div>
+                    </div>
+                    <button id="createWarehouse" class="btn btn-primary">🏗️ 倉庫を作成</button>
+                </div>
+
+                <!-- Pallet Management -->
+                <div class="control-section">
+                    <h2>📦 パレット管理</h2>
+                    <div class="pallet-controls">
+                        <button id="addPalletBtn" class="btn btn-primary">➕ パレット追加</button>
+                    </div>
+                    <div id="palletList" class="pallet-list">
+                        <!-- Pallets will be added here -->
+                    </div>
+                </div>
+
+                <!-- Space Calculation -->
+                <div class="control-section">
+                    <h2>📐 自動スペース計算</h2>
+                    <div class="form-group">
+                        <label for="selectedPallet">計算対象パレット</label>
+                        <select id="selectedPallet" class="form-input">
+                            <option value="">パレットを選択</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="palletQuantity">数量</label>
+                        <input type="number" id="palletQuantity" value="10" min="1" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="stackingMode">積み重ねモード</label>
+                        <select id="stackingMode" class="form-input">
+                            <option value="flat">平置きのみ</option>
+                            <option value="stack">段積み可能</option>
+                            <option value="auto">自動判定</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="maxStackHeight">最大積み重ね高さ (m)</label>
+                        <input type="number" id="maxStackHeight" value="3.0" min="1" step="0.1" class="form-input">
+                    </div>
+                    <button id="calculateSpace" class="btn btn-primary">📐 スペース計算</button>
+
+                    <div id="calculationResult" class="calculation-result" style="display: none;">
+                        <div class="result-item">
+                            <span class="result-label">必要面積:</span>
+                            <span id="requiredArea" class="result-value">0</span> m²
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">段積み段数:</span>
+                            <span id="stackingLevels" class="result-value">1</span> 段
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">配置効率:</span>
+                            <span id="placementEfficiency" class="result-value">0</span> %
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Auto Placement -->
+                <div class="control-section">
+                    <h2>🎯 自動配置</h2>
+                    <div class="form-group">
+                        <label for="placementAlgorithm">配置アルゴリズム</label>
+                        <select id="placementAlgorithm" class="form-input">
+                            <option value="grid">グリッド配置</option>
+                            <option value="density">密度優先</option>
+                            <option value="efficiency">効率優先</option>
+                            <option value="accessibility">アクセシビリティ優先</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="aisleWidth">通路幅 (m)</label>
+                        <input type="number" id="aisleWidth" value="2.5" min="1" step="0.1" class="form-input">
+                    </div>
+                    <button id="autoPlaceBtn" class="btn btn-primary">🎯 自動配置実行</button>
+                    <button id="clearAllBtn" class="btn btn-danger">🗑️ すべてクリア</button>
+                </div>
+
+                <!-- Space Utilization -->
+                <div class="control-section">
+                    <h2>📊 空間利用率</h2>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value" id="totalArea">0</div>
+                            <div class="metric-label">総面積 (m²)</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="usedArea">0</div>
+                            <div class="metric-label">使用面積 (m²)</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="utilizationRate">0%</div>
+                            <div class="metric-label">利用率</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="placedPallets">0</div>
+                            <div class="metric-label">配置パレット数</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - 3D Visualization -->
+            <div class="visualization-panel">
+                <div class="view-controls">
+                    <button id="resetView" class="btn btn-sm btn-secondary">🔄 リセット</button>
+                    <button id="topView" class="btn btn-sm btn-secondary">⬆️ 上から</button>
+                    <button id="sideView" class="btn btn-sm btn-secondary">↔️ 横から</button>
+                    <button id="isoView" class="btn btn-sm btn-secondary">📐 等角</button>
+                </div>
+
+                <div id="warehouse3D" class="warehouse-3d"></div>
+
+                <div class="interaction-info">
+                    <div class="info-item">
+                        <span class="info-label">🖱️ 操作:</span>
+                        <span class="info-value">左クリック&ドラッグで回転</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">🔍 ズーム:</span>
+                        <span class="info-value">マウスホイール</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">📍 パン:</span>
+                        <span class="info-value">右クリック&ドラッグ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Container -->
+        <div id="messageContainer" class="message-container"></div>
+    </div>
+
+    <script src="warehouse-space.js"></script>
+</body>
+</html>
