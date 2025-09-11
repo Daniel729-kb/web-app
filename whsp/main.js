@@ -13,6 +13,7 @@ class SimpleWarehouseCalculator {
         this.pallets = [];
         this.lastCalculationResults = null; // Store last calculation results
         this.lastLayoutResult = null; // Store last layout result
+        this.lastLayoutParams = null; // Track last layout parameters to avoid unnecessary regeneration
         
         // Initialize modules
         this.inputManager = new InputManager(this);
@@ -99,7 +100,9 @@ class SimpleWarehouseCalculator {
             return;
         }
 
-        const aisleWidth = parseFloat(document.getElementById('aisleWidth').value) || 2.5;
+        const includeAisles = document.getElementById('includeAisles').checked;
+        const aisleWidth = includeAisles ? (parseFloat(document.getElementById('aisleWidth').value) || 2.5) : 0;
+        const palletClearance = (parseFloat(document.getElementById('palletClearance').value) || 5) / 100;
         const selectedPalletIndices = selectedPallets.map(option => parseInt(option.value));
         const selectedPalletObjects = selectedPalletIndices.map(index => this.pallets[index]).filter(pallet => pallet);
 
@@ -109,9 +112,9 @@ class SimpleWarehouseCalculator {
         }
 
         if (calculationMode === 'combined') {
-            this.layoutGenerator.calculateCombined(selectedPalletObjects, aisleWidth);
+            this.layoutGenerator.calculateCombined(selectedPalletObjects, aisleWidth, palletClearance);
         } else {
-            this.layoutGenerator.calculateSeparate(selectedPalletObjects, aisleWidth);
+            this.layoutGenerator.calculateSeparate(selectedPalletObjects, aisleWidth, palletClearance);
         }
     }
 
@@ -124,7 +127,7 @@ class SimpleWarehouseCalculator {
         document.getElementById('utilizationRate').textContent = results.utilizationRate.toFixed(1) + '%';
         document.getElementById('efficiency').textContent = results.efficiency.toFixed(1) + '%';
         document.getElementById('efficiencyText').textContent = results.efficiency.toFixed(1) + '%';
-        document.getElementById('efficiencyBar').style.width = Math.min(results.efficiency, 100) + '%';
+        document.getElementById('efficiencyBar').style.width = Math.max(0, Math.min(results.efficiency, 100)) + '%';
 
         // Show calculation results
         const resultsEl = document.getElementById('calculationResults');
@@ -197,9 +200,22 @@ class SimpleWarehouseCalculator {
     }
 
     hasLayoutParametersChanged(lastResult, mode, aisleWidth, palletClearance) {
-        // Simple check to see if key parameters have changed
-        // This could be enhanced to be more precise
-        return true; // For now, always regenerate to ensure accuracy
+        // Compare key parameters to avoid unnecessary regeneration
+        const selectedIds = Array.from(document.getElementById('selectedPallets').selectedOptions)
+            .map(o => parseInt(o.value));
+
+        const params = {
+            mode,
+            aisleWidth,
+            palletClearance,
+            length: this.warehouse.length,
+            width: this.warehouse.width,
+            pallets: selectedIds.join(',')
+        };
+
+        const changed = JSON.stringify(params) !== JSON.stringify(this.lastLayoutParams);
+        this.lastLayoutParams = params;
+        return changed;
     }
 
     generateLayout() {

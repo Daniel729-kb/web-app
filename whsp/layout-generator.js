@@ -312,7 +312,7 @@ class LayoutGenerator {
     }
 
     // Existing calculation methods with improvements
-    calculateCombined(pallets, aisleWidth) {
+    calculateCombined(pallets, aisleWidth, clearance) {
         console.log('calculateCombined called with:', pallets, aisleWidth);
         
         let totalRequiredArea = 0;
@@ -323,7 +323,8 @@ class LayoutGenerator {
         pallets.forEach(pallet => {
             const stackingLevels = this.calculator.getStackingLevels(pallet);
             const stacksNeeded = Math.ceil(pallet.quantity / stackingLevels);
-            const palletArea = pallet.length * pallet.width;
+            // Include clearance as added spacing footprint around each stack
+            const palletArea = (pallet.length + clearance) * (pallet.width + clearance);
             const requiredArea = stacksNeeded * palletArea;
 
             totalRequiredArea += requiredArea;
@@ -332,8 +333,10 @@ class LayoutGenerator {
             totalStacks += stacksNeeded;
         });
 
-        const avgPalletLength = pallets.reduce((sum, p) => sum + p.length, 0) / pallets.length;
+        // Use average length including clearance for capacity estimate
+        const avgPalletLength = pallets.reduce((sum, p) => sum + (p.length + clearance), 0) / pallets.length;
         const effectiveLength = Math.max(0, this.calculator.warehouse.length - aisleWidth);
+        const effectiveWidth = Math.max(0, this.calculator.warehouse.width - aisleWidth);
         const palletsPerRow = effectiveLength > 0 ? Math.floor(effectiveLength / avgPalletLength) : 0;
         
         if (palletsPerRow <= 0) {
@@ -344,7 +347,7 @@ class LayoutGenerator {
         const totalRows = Math.ceil(totalStacks / palletsPerRow);
         const warehouseArea = this.calculator.warehouse.length * this.calculator.warehouse.width;
         const utilizationRate = warehouseArea > 0 ? (totalRequiredArea / warehouseArea) * 100 : 0;
-        const availableArea = effectiveLength * (this.calculator.warehouse.width - aisleWidth);
+        const availableArea = effectiveLength * effectiveWidth;
         const efficiency = availableArea > 0 ? (totalRequiredArea / availableArea) * 100 : 0;
 
         this.calculator.updateCalculationDisplay({
@@ -361,9 +364,9 @@ class LayoutGenerator {
         this.calculator.showMessage(`統合計算完了: ${pallets.length}種類のパレット、合計${totalPallets}個`, 'success');
     }
 
-    calculateSeparate(pallets, aisleWidth) {
+    calculateSeparate(pallets, aisleWidth, clearance) {
         // Fallback to combined calculation for now
-        this.calculateCombined(pallets, aisleWidth);
+        this.calculateCombined(pallets, aisleWidth, clearance);
     }
 
     /**

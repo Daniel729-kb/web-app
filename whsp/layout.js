@@ -55,8 +55,6 @@ class LayoutManager {
         if (canvas) {
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            canvas.width = 600;
-            canvas.height = 400;
             canvas.style.display = 'block';
         }
         
@@ -203,6 +201,7 @@ class LayoutManager {
         
         if (!positions || positions.length === 0) {
             console.warn('No positions to draw');
+            this.showEmptyLayoutMessage();
             return;
         }
         
@@ -335,11 +334,11 @@ class LayoutManager {
         ctx.textAlign = 'center';
         
         // Width label (bottom center)
-        const widthText = `倉庫幅: ${layoutResult.binWidth.toFixed(1)}m`;
+        const widthText = `必要幅: ${layoutResult.binWidth.toFixed(1)}m`;
         ctx.fillText(widthText, canvasWidth / 2, canvasHeight - 15);
         
         // Length label (left side, rotated)
-        const lengthText = `倉庫長: ${layoutResult.totalHeight.toFixed(1)}m`;
+        const lengthText = `必要長: ${layoutResult.totalHeight.toFixed(1)}m`;
         ctx.save();
         ctx.translate(15, canvasHeight / 2);
         ctx.rotate(-Math.PI / 2);
