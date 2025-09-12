@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Heatmap Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Warehouse Heatmap Generator</h1>
+            <p>Upload files to generate warehouse layout heatmap visualizations</p>
+        </header>
+
+        <div class="tab-container">
+            <div class="tab-buttons" role="tablist" aria-label="Main Tabs">
+                <button class="tab-button active" id="tab-layout" role="tab" aria-selected="true" aria-controls="layout-tab" data-tab="layout">Layout Import</button>
+                <button class="tab-button" id="tab-shipping" role="tab" aria-selected="false" aria-controls="shipping-tab" data-tab="shipping">Shipping Information</button>
+                <button class="tab-button" id="tab-heatmap" role="tab" aria-selected="false" aria-controls="heatmap-tab" data-tab="heatmap">Heatmap View</button>
+            </div>
+            
+            <div class="tab-content">
+                <div id="layout-tab" class="tab-panel active" role="tabpanel" aria-labelledby="tab-layout">
+                    <div class="upload-section">
+            <div class="file-upload-area" id="fileUploadArea">
+                <div class="upload-content">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <h3>Drop Excel file here or click to browse</h3>
+                    <p>Supported formats: .xlsx, .xls</p>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-section" id="controlsSection" style="display: none;">
+            <div class="sheet-selector">
+                <label for="sheetSelect">Select Sheet:</label>
+                <select id="sheetSelect">
+                    <option value="">Choose a sheet...</option>
+                </select>
+            </div>
+
+            <div class="options">
+                <div class="option-group">
+                    <label for="scaleFactor">Scale Factor:</label>
+                    <input type="range" id="scaleFactor" min="0.1" max="3" step="0.1" value="0.5">
+                    <span id="scaleValue">0.5</span>
+                </div>
+
+                <div class="option-group">
+                    <label for="cellSize">Cell Size:</label>
+                    <input type="number" id="cellSize" min="10" max="200" value="20" placeholder="Auto">
+                </div>
+
+                <div class="option-group">
+                    <label>
+                        <input type="checkbox" id="showGrid" checked>
+                        Show Grid
+                    </label>
+                </div>
+
+                <div class="option-group">
+                    <label>
+                        <input type="checkbox" id="showTitle" checked>
+                        Show Title
+                    </label>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button id="generateBtn" class="btn btn-primary">Generate SVG</button>
+                <button id="downloadBtn" class="btn btn-secondary" disabled>Download SVG</button>
+                <button id="resetBtn" class="btn btn-outline">Reset</button>
+            </div>
+        </div>
+
+        <div class="svg-section" id="svgSection" style="display: none;">
+            <div class="svg-container">
+                <h3>Generated SVG Layout</h3>
+                <div id="svgDisplay" class="svg-display"></div>
+            </div>
+        </div>
+
+        <div class="range-controls">
+            <h4>Data Range Selection</h4>
+            <div class="range-inputs">
+                <div class="range-group">
+                    <label for="startRow">Start Row:</label>
+                    <input type="number" id="startRow" min="1" value="1" placeholder="1">
+                </div>
+                <div class="range-group">
+                    <label for="endRow">End Row:</label>
+                    <input type="number" id="endRow" min="1" value="" placeholder="Auto">
+                </div>
+                <div class="range-group">
+                    <label for="startCol">Start Column:</label>
+                    <input type="text" id="startCol" value="A" placeholder="A" maxlength="3">
+                </div>
+                <div class="range-group">
+                    <label for="endCol">End Column:</label>
+                    <input type="text" id="endCol" value="" placeholder="Auto" maxlength="3">
+                </div>
+            </div>
+            <div class="range-actions">
+                <button id="applyRangeBtn" class="btn btn-outline">Apply Range</button>
+                <button id="resetRangeBtn" class="btn btn-outline">Auto Arrange</button>
+            </div>
+        </div>
+
+        <div class="info-section" id="infoSection" style="display: none;">
+            <div class="info-card">
+                <h3>Sheet Information</h3>
+                <div id="sheetInfo"></div>
+            </div>
+        </div>
+
+        <div class="error-section" id="errorSection" style="display: none;">
+            <div class="error-message">
+                <h3>Error</h3>
+                <p id="errorText"></p>
+            </div>
+        </div>
+                    </div>
+                </div>
+                
+                <div id="shipping-tab" class="tab-panel" role="tabpanel" aria-labelledby="tab-shipping">
+                    <div class="upload-section">
+                        <div class="file-upload-area" id="shippingFileUploadArea">
+                            <div class="upload-content">
+                                <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7,10 12,15 17,10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                <h3>Drop shipping data file here or click to browse</h3>
+                                <p>Supported formats: .csv, .xlsx, .xls, .md</p>
+                                <input type="file" id="shippingFileInput" accept=".csv,.xlsx,.xls,.md" style="display: none;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="shipping-info-section" id="shippingInfoSection" style="display: none;">
+                        <div class="info-card">
+                            <h3>Shipping Data Information</h3>
+                            <div id="shippingInfo"></div>
+                        </div>
+
+                        <div class="info-card" id="shippingMappingCard" style="display: none; margin-top: 16px;">
+                            <h3>Column Mapping</h3>
+                            <div class="mapping-controls">
+                                <div class="mapping-group">
+                                    <label for="locationColumnSelect">Location Column</label>
+                                    <select id="locationColumnSelect"></select>
+                                </div>
+                                <div class="mapping-group">
+                                    <label for="volumeColumnSelect">Shipping Volume Column</label>
+                                    <select id="volumeColumnSelect"></select>
+                                </div>
+                                
+                                <div class="location-mapping-section">
+                                    <h4>Location Character Mapping</h4>
+                                    <p class="mapping-description">Specify which characters from the shipping location should match the layout location.</p>
+                                    <div class="mapping-example">
+                                        <strong>Example:</strong> Shipping data: "C-02-03" → Layout: "C-02" (characters 1-4)
+                                    </div>
+                                    <div class="location-mapping-controls">
+                                        <div class="mapping-group">
+                                            <label for="locationStartChar">Start Character Position:</label>
+                                            <input type="number" id="locationStartChar" min="1" value="1" placeholder="1">
+                                        </div>
+                                        <div class="mapping-group">
+                                            <label for="locationEndChar">End Character Position:</label>
+                                            <input type="number" id="locationEndChar" min="1" value="" placeholder="Auto">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mapping-actions">
+                                    <button id="applyMappingBtn" class="btn btn-primary">Apply Mapping</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="shipping-preview-section" id="shippingPreviewSection" style="display: none;">
+                            <div class="info-card">
+                                <h3>Data Preview</h3>
+                                <div id="shippingPreview" class="data-preview"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="heatmap-tab" class="tab-panel" role="tabpanel" aria-labelledby="tab-heatmap">
+                    <div class="heatmap-section" id="heatmapSection" style="display: none;">
+                        <div class="heatmap-header">
+                            <h3>Warehouse Heatmap Visualization</h3>
+                            <div class="heatmap-info" id="heatmapInfo">
+                                <p>No heatmap data available. Please import layout and shipping data first.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="heatmap-controls" id="heatmapControls" style="display: none;">
+                            <div class="heatmap-options">
+                                <div class="option-group">
+                                    <label for="heatmapScaleFactor">Scale Factor:</label>
+                                    <input type="range" id="heatmapScaleFactor" min="0.1" max="3" step="0.1" value="0.5">
+                                    <span id="heatmapScaleValue">0.5</span>
+                                </div>
+                                <div class="option-group">
+                                    <label for="heatmapCellSize">Cell Size:</label>
+                                    <input type="number" id="heatmapCellSize" min="10" max="200" value="20" placeholder="Auto">
+                                </div>
+                                <div class="option-group">
+                                    <label>
+                                        <input type="checkbox" id="heatmapShowGrid" checked>
+                                        Show Grid
+                                    </label>
+                                </div>
+                                <div class="option-group">
+                                    <label>
+                                        <input type="checkbox" id="heatmapShowTitle" checked>
+                                        Show Title
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="heatmap-actions">
+                                <button id="heatmapGenerateBtn" class="btn btn-primary">Generate Heatmap</button>
+                                <button id="heatmapDownloadBtn" class="btn btn-secondary" disabled>Download Heatmap</button>
+                                <button id="heatmapToggleBtn" class="btn btn-outline">Show Original Layout</button>
+                            </div>
+                        </div>
+                        
+                        <div class="heatmap-svg-section" id="heatmapSvgSection" style="display: none;">
+                            <div class="svg-container">
+                                <h3>Heatmap Visualization</h3>
+                                <div id="heatmapSvgDisplay" class="svg-display"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="heatmap-legend" id="heatmapLegend" style="display: none;">
+                            <h4>Activity Level Legend</h4>
+                            <div class="legend-description">
+                                <p><strong>Color Scale:</strong> Gray = No activity, Green = Low activity, Yellow = Medium activity, Red = High activity.</p>
+                                <p><strong>Percentile Scale:</strong> Colors are based on percentile ranking of your data (bottom 5% to top 2%).</p>
+                            </div>
+                            <div class="legend-items">
+                                <div class="legend-item">
+                                    <div class="legend-color heat-0"></div>
+                                    <span>No Activity (0%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-1"></div>
+                                    <span>Very Low (Bottom 5%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-2"></div>
+                                    <span>Low (5-10%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-3"></div>
+                                    <span>Low-Medium (10-15%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-4"></div>
+                                    <span>Medium-Low (15-20%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-5"></div>
+                                    <span>Medium (20-30%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-6"></div>
+                                    <span>Medium-High (30-40%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-7"></div>
+                                    <span>High (40-50%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-8"></div>
+                                    <span>Very High (50-60%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-9"></div>
+                                    <span>Extremely High (60-70%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-10"></div>
+                                    <span>Maximum-High (70-80%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-11"></div>
+                                    <span>Critical (80-90%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-12"></div>
+                                    <span>Maximum (90-95%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-13"></div>
+                                    <span>Peak (95-98%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-14"></div>
+                                    <span>Extreme (Top 2%)</span>
+                                </div>
+                            </div>
+                            <div class="legend-note">
+                                <p><em>💡 Tip: Hover over cells to see exact activity values. The scale automatically adapts to your data range for optimal visualization.</em></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="svglayout.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

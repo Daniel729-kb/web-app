@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel to SVG Converter - Exact Layout</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .file-input {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            text-align: center;
+        }
+        #fileInput {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .controls select, .controls button, .controls input {
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+        #generateBtn {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 10px 20px;
+        }
+        #generateBtn:hover {
+            background: #0056b3;
+        }
+        #generateBtn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #svgOutput {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: auto;
+            max-height: 800px;
+            background: white;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .download-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .download-btn:hover {
+            background: #1e7e34;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Excel to SVG Converter - Exact Layout</h1>
+        <p>Converts Excel files to SVG preserving exact cell dimensions, merged cells, and text positioning (no colors)</p>
+        
+        <div class="file-input">
+            <input type="file" id="fileInput" accept=".xlsx,.xls" />
+            <p>Select an Excel file (.xlsx or .xls)</p>
+        </div>
+        
+        <div class="controls">
+            <label>Sheet:</label>
+            <select id="sheetSelect" disabled>
+                <option>No file loaded</option>
+            </select>
+            
+            <label>Scale Factor:</label>
+            <input type="number" id="scaleFactor" min="0.1" max="5" step="0.1" value="1.0">
+            
+            <label>Show Grid:</label>
+            <input type="checkbox" id="showGrid" checked>
+            
+            <button id="generateBtn" disabled>Generate SVG</button>
+            <button class="download-btn" id="downloadBtn" disabled>Download SVG</button>
+        </div>
+        
+        <div id="info" class="info" style="display: none;"></div>
+        <div id="svgOutput"></div>
+    </div>
+
+    <script>
+        let workbookData = null;
+        let currentSheetData = null;
+        let generatedSVG = null;
+
+        // Default Excel column width and row height (in Excel units)
+        const DEFAULT_COLUMN_WIDTH = 64; // Excel units
+        const DEFAULT_ROW_HEIGHT = 15;   // Excel units
+        const EXCEL_UNIT_TO_PX = 1.1;    // Approximate conversion factor
+
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, checking elements...');
+            
+            // Check if all elements exist
+            const elements = {
+                'fileInput': document.getElementById('fileInput'),
+                'generateBtn': document.getElementById('generateBtn'),
+                'downloadBtn': document.getElementById('downloadBtn'),
+                'sheetSelect': document.getElementById('sheetSelect'),
+                'testBtn': document.getElementById('testBtn'),
+                'scaleFactor': document.getElementById('scaleFactor'),
+                'manualWidth': document.getElementById('manualWidth'),
+                'manualHeight': document.getElementById('manualHeight'),
+                'showGrid': document.getElementById('showGrid')
+            };
+            
+            // Log which elements are missing
+            Object.entries(elements).forEach(([name, element]) => {
+                if (element) {
+                    console.log(`✓ Found element: ${name}`);
+                } else {
+                    console.error(`✗ Missing element: ${name}`);
+                }
+            });
+            
+            // Only add event listeners for elements that exist
+            if (elements.fileInput) {
+                elements.fileInput.addEventListener('change', handleFileSelect);
+            }
+            if (elements.generateBtn) {
+                elements.generateBtn.addEventListener('click', generateSVG);
+            }
+            if (elements.downloadBtn) {
+                elements.downloadBtn.addEventListener('click', downloadSVG);
+            }
+            if (elements.sheetSelect) {
+                elements.sheetSelect.addEventListener('change', selectSheet);
+            }
+            if (elements.testBtn) {
+                elements.testBtn.addEventListener('click', createTestData);
+            }
+            
+            console.log('Event listener setup complete');
+        });
+
+        function createTestData() {
+            console.log('Creating test data...');
+            
+            // Create a simple test dataset
+            currentSheetData = {
+                name: 'Test Sheet',
+                range: { s: { r: 0, c: 0 }, e: { r: 5, c: 5 } },
+                cells: [],
+                mergedCells: [
+                    { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }, // Merge A1:C1
+                    { s: { r: 2, c: 1 }, e: { r: 3, c: 2 } }  // Merge B3:C4
+                ],
+                colWidths: { 0: 100, 1: 80, 2: 120, 3: 90, 4: 110, 5: 95 },
+                rowHeights: { 0: 25, 1: 20, 2: 30, 3: 20, 4: 25, 5: 20 }
+            };
+            
+            // Add test cells
+            const testData = [
+                { row: 0, col: 0, text: 'Header 1-3 (Merged)' },
+                { row: 0, col: 3, text: 'Col D' },
+                { row: 0, col: 4, text: 'Col E' },
+                { row: 0, col: 5, text: 'Col F' },
+                { row: 1, col: 0, text: 'Row 2 A' },
+                { row: 1, col: 1, text: 'Row 2 B' },
+                { row: 1, col: 2, text: 'Row 2 C' },
+                { row: 1, col: 3, text: 'Data 1' },
+                { row: 1, col: 4, text: 'Data 2' },
+                { row: 1, col: 5, text: 'Data 3' },
+                { row: 2, col: 0, text: 'Row 3 A' },
+                { row: 2, col: 1, text: 'Merged B3:C4' },
+                { row: 2, col: 3, text: 'Value A' },
+                { row: 2, col: 4, text: 'Value B' },
+                { row: 2, col: 5, text: 'Value C' },
+                { row: 4, col: 0, text: 'Row 5 A' },
+                { row: 4, col: 1, text: 'Row 5 B' },
+                { row: 4, col: 2, text: 'Row 5 C' },
+                { row: 4, col: 3, text: 'Final 1' },
+                { row: 4, col: 4, text: 'Final 2' },
+                { row: 4, col: 5, text: 'Final 3' }
+            ];
+            
+            testData.forEach(data => {
+                const mergeInfo = getMergeInfo(data.row, data.col, currentSheetData.mergedCells);
+                
+                currentSheetData.cells.push({
+                    address: XLSX.utils.encode_cell({ r: data.row, c: data.col }),
+                    row: data.row,
+                    col: data.col,
+                    value: data.text,
+                    text: data.text,
+                    type: 's',
+                    width: currentSheetData.colWidths[data.col],
+                    height: currentSheetData.rowHeights[data.row],
+                    mergeInfo: mergeInfo,
+                    hasData: true
+                });
+            });
+            
+            console.log('Test data created:', currentSheetData);
+            showSheetInfo();
+            
+            // Enable generate button
+            document.getElementById('generateBtn').disabled = false;
+            alert('Test data loaded! You can now click "Generate SVG" to see a demo.');
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {
+                        type: 'array',
+                        cellStyles: true,
+                        cellFormulas: true,
+                        cellDates: true,
+                        cellNF: true,
+                        sheetStubs: true,
+                        bookVBA: true
+                    });
+                    
+                    workbookData = workbook;
+                    populateSheetSelect(workbook);
+                    
+                } catch (error) {
+                    alert('Error reading file: ' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function populateSheetSelect(workbook) {
+            const select = document.getElementById('sheetSelect');
+            select.innerHTML = '';
+            
+            workbook.SheetNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+            
+            select.disabled = false;
+            document.getElementById('generateBtn').disabled = false;
+            selectSheet(); // Load first sheet
+        }
+
+        function selectSheet() {
+            if (!workbookData) return;
+            
+            const sheetName = document.getElementById('sheetSelect').value;
+            const worksheet = workbookData.Sheets[sheetName];
+            
+            if (!worksheet['!ref']) {
+                alert('Empty worksheet');
+                return;
+            }
+            
+            const range = XLSX.utils.decode_range(worksheet['!ref']);
+            const cells = [];
+            const mergedCells = worksheet['!merges'] || [];
+            
+            // Get column widths and row heights
+            const colWidths = getColumnWidths(worksheet, range);
+            const rowHeights = getRowHeights(worksheet, range);
+            
+            // Process all cells in the sheet
+            for (let r = range.s.r; r <= range.e.r; r++) {
+                for (let c = range.s.c; c <= range.e.c; c++) {
+                    const cellAddress = XLSX.utils.encode_cell({r, c});
+                    const cell = worksheet[cellAddress];
+                    
+                    // Check if this cell is part of a merge
+                    const mergeInfo = getMergeInfo(r, c, mergedCells);
+                    
+                    if (cell || mergeInfo) {
+                        const cellInfo = {
+                            address: cellAddress,
+                            row: r,
+                            col: c,
+                            value: cell ? cell.v : '',
+                            text: cell ? (cell.w || (cell.v ? String(cell.v) : '')) : '',
+                            type: cell ? cell.t : 's',
+                            width: colWidths[c] || DEFAULT_COLUMN_WIDTH,
+                            height: rowHeights[r] || DEFAULT_ROW_HEIGHT,
+                            mergeInfo: mergeInfo,
+                            hasData: !!cell
+                        };
+                        
+                        cells.push(cellInfo);
+                    }
+                }
+            }
+            
+            currentSheetData = {
+                name: sheetName,
+                range,
+                cells,
+                mergedCells,
+                colWidths,
+                rowHeights
+            };
+            
+            showSheetInfo();
+        }
+
+        function getColumnWidths(worksheet, range) {
+            const colWidths = {};
+            
+            // Get column info from !cols property
+            if (worksheet['!cols']) {
+                worksheet['!cols'].forEach((col, index) => {
+                    if (col && col.width) {
+                        colWidths[range.s.c + index] = col.width * EXCEL_UNIT_TO_PX;
+                    }
+                });
+            }
+            
+            // Fill missing columns with default width
+            for (let c = range.s.c; c <= range.e.c; c++) {
+                if (!colWidths[c]) {
+                    colWidths[c] = DEFAULT_COLUMN_WIDTH * EXCEL_UNIT_TO_PX;
+                }
+            }
+            
+            return colWidths;
+        }
+
+        function getRowHeights(worksheet, range) {
+            const rowHeights = {};
+            
+            // Get row info from !rows property
+            if (worksheet['!rows']) {
+                worksheet['!rows'].forEach((row, index) => {
+                    if (row && row.hpt) { // height in points
+                        rowHeights[range.s.r + index] = row.hpt * 1.33; // Convert points to pixels
+                    }
+                });
+            }
+            
+            // Fill missing rows with default height
+            for (let r = range.s.r; r <= range.e.r; r++) {
+                if (!rowHeights[r]) {
+                    rowHeights[r] = DEFAULT_ROW_HEIGHT * EXCEL_UNIT_TO_PX;
+                }
+            }
+            
+            return rowHeights;
+        }
+
+        function getMergeInfo(row, col, mergedCells) {
+            for (let merge of mergedCells) {
+                if (row >= merge.s.r && row <= merge.e.r && 
+                    col >= merge.s.c && col <= merge.e.c) {
+                    return {
+                        isStart: row === merge.s.r && col === merge.s.c,
+                        startRow: merge.s.r,
+                        startCol: merge.s.c,
+                        endRow: merge.e.r,
+                        endCol: merge.e.c,
+                        rowSpan: merge.e.r - merge.s.r + 1,
+                        colSpan: merge.e.c - merge.s.c + 1
+                    };
+                }
+            }
+            return null;
+        }
+
+        function showSheetInfo() {
+            if (!currentSheetData) return;
+            
+            const info = document.getElementById('info');
+            
+            info.innerHTML = `
+                <strong>Sheet:</strong> ${currentSheetData.name}<br>
+                <strong>Size:</strong> ${currentSheetData.range.e.c + 1} columns × ${currentSheetData.range.e.r + 1} rows<br>
+                <strong>Cells with data:</strong> ${currentSheetData.cells.filter(c => c.hasData).length}<br>
+                <strong>Merged regions:</strong> ${currentSheetData.mergedCells.length}
+            `;
+            info.style.display = 'block';
+        }
+
+        function generateSVG() {
+            if (!currentSheetData) return;
+            
+            const scaleFactor = parseFloat(document.getElementById('scaleFactor').value);
+            const showGrid = document.getElementById('showGrid').checked;
+            const manualWidth = parseInt(document.getElementById('manualWidth').value);
+            const manualHeight = parseInt(document.getElementById('manualHeight').value);
+            const padding = 20;
+            const range = currentSheetData.range;
+            
+            // Use manual dimensions if specified, otherwise use detected ones
+            const colWidths = {};
+            const rowHeights = {};
+            
+            for (let c = range.s.c; c <= range.e.c; c++) {
+                colWidths[c] = manualWidth || currentSheetData.colWidths[c] || 80;
+            }
+            
+            for (let r = range.s.r; r <= range.e.r; r++) {
+                rowHeights[r] = manualHeight || currentSheetData.rowHeights[r] || 20;
+            }
+            
+            console.log('Using column widths:', Object.entries(colWidths).slice(0, 5));
+            console.log('Using row heights:', Object.entries(rowHeights).slice(0, 5));
+            
+            // Calculate cumulative positions for columns and rows
+            const colPositions = {};
+            const rowPositions = {};
+            
+            let xPos = padding;
+            for (let c = range.s.c; c <= range.e.c; c++) {
+                colPositions[c] = xPos;
+                xPos += colWidths[c] * scaleFactor;
+            }
+            
+            let yPos = padding + 40; // Extra space for title
+            for (let r = range.s.r; r <= range.e.r; r++) {
+                rowPositions[r] = yPos;
+                yPos += rowHeights[r] * scaleFactor;
+            }
+            
+            const svgWidth = xPos + padding;
+            const svgHeight = yPos + padding;
+            
+            let svg = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
+                <style>
+                    .cell-text { 
+                        font-family: Arial, sans-serif; 
+                        font-size: ${Math.max(8, 10 * scaleFactor)}px; 
+                        text-anchor: middle; 
+                        dominant-baseline: central;
+                        fill: #000000;
+                    }
+                    .title { 
+                        font-family: Arial, sans-serif; 
+                        font-size: 16px; 
+                        font-weight: bold; 
+                        text-anchor: middle;
+                        fill: #000000;
+                    }
+                    .cell-border {
+                        fill: none;
+                        stroke: ${showGrid ? '#cccccc' : 'none'};
+                        stroke-width: 0.5;
+                    }
+                    .merged-cell {
+                        fill: none;
+                        stroke: #666666;
+                        stroke-width: 1;
+                    }
+                </style>
+                
+                <!-- Background -->
+                <rect width="${svgWidth}" height="${svgHeight}" fill="#ffffff"/>
+                
+                <!-- Title -->
+                <text x="${svgWidth/2}" y="25" class="title">Excel Layout - ${currentSheetData.name}</text>
+                
+            `;
+
+            // Track processed merged cells to avoid duplicates
+            const processedMerges = new Set();
+
+            // Create cells and merged regions
+            currentSheetData.cells.forEach(cell => {
+                const x = colPositions[cell.col];
+                const y = rowPositions[cell.row];
+                const width = colWidths[cell.col] * scaleFactor;
+                const height = rowHeights[cell.row] * scaleFactor;
+                
+                if (cell.mergeInfo && cell.mergeInfo.isStart) {
+                    // Handle merged cell
+                    const mergeKey = `${cell.mergeInfo.startRow}-${cell.mergeInfo.startCol}-${cell.mergeInfo.endRow}-${cell.mergeInfo.endCol}`;
+                    
+                    if (!processedMerges.has(mergeKey)) {
+                        processedMerges.add(mergeKey);
+                        
+                        // Calculate merged cell dimensions
+                        let mergeWidth = 0;
+                        let mergeHeight = 0;
+                        
+                        for (let c = cell.mergeInfo.startCol; c <= cell.mergeInfo.endCol; c++) {
+                            mergeWidth += colWidths[c] * scaleFactor;
+                        }
+                        
+                        for (let r = cell.mergeInfo.startRow; r <= cell.mergeInfo.endRow; r++) {
+                            mergeHeight += rowHeights[r] * scaleFactor;
+                        }
+                        
+                        // Draw merged cell rectangle
+                        svg += `<rect x="${x}" y="${y}" width="${mergeWidth}" height="${mergeHeight}" 
+                                 class="merged-cell"/>`;
+                        
+                        // Add text in center of merged cell
+                        if (cell.text) {
+                            svg += `<text x="${x + mergeWidth/2}" y="${y + mergeHeight/2}" 
+                                     class="cell-text">${escapeHtml(cell.text)}</text>`;
+                        }
+                    }
+                } else if (!cell.mergeInfo || (cell.mergeInfo && !cell.mergeInfo.isStart)) {
+                    // Regular cell (not merged or not the starting cell of a merge)
+                    if (!cell.mergeInfo) {
+                        // Only draw border for non-merged cells
+                        svg += `<rect x="${x}" y="${y}" width="${width}" height="${height}" 
+                                 class="cell-border"/>`;
+                        
+                        // Add text
+                        if (cell.text) {
+                            svg += `<text x="${x + width/2}" y="${y + height/2}" 
+                                     class="cell-text">${escapeHtml(cell.text)}</text>`;
+                        }
+                    }
+                }
+            });
+
+            svg += '</svg>';
+            
+            generatedSVG = svg;
+            document.getElementById('svgOutput').innerHTML = svg;
+            document.getElementById('downloadBtn').disabled = false;
+        }
+
+        function downloadSVG() {
+            if (!generatedSVG) return;
+            
+            const blob = new Blob([generatedSVG], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentSheetData.name}_layout.svg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
