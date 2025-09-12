@@ -34,9 +34,9 @@
                         <polyline points="7,10 12,15 17,10"></polyline>
                         <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
-                    <h3>Excelファイルをここにドロップするかクリックして参照</h3>
-                    <p>対応形式: .xlsx, .xls</p>
-                    <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
+                    <h3>レイアウトファイル（Excel/SVG）をここにドロップするかクリックして参照</h3>
+                    <p>対応形式: .xlsx, .xls, .svg</p>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls,.svg" style="display: none;">
                 </div>
             </div>
         </div>
@@ -164,6 +164,10 @@
                                     <label for="volumeColumnSelect">出荷量列</label>
                                     <select id="volumeColumnSelect"></select>
                                 </div>
+                                <div class="mapping-group">
+                                    <label for="itemColumnSelect">品目（任意）</label>
+                                    <select id="itemColumnSelect"></select>
+                                </div>
                                 
                                 <div class="location-mapping-section">
                                     <h4>ロケーション文字マッピング</h4>
@@ -243,6 +247,11 @@
                                 <h3>ヒートマップ可視化</h3>
                                 <div id="heatmapSvgDisplay" class="svg-display"></div>
                             </div>
+                        </div>
+                        
+                        <div class="info-card" id="heatmapDetailsCard" style="display: none; margin-top: 16px;">
+                            <h3>ロケーション詳細</h3>
+                            <div id="heatmapDetails"></div>
                         </div>
                         
                         <div class="heatmap-legend" id="heatmapLegend" style="display: none;">

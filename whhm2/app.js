@@ -4,9 +4,12 @@ class SVGGeneratorApp {
         this.svgGenerator = new SVGLayoutGenerator();
         this.currentFile = null;
         this.currentSheet = null;
+        this.isHeatmapShown = false;
         
         this.initializeElements();
         this.attachEventListeners();
+        // Initialize UI language to match default
+        this.updateLanguage();
     }
 
     initializeElements() {
@@ -21,6 +24,8 @@ class SVGGeneratorApp {
         this.heatmapSvgSection = document.getElementById('heatmapSvgSection');
         this.heatmapSvgDisplay = document.getElementById('heatmapSvgDisplay');
         this.heatmapLegend = document.getElementById('heatmapLegend');
+        this.heatmapDetailsCard = document.getElementById('heatmapDetailsCard');
+        this.heatmapDetails = document.getElementById('heatmapDetails');
         this.heatmapScaleFactor = document.getElementById('heatmapScaleFactor');
         this.heatmapScaleValue = document.getElementById('heatmapScaleValue');
         this.heatmapCellSize = document.getElementById('heatmapCellSize');
@@ -49,6 +54,7 @@ class SVGGeneratorApp {
         this.shippingMappingCard = document.getElementById('shippingMappingCard');
         this.locationColumnSelect = document.getElementById('locationColumnSelect');
         this.volumeColumnSelect = document.getElementById('volumeColumnSelect');
+        this.itemColumnSelect = document.getElementById('itemColumnSelect');
         this.locationStartChar = document.getElementById('locationStartChar');
         this.locationEndChar = document.getElementById('locationEndChar');
         this.applyMappingBtn = document.getElementById('applyMappingBtn');
@@ -236,6 +242,7 @@ class SVGGeneratorApp {
         const options = headers.map((h, idx) => `<option value="${idx}">${this.escapeHtml(String(h || `Column ${idx+1}`))}</option>`).join('');
         this.locationColumnSelect.innerHTML = options;
         this.volumeColumnSelect.innerHTML = options;
+        if (this.itemColumnSelect) this.itemColumnSelect.innerHTML = `<option value="">${this.currentLanguage === 'ja' ? '未選択' : 'Not set'}</option>` + options;
         // Try to auto-detect common names
         const lower = headers.map(h => String(h || '').toLowerCase());
         const locIdx = lower.findIndex(h => /(loc|location|bin|slot|shelf|rack)/.test(h));
@@ -315,8 +322,14 @@ class SVGGeneratorApp {
         const startChar = parseInt(this.locationStartChar.value) || 1;
         const endChar = parseInt(this.locationEndChar.value);
         
-        // Build a Map of location -> volume (sum by location)
+        // Build aggregation:
+        // heatmapData: mappedLoc -> total volume
+        // locationItems: mappedLoc -> (itemName -> total volume)
+        // locationGroups: mappedLoc -> (fullLoc -> { total, items: Map(itemName -> total) })
         const heatmapData = new Map();
+        const locationItems = new Map();
+        const locationGroups = new Map();
+        const itemIdx = this.itemColumnSelect && this.itemColumnSelect.value !== '' ? parseInt(this.itemColumnSelect.value) : null;
         for (const row of this.lastShippingRows) {
             const loc = row?.[locIdx];
             const valRaw = row?.[volIdx];
@@ -335,6 +348,29 @@ class SVGGeneratorApp {
             const value = Number(valRaw);
             const numeric = isNaN(value) ? 0 : value;
             heatmapData.set(mappedLoc, (heatmapData.get(mappedLoc) || 0) + numeric);
+
+            // Aggregate items per location (optional)
+            if (itemIdx !== null) {
+                const item = row?.[itemIdx];
+                const itemName = item === undefined || item === null ? '' : String(item).trim();
+                if (!locationItems.has(mappedLoc)) locationItems.set(mappedLoc, new Map());
+                const itemMap = locationItems.get(mappedLoc);
+                const key = itemName || (this.currentLanguage === 'ja' ? '（不明品目）' : '(Unknown Item)');
+                itemMap.set(key, (itemMap.get(key) || 0) + numeric);
+            }
+
+            // Aggregate by full original location under the mapped location
+            if (!locationGroups.has(mappedLoc)) locationGroups.set(mappedLoc, new Map());
+            const groupMap = locationGroups.get(mappedLoc);
+            if (!groupMap.has(originalLoc)) groupMap.set(originalLoc, { total: 0, items: new Map() });
+            const group = groupMap.get(originalLoc);
+            group.total += numeric;
+            if (itemIdx !== null) {
+                const item = row?.[itemIdx];
+                const itemName = item === undefined || item === null ? '' : String(item).trim();
+                const nameKey = itemName || (this.currentLanguage === 'ja' ? '（不明品目）' : '(Unknown Item)');
+                group.items.set(nameKey, (group.items.get(nameKey) || 0) + numeric);
+            }
         }
 
         // If a layout is loaded, render heatmap overlay using existing generator
@@ -349,14 +385,17 @@ class SVGGeneratorApp {
             
             const svg = this.svgGenerator.generateSVGWithHeatmap(heatmapData, options);
             if (svg) {
-                // Store the heatmap data and options
+                // Store the heatmap data, items, and options
                 this.currentHeatmapData = heatmapData;
+                this.currentLocationItems = locationItems;
                 this.currentHeatmapOptions = options;
+                this.currentLocationGroups = locationGroups;
                 
                 // Switch to heatmap tab and display the heatmap
                 this.switchTab('heatmap');
                 this.displayHeatmap(svg);
                 this.updateHeatmapInfo(heatmapData);
+                this.bindHeatmapClickHandlers();
                 this.showSuccess('Applied mapping and generated heatmap.');
             } else {
                 this.showError('Failed to generate heatmap.');
@@ -372,7 +411,7 @@ class SVGGeneratorApp {
             return;
         }
 
-        const isShowingHeatmap = this.toggleHeatmapBtn.textContent === 'Show Original Layout';
+        const isShowingHeatmap = this.heatmapToggleBtn.textContent === '元のレイアウト表示' || this.heatmapToggleBtn.textContent === 'Show Original Layout';
         
         if (isShowingHeatmap) {
             // Show original layout
@@ -385,7 +424,7 @@ class SVGGeneratorApp {
             const svg = this.svgGenerator.generateSVGLayout(options);
             if (svg) {
                 this.displaySVG(svg);
-                this.toggleHeatmapBtn.textContent = 'Show Heatmap';
+                this.heatmapToggleBtn.textContent = this.currentLanguage === 'ja' ? 'ヒートマップ表示' : 'Show Heatmap';
             }
         } else {
             // Show heatmap
@@ -398,7 +437,7 @@ class SVGGeneratorApp {
             const svg = this.svgGenerator.generateSVGWithHeatmap(this.currentHeatmapData, options);
             if (svg) {
                 this.displaySVG(svg);
-                this.toggleHeatmapBtn.textContent = 'Show Original Layout';
+                this.heatmapToggleBtn.textContent = this.currentLanguage === 'ja' ? '元のレイアウト表示' : 'Show Original Layout';
             }
         }
     }
@@ -505,14 +544,30 @@ class SVGGeneratorApp {
         const file = event.target.files[0];
         if (!file) return;
 
-        // Validate file type
+        // SVG passthrough support
+        const isSVG = /\.svg$/i.test(file.name);
+        if (isSVG) {
+            try {
+                const svgText = await file.text();
+                this.displaySVG(svgText);
+                this.controlsSection.style.display = 'none';
+                this.infoSection.style.display = 'none';
+                this.svgSection.style.display = 'block';
+                this.showSuccess(this.currentLanguage === 'ja' ? 'SVGを読み込みました。' : 'SVG imported.');
+            } catch (err) {
+                console.error('Error reading SVG:', err);
+                this.showError(this.currentLanguage === 'ja' ? 'SVGの読み込みに失敗しました。' : 'Failed to import SVG.');
+            }
+            return;
+        }
+
+        // Validate Excel file type
         const validTypes = [
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'application/vnd.ms-excel'
         ];
-        
         if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls)$/i)) {
-            this.showError('Please select a valid Excel file (.xlsx or .xls)');
+            this.showError(this.currentLanguage === 'ja' ? '有効なExcelファイル（.xlsx または .xls）を選択してください' : 'Please select a valid Excel file (.xlsx or .xls)');
             return;
         }
 
@@ -702,7 +757,8 @@ class SVGGeneratorApp {
         this.heatmapLegend.style.display = 'block';
         this.heatmapDownloadBtn.disabled = false;
         this.heatmapToggleBtn.style.display = 'inline-block';
-        this.heatmapToggleBtn.textContent = 'Show Original Layout';
+        this.heatmapToggleBtn.textContent = this.currentLanguage === 'ja' ? '元のレイアウト表示' : 'Show Original Layout';
+        this.bindHeatmapClickHandlers();
     }
 
     updateHeatmapInfo(heatmapData) {
@@ -740,6 +796,60 @@ class SVGGeneratorApp {
                 <li>High activity: ${q3.toFixed(0)} - ${maxVolume.toLocaleString()}</li>
             </ul>
         `;
+    }
+
+    bindHeatmapClickHandlers() {
+        const svgRoot = this.heatmapSvgDisplay.querySelector('svg');
+        if (!svgRoot) return;
+        const clickable = svgRoot.querySelectorAll('.warehouse-cell');
+        clickable.forEach(el => {
+            el.addEventListener('click', () => {
+                const location = el.getAttribute('data-location') || '';
+                const activity = el.getAttribute('data-activity');
+                this.showLocationDetails(location, activity);
+            });
+        });
+    }
+
+    showLocationDetails(location, activity) {
+        if (!location) return;
+        const total = this.currentHeatmapData ? (this.currentHeatmapData.get(location) || 0) : (activity ? Number(activity) : 0);
+        const itemsMap = this.currentLocationItems ? this.currentLocationItems.get(location) : null;
+        const groups = this.currentLocationGroups ? this.currentLocationGroups.get(location) : null;
+        let html = '';
+        html += `<p><strong>${this.currentLanguage === 'ja' ? 'ロケーション' : 'Location'}:</strong> ${this.escapeHtml(location)}</p>`;
+        html += `<p><strong>${this.currentLanguage === 'ja' ? '合計量' : 'Total Volume'}:</strong> ${Number(total).toLocaleString()}</p>`;
+        if (groups && groups.size > 0) {
+            html += `<p><strong>${this.currentLanguage === 'ja' ? 'フルロケーション別' : 'By Full Location'}:</strong></p>`;
+            html += '<ul>';
+            const sortedGroups = Array.from(groups.entries()).sort((a,b) => b[1].total - a[1].total);
+            for (const [fullLoc, info] of sortedGroups) {
+                html += `<li><strong>${this.escapeHtml(fullLoc)}</strong>: ${Number(info.total).toLocaleString()}`;
+                if (info.items && info.items.size > 0) {
+                    const itemsSorted = Array.from(info.items.entries()).sort((a,b) => b[1]-a[1]);
+                    html += '<ul>';
+                    for (const [name, qty] of itemsSorted) {
+                        html += `<li>${this.escapeHtml(name)}: ${Number(qty).toLocaleString()}</li>`;
+                    }
+                    html += '</ul>';
+                }
+                html += '</li>';
+            }
+            html += '</ul>';
+        } else if (itemsMap && itemsMap.size > 0) {
+            html += `<p><strong>${this.currentLanguage === 'ja' ? '品目内訳' : 'Items'}:</strong></p>`;
+            html += '<ul>';
+            const sorted = Array.from(itemsMap.entries()).sort((a,b) => b[1]-a[1]);
+            for (const [name, qty] of sorted) {
+                html += `<li>${this.escapeHtml(name)}: ${Number(qty).toLocaleString()}</li>`;
+            }
+            html += '</ul>';
+        } else {
+            html += `<p class="muted">${this.currentLanguage === 'ja' ? '詳細データはありません。' : 'No detailed data.'}</p>`;
+        }
+        this.heatmapDetails.innerHTML = html;
+        this.heatmapDetailsCard.style.display = 'block';
+        this.heatmapDetailsCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     syncHeatmapControls() {
@@ -803,7 +913,7 @@ class SVGGeneratorApp {
             return;
         }
         
-        const isShowingHeatmap = this.heatmapToggleBtn.textContent === 'Show Original Layout';
+        const isShowingHeatmap = this.heatmapToggleBtn.textContent === '元のレイアウト表示' || this.heatmapToggleBtn.textContent === 'Show Original Layout';
         
         if (isShowingHeatmap) {
             // Show original layout
@@ -817,7 +927,7 @@ class SVGGeneratorApp {
             const svg = this.svgGenerator.generateSVGLayout(options);
             if (svg) {
                 this.displayHeatmap(svg);
-                this.heatmapToggleBtn.textContent = 'Show Heatmap';
+                this.heatmapToggleBtn.textContent = this.currentLanguage === 'ja' ? 'ヒートマップ表示' : 'Show Heatmap';
                 this.heatmapLegend.style.display = 'none';
             }
         } else {
@@ -832,7 +942,7 @@ class SVGGeneratorApp {
             const svg = this.svgGenerator.generateSVGWithHeatmap(this.currentHeatmapData, options);
             if (svg) {
                 this.displayHeatmap(svg);
-                this.heatmapToggleBtn.textContent = 'Show Original Layout';
+                this.heatmapToggleBtn.textContent = this.currentLanguage === 'ja' ? '元のレイアウト表示' : 'Show Original Layout';
                 this.heatmapLegend.style.display = 'block';
             }
         }

@@ -20,9 +20,10 @@
     --purple: #C26EFF;
     --pink: #FB89FB;
     
-    --navy-blue: #1e40af;
-    --navy-light: #3b82f6;
-    --fresh-green: #22c55e;
+    /* Align color scheme with keypj/KK/KKKPI */
+    --navy-blue: #1f3a68;      /* deep navy */
+    --navy-light: #0e2547;     /* darker navy */
+    --fresh-green: #2ecc71;    /* accent green */
     --text-dark: #1f2937;
     --text-medium: #6b7280;
     --text-muted: #9ca3af;
@@ -30,8 +31,8 @@
     --light-card: #f8fafc;
     --dark-card: #1f2937;
     --dark-border: #374151;
-    --gradient-navy: linear-gradient(135deg, #1e40af, #3b82f6);
-    --gradient-green: linear-gradient(135deg, #22c55e, #16a34a);
+    --gradient-navy: linear-gradient(135deg, #1f3a68, #0e2547);
+    --gradient-green: linear-gradient(135deg, #2ecc71, #27b864);
     --gradient-cyber: linear-gradient(45deg, #00f5ff, #ff00f5, #00f5ff);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     --shadow-navy: 0 10px 25px rgba(30, 64, 175, 0.25);
