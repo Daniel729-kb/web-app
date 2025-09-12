@@ -89,7 +89,7 @@ class LayoutGenerator {
 
     gridBasedPacking(items, aisleWidth, clearance) {
         const totalStacks = items.length;
-        console.log('=== Grid-Based Packing ===');
+        console.log('=== Grid-Based Packing with Internal Aisles ===');
         console.log('Total stacks to place:', totalStacks);
 
         // Find optimal grid arrangement
@@ -102,15 +102,14 @@ class LayoutGenerator {
         const avgHeight = items.reduce((sum, item) => sum + item.height, 0) / items.length;
 
         for (const arr of arrangements) {
-            const storageWidth = arr.cols * (avgWidth + clearance);
-            const storageLength = arr.rows * (avgHeight + clearance);
+            // Calculate storage area with internal aisles
+            const { storageWidth, storageLength, totalWidth, totalLength } = this.calculateLayoutWithInternalAisles(
+                arr, avgWidth, avgHeight, clearance, aisleWidth
+            );
             
-            // When no aisles, use storage dimensions directly
-            const totalWidth = aisleWidth > 0 ? storageWidth + aisleWidth : storageWidth;
-            const totalLength = aisleWidth > 0 ? storageLength + aisleWidth : storageLength;
             const area = totalWidth * totalLength;
 
-            console.log(`Trying ${arr.rows}x${arr.cols}: Storage ${storageLength.toFixed(1)}x${storageWidth.toFixed(1)}${aisleWidth > 0 ? ' + Aisle' : ''} → Total ${totalLength.toFixed(1)}x${totalWidth.toFixed(1)} = ${area.toFixed(1)}m²`);
+            console.log(`Trying ${arr.rows}x${arr.cols}: Storage ${storageLength.toFixed(1)}x${storageWidth.toFixed(1)} + Internal Aisles → Total ${totalLength.toFixed(1)}x${totalWidth.toFixed(1)} = ${area.toFixed(1)}m²`);
 
             if (area < minArea) {
                 minArea = area;
@@ -127,7 +126,7 @@ class LayoutGenerator {
         console.log('Best layout:', bestLayout);
 
         // Generate positions using the best layout
-        const positions = this.generateGridPositions(items, bestLayout, clearance);
+        const positions = this.generateGridPositionsWithAisles(items, bestLayout, clearance, aisleWidth);
 
         return {
             success: true,
@@ -136,6 +135,41 @@ class LayoutGenerator {
             totalLength: bestLayout.totalLength,
             gridInfo: bestLayout,
             aislePositions: this.generateAislePositions(bestLayout, aisleWidth)
+        };
+    }
+
+    calculateLayoutWithInternalAisles(arrangement, avgWidth, avgHeight, clearance, aisleWidth) {
+        const { rows, cols } = arrangement;
+        
+        // Calculate pallet area dimensions
+        const palletWidth = avgWidth + clearance;
+        const palletHeight = avgHeight + clearance;
+        
+        // Calculate aisle requirements - only between rows/columns, not every pallet
+        let aisleWidthTotal = 0;
+        let aisleHeightTotal = 0;
+        
+        if (aisleWidth > 0) {
+            // Vertical aisles between columns (only if more than 1 column)
+            if (cols > 1) {
+                aisleWidthTotal = aisleWidth; // Only ONE aisle between columns
+            }
+            
+            // Horizontal aisles between rows (only if more than 1 row)
+            if (rows > 1) {
+                aisleHeightTotal = aisleWidth; // Only ONE aisle between rows
+            }
+        }
+        
+        // Calculate total dimensions
+        const storageWidth = cols * palletWidth + aisleWidthTotal;
+        const storageLength = rows * palletHeight + aisleHeightTotal;
+        
+        return {
+            storageWidth,
+            storageLength,
+            totalWidth: storageWidth,
+            totalLength: storageLength
         };
     }
 
@@ -188,28 +222,71 @@ class LayoutGenerator {
         return positions;
     }
 
+    generateGridPositionsWithAisles(items, layout, clearance, aisleWidth) {
+        const positions = [];
+        let itemIndex = 0;
+
+        for (let row = 0; row < layout.rows && itemIndex < items.length; row++) {
+            for (let col = 0; col < layout.cols && itemIndex < items.length; col++) {
+                const item = items[itemIndex];
+                
+                // Calculate position accounting for internal aisles
+                const palletWidth = item.width + clearance;
+                const palletHeight = item.height + clearance;
+                
+                // Add aisle width only between columns (not for every pallet)
+                const x = col * palletWidth + (col > 0 ? aisleWidth : 0) + clearance/2;
+                // Add aisle width only between rows (not for every pallet)
+                const y = row * palletHeight + (row > 0 ? aisleWidth : 0) + clearance/2;
+
+                positions.push([
+                    x, y,
+                    item.originalWidth,
+                    item.originalHeight,
+                    item.palletType,
+                    item.stackLevel
+                ]);
+
+                itemIndex++;
+            }
+        }
+
+        console.log(`Generated ${positions.length} positions in ${layout.rows}x${layout.cols} grid with internal aisles`);
+        return positions;
+    }
+
     generateAislePositions(layout, aisleWidth) {
-        // Generate aisle visualization positions
+        // Generate aisle visualization positions - BETWEEN pallets for better access
         const aisles = [];
         
-        // Right aisle (vertical)
         if (aisleWidth > 0) {
-            aisles.push({
-                x: layout.storageWidth,
-                y: 0,
-                width: aisleWidth,
-                height: layout.storageLength,
-                type: 'vertical'
-            });
-
-            // Bottom aisle (horizontal)  
-            aisles.push({
-                x: 0,
-                y: layout.storageLength,
-                width: layout.totalWidth,
-                height: aisleWidth,
-                type: 'horizontal'
-            });
+            // Add vertical aisle between columns (only if more than 1 column)
+            if (layout.cols > 1) {
+                // Calculate aisle position between first and second column
+                const palletWidth = (layout.storageWidth - aisleWidth) / layout.cols;
+                const aisleX = palletWidth;
+                aisles.push({
+                    x: aisleX,
+                    y: 0,
+                    width: aisleWidth,
+                    height: layout.storageLength,
+                    type: 'vertical_between'
+                });
+            }
+            
+            // Add horizontal aisle between rows (only if more than 1 row)
+            if (layout.rows > 1) {
+                // Calculate aisle position between first and second row
+                const palletHeight = (layout.storageLength - aisleWidth) / layout.rows;
+                const aisleY = palletHeight;
+                aisles.push({
+                    x: 0,
+                    y: aisleY,
+                    width: layout.storageWidth,
+                    height: aisleWidth,
+                    type: 'horizontal_between'
+                });
+            }
         }
 
         return aisles;

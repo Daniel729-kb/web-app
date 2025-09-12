@@ -33,6 +33,10 @@ class InputManager {
         // Auto-calculate warehouse size
         document.getElementById('autoCalculateWarehouseBtn').addEventListener('click', () => this.calculator.autoCalculateWarehouse());
         
+        // Debug export buttons
+        document.getElementById('exportDebugCSVBtn').addEventListener('click', () => this.calculator.debugExporter.exportDebugCSV());
+        document.getElementById('exportDebugJSONBtn').addEventListener('click', () => this.calculator.debugExporter.exportDebugJSON());
+        
         // Layout generation buttons removed - now auto-generated
 
         // Dynamic redraw inputs

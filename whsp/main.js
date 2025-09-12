@@ -14,12 +14,15 @@ class SimpleWarehouseCalculator {
         this.lastCalculationResults = null; // Store last calculation results
         this.lastLayoutResult = null; // Store last layout result
         this.lastLayoutParams = null; // Track last layout parameters to avoid unnecessary regeneration
+        this.lastCalculationTime = null; // Store calculation timing
+        this.lastLayoutTime = null; // Store layout generation timing
         
         // Initialize modules
         this.inputManager = new InputManager(this);
         this.layoutManager = new LayoutManager(this);
         this.summaryManager = new SummaryManager(this);
         this.layoutGenerator = new LayoutGenerator(this);
+        this.debugExporter = new DebugExporter(this);
         
         this.initializeEventListeners();
         this.setupTabSwitching();
@@ -92,6 +95,8 @@ class SimpleWarehouseCalculator {
     calculateSpace() {
         console.log('Calculate space button clicked');
         
+        const startTime = performance.now();
+        
         const selectedPallets = Array.from(document.getElementById('selectedPallets').selectedOptions);
         const calculationMode = document.getElementById('calculationMode').value;
         
@@ -116,6 +121,11 @@ class SimpleWarehouseCalculator {
         } else {
             this.layoutGenerator.calculateSeparate(selectedPalletObjects, aisleWidth, palletClearance);
         }
+        
+        // Record calculation time
+        const endTime = performance.now();
+        this.lastCalculationTime = `${(endTime - startTime).toFixed(2)}ms`;
+        console.log(`Calculation completed in ${this.lastCalculationTime}`);
     }
 
     updateCalculationDisplay(results) {
@@ -187,7 +197,14 @@ class SimpleWarehouseCalculator {
         // Check if we need to regenerate (parameters changed)
         if (!layoutResult || this.hasLayoutParametersChanged(layoutResult, calculationMode, aisleWidth, palletClearance)) {
             this.layoutManager.clearLayout();
+            
+            // Time the layout generation
+            const layoutStartTime = performance.now();
             layoutResult = this.layoutGenerator.generateCanvasLayout(pallets, calculationMode, aisleWidth, palletClearance);
+            const layoutEndTime = performance.now();
+            this.lastLayoutTime = `${(layoutEndTime - layoutStartTime).toFixed(2)}ms`;
+            console.log(`Layout generation completed in ${this.lastLayoutTime}`);
+            
             this.lastLayoutResult = layoutResult;
         }
         

@@ -140,6 +140,22 @@
                                 </div>
                             </div>
                             <button id="calculateBtn" class="btn">📐 スペース計算実行</button>
+                            
+                            <!-- Debug Export Section -->
+                            <div class="form-row" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+                                <div class="form-group">
+                                    <label style="color: #6b7280; font-size: 0.875rem; margin-bottom: 0.5rem;">🔧 デバッグエクスポート</label>
+                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                        <button id="exportDebugCSVBtn" class="btn btn-sm" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                                            📊 CSV エクスポート
+                                        </button>
+                                        <button id="exportDebugJSONBtn" class="btn btn-sm" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                                            📄 JSON エクスポート
+                                        </button>
+                                    </div>
+                                    <small class="text-gray-500 text-sm">ユーザー入力値と処理済み値をエクスポートしてレイアウト生成器の改善に活用</small>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Calculation Results -->
@@ -289,6 +305,7 @@
     <script src="layout.js"></script>
     <script src="summary.js"></script>
     <script src="layout-generator.js"></script>
+    <script src="debug-export.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

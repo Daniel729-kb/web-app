@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Export Test - WHSP</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .test-button:hover {
+            opacity: 0.9;
+        }
+        .test-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #28a745;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Debug Export Test</h1>
+        <p>This page tests the debug export functionality for the WHSP app.</p>
+        
+        <div>
+            <button class="test-button" onclick="testCSVExport()">Test CSV Export</button>
+            <button class="test-button" onclick="testJSONExport()">Test JSON Export</button>
+            <button class="test-button" onclick="testDataCollection()">Test Data Collection</button>
+        </div>
+        
+        <div id="testResult"></div>
+    </div>
+
+    <script src="debug-export.js"></script>
+    <script>
+        // Mock calculator object for testing
+        const mockCalculator = {
+            warehouse: {
+                name: 'テスト倉庫',
+                length: 50,
+                width: 40,
+                height: 9
+            },
+            pallets: [
+                {
+                    id: 1,
+                    name: 'パレットA',
+                    length: 1.2,
+                    width: 1.0,
+                    height: 1.5,
+                    quantity: 10,
+                    isStackable: true,
+                    maxStackHeight: 3.0,
+                    volume: 1.8
+                },
+                {
+                    id: 2,
+                    name: 'パレットB',
+                    length: 1.1,
+                    width: 1.1,
+                    height: 1.1,
+                    quantity: 5,
+                    isStackable: false,
+                    maxStackHeight: 1.1,
+                    volume: 1.331
+                }
+            ],
+            lastCalculationResults: {
+                requiredArea: 25.5,
+                stackingLevels: 2,
+                palletsPerRow: 8,
+                totalRows: 3,
+                utilizationRate: 12.75,
+                efficiency: 85.2
+            },
+            lastLayoutResult: {
+                success: true,
+                binWidth: 12.5,
+                totalHeight: 8.0,
+                efficiency: 85.2,
+                totalAreaMin: 20.0,
+                actualArea: 100.0,
+                positions: [
+                    [0, 0, 1.2, 1.0, 0, 2],
+                    [1.5, 0, 1.2, 1.0, 0, 2],
+                    [3.0, 0, 1.1, 1.1, 1, 1]
+                ],
+                gridInfo: {
+                    rows: 3,
+                    cols: 4,
+                    storageWidth: 10.0,
+                    storageLength: 7.5
+                },
+                aislePositions: [
+                    { x: 10.0, y: 0, width: 2.5, height: 7.5, type: 'vertical' }
+                ],
+                colors: ['#3b82f6', '#10b981']
+            },
+            lastCalculationTime: '15.2ms',
+            lastLayoutTime: '8.7ms',
+            getStackingLevels: function(pallet) {
+                if (!pallet.isStackable) return 1;
+                const byHeight = Math.floor(this.warehouse.height / pallet.height);
+                const byMax = Math.floor(pallet.maxStackHeight / pallet.height);
+                return Math.max(1, Math.min(byHeight, byMax));
+            },
+            showMessage: function(message, type) {
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            }
+        };
+
+        // Mock DOM elements
+        const mockElements = {
+            'warehouseName': { value: 'テスト倉庫' },
+            'warehouseLength': { value: '50' },
+            'warehouseWidth': { value: '40' },
+            'warehouseHeight': { value: '9' },
+            'aisleWidth': { value: '2.5' },
+            'palletClearance': { value: '5' },
+            'includeAisles': { checked: true },
+            'calculationMode': { value: 'combined' },
+            'selectedPallets': {
+                selectedOptions: [
+                    { value: '0' },
+                    { value: '1' }
+                ]
+            }
+        };
+
+        // Mock document.getElementById
+        const originalGetElementById = document.getElementById;
+        document.getElementById = function(id) {
+            return mockElements[id] || originalGetElementById.call(document, id);
+        };
+
+        // Create debug exporter
+        const debugExporter = new DebugExporter(mockCalculator);
+
+        function testDataCollection() {
+            try {
+                const debugData = debugExporter.collectDebugData();
+                showResult('✅ Data collection successful!', 'success');
+                console.log('Collected debug data:', debugData);
+            } catch (error) {
+                showResult(`❌ Data collection failed: ${error.message}`, 'error');
+                console.error('Data collection error:', error);
+            }
+        }
+
+        function testCSVExport() {
+            try {
+                debugExporter.exportDebugCSV();
+                showResult('✅ CSV export successful! Check your downloads folder.', 'success');
+            } catch (error) {
+                showResult(`❌ CSV export failed: ${error.message}`, 'error');
+                console.error('CSV export error:', error);
+            }
+        }
+
+        function testJSONExport() {
+            try {
+                debugExporter.exportDebugJSON();
+                showResult('✅ JSON export successful! Check your downloads folder.', 'success');
+            } catch (error) {
+                showResult(`❌ JSON export failed: ${error.message}`, 'error');
+                console.error('JSON export error:', error);
+            }
+        }
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = `<div class="test-result ${type}">${message}</div>`;
+        }
+
+        // Auto-run data collection test on page load
+        window.addEventListener('load', () => {
+            testDataCollection();
+        });
+    </script>
+</body>
+</html>
+

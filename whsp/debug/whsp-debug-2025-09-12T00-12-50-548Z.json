@@ -1,0 +1,151 @@
+{
+  "timestamp": "2025-09-12T00:12:50.548Z",
+  "userInputs": {
+    "warehouse": {
+      "name": "倉庫",
+      "length": 4,
+      "width": 9,
+      "height": 9
+    },
+    "pallets": [
+      {
+        "id": 1,
+        "name": "A",
+        "length": 1.1,
+        "width": 1.1,
+        "height": 1.1,
+        "quantity": 10,
+        "isStackable": true,
+        "maxStackHeight": 3,
+        "volume": 1.3310000000000004
+      }
+    ],
+    "settings": {
+      "aisleWidth": 2.5,
+      "palletClearance": 5,
+      "includeAisles": true,
+      "calculationMode": "combined"
+    },
+    "selectedPallets": [
+      0
+    ]
+  },
+  "processedValues": {
+    "cargoItems": [
+      {
+        "width": 1.1,
+        "height": 1.1,
+        "originalWidth": 1.1,
+        "originalHeight": 1.1,
+        "palletType": 0,
+        "stackLevel": 2,
+        "clearance": 0.05,
+        "palletName": "A"
+      },
+      {
+        "width": 1.1,
+        "height": 1.1,
+        "originalWidth": 1.1,
+        "originalHeight": 1.1,
+        "palletType": 0,
+        "stackLevel": 2,
+        "clearance": 0.05,
+        "palletName": "A"
+      },
+      {
+        "width": 1.1,
+        "height": 1.1,
+        "originalWidth": 1.1,
+        "originalHeight": 1.1,
+        "palletType": 0,
+        "stackLevel": 2,
+        "clearance": 0.05,
+        "palletName": "A"
+      },
+      {
+        "width": 1.1,
+        "height": 1.1,
+        "originalWidth": 1.1,
+        "originalHeight": 1.1,
+        "palletType": 0,
+        "stackLevel": 2,
+        "clearance": 0.05,
+        "palletName": "A"
+      },
+      {
+        "width": 1.1,
+        "height": 1.1,
+        "originalWidth": 1.1,
+        "originalHeight": 1.1,
+        "palletType": 0,
+        "stackLevel": 2,
+        "clearance": 0.05,
+        "palletName": "A"
+      }
+    ],
+    "stackingData": [
+      {
+        "palletName": "A",
+        "stackingLevels": 2,
+        "stacksNeeded": 5,
+        "totalVolume": 13.310000000000004,
+        "stackVolume": 2.662000000000001
+      }
+    ],
+    "areaData": [
+      {
+        "palletName": "A",
+        "singlePalletArea": 1.2100000000000002,
+        "palletAreaWithClearance": 1.3225000000000002,
+        "stacksNeeded": 5,
+        "totalRequiredArea": 6.612500000000001,
+        "efficiency": 91.49338374291115
+      }
+    ],
+    "totalStacks": 5,
+    "totalPallets": 10,
+    "averagePalletSize": {
+      "length": 1.1,
+      "width": 1.1,
+      "height": 1.1
+    },
+    "clearance": 0.05,
+    "aisleWidth": 2.5,
+    "calculationMode": "combined"
+  },
+  "layoutResults": {
+    "success": true,
+    "binWidth": 5.95,
+    "totalHeight": 4.800000000000001,
+    "efficiency": 21.18347338935574,
+    "totalAreaMin": 6.050000000000001,
+    "actualArea": 28.560000000000006,
+    "positions": 5,
+    "gridInfo": {
+      "rows": 2,
+      "cols": 3,
+      "storageWidth": 3.45,
+      "storageLength": 2.3000000000000003,
+      "totalWidth": 5.95,
+      "totalLength": 4.800000000000001
+    },
+    "aislePositions": 2,
+    "colors": 1
+  },
+  "performance": {
+    "palletCount": 1,
+    "selectedPalletCount": 1,
+    "lastCalculationTime": "2.00ms",
+    "layoutGenerationTime": "N/A",
+    "memoryUsage": {
+      "palletDataKB": 0,
+      "layoutDataKB": 1,
+      "totalKB": 1
+    },
+    "browserInfo": {
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0",
+      "language": "en-US",
+      "platform": "Win32"
+    }
+  }
+}
