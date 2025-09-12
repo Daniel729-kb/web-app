@@ -830,6 +830,17 @@ header p {
     line-height: 1.4;
 }
 
+/* Language Switcher */
+.language-switcher {
+    margin-top: 10px;
+    text-align: right;
+}
+
+.language-switcher .btn {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+}
+
 /* Heatmap Legend Colors */
 .heat-0 { background-color: #f5f5f5; } /* No activity - Light gray */
 .heat-1 { background-color: #e8f5e8; } /* Very low - Light green */

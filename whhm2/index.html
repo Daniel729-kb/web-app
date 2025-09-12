@@ -1,24 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warehouse Heatmap Generator</title>
+    <title>倉庫ヒートマップ生成器</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Warehouse Heatmap Generator</h1>
-            <p>Upload files to generate warehouse layout heatmap visualizations</p>
+            <h1>倉庫ヒートマップ生成器</h1>
+            <p>ファイルをアップロードして倉庫レイアウトのヒートマップ可視化を生成</p>
+            <div class="language-switcher">
+                <button id="langSwitch" class="btn btn-outline">English</button>
+            </div>
         </header>
 
         <div class="tab-container">
-            <div class="tab-buttons" role="tablist" aria-label="Main Tabs">
-                <button class="tab-button active" id="tab-layout" role="tab" aria-selected="true" aria-controls="layout-tab" data-tab="layout">Layout Import</button>
-                <button class="tab-button" id="tab-shipping" role="tab" aria-selected="false" aria-controls="shipping-tab" data-tab="shipping">Shipping Information</button>
-                <button class="tab-button" id="tab-heatmap" role="tab" aria-selected="false" aria-controls="heatmap-tab" data-tab="heatmap">Heatmap View</button>
+            <div class="tab-buttons" role="tablist" aria-label="メインタブ">
+                <button class="tab-button active" id="tab-layout" role="tab" aria-selected="true" aria-controls="layout-tab" data-tab="layout">レイアウトインポート</button>
+                <button class="tab-button" id="tab-shipping" role="tab" aria-selected="false" aria-controls="shipping-tab" data-tab="shipping">出荷情報</button>
+                <button class="tab-button" id="tab-heatmap" role="tab" aria-selected="false" aria-controls="heatmap-tab" data-tab="heatmap">ヒートマップ表示</button>
             </div>
             
             <div class="tab-content">
@@ -31,8 +34,8 @@
                         <polyline points="7,10 12,15 17,10"></polyline>
                         <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
-                    <h3>Drop Excel file here or click to browse</h3>
-                    <p>Supported formats: .xlsx, .xls</p>
+                    <h3>Excelファイルをここにドロップするかクリックして参照</h3>
+                    <p>対応形式: .xlsx, .xls</p>
                     <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
                 </div>
             </div>
@@ -40,88 +43,88 @@
 
         <div class="controls-section" id="controlsSection" style="display: none;">
             <div class="sheet-selector">
-                <label for="sheetSelect">Select Sheet:</label>
+                <label for="sheetSelect">シート選択:</label>
                 <select id="sheetSelect">
-                    <option value="">Choose a sheet...</option>
+                    <option value="">シートを選択...</option>
                 </select>
             </div>
 
             <div class="options">
                 <div class="option-group">
-                    <label for="scaleFactor">Scale Factor:</label>
+                    <label for="scaleFactor">スケール係数:</label>
                     <input type="range" id="scaleFactor" min="0.1" max="3" step="0.1" value="0.5">
                     <span id="scaleValue">0.5</span>
                 </div>
 
                 <div class="option-group">
-                    <label for="cellSize">Cell Size:</label>
-                    <input type="number" id="cellSize" min="10" max="200" value="20" placeholder="Auto">
+                    <label for="cellSize">セルサイズ:</label>
+                    <input type="number" id="cellSize" min="10" max="200" value="20" placeholder="自動">
                 </div>
 
                 <div class="option-group">
                     <label>
                         <input type="checkbox" id="showGrid" checked>
-                        Show Grid
+                        グリッド表示
                     </label>
                 </div>
 
                 <div class="option-group">
                     <label>
                         <input type="checkbox" id="showTitle" checked>
-                        Show Title
+                        タイトル表示
                     </label>
                 </div>
             </div>
             <div class="action-buttons">
-                <button id="generateBtn" class="btn btn-primary">Generate SVG</button>
-                <button id="downloadBtn" class="btn btn-secondary" disabled>Download SVG</button>
-                <button id="resetBtn" class="btn btn-outline">Reset</button>
+                <button id="generateBtn" class="btn btn-primary">SVG生成</button>
+                <button id="downloadBtn" class="btn btn-secondary" disabled>SVGダウンロード</button>
+                <button id="resetBtn" class="btn btn-outline">リセット</button>
             </div>
         </div>
 
         <div class="svg-section" id="svgSection" style="display: none;">
             <div class="svg-container">
-                <h3>Generated SVG Layout</h3>
+                <h3>生成されたSVGレイアウト</h3>
                 <div id="svgDisplay" class="svg-display"></div>
             </div>
         </div>
 
         <div class="range-controls">
-            <h4>Data Range Selection</h4>
+            <h4>データ範囲選択</h4>
             <div class="range-inputs">
                 <div class="range-group">
-                    <label for="startRow">Start Row:</label>
+                    <label for="startRow">開始行:</label>
                     <input type="number" id="startRow" min="1" value="1" placeholder="1">
                 </div>
                 <div class="range-group">
-                    <label for="endRow">End Row:</label>
-                    <input type="number" id="endRow" min="1" value="" placeholder="Auto">
+                    <label for="endRow">終了行:</label>
+                    <input type="number" id="endRow" min="1" value="" placeholder="自動">
                 </div>
                 <div class="range-group">
-                    <label for="startCol">Start Column:</label>
+                    <label for="startCol">開始列:</label>
                     <input type="text" id="startCol" value="A" placeholder="A" maxlength="3">
                 </div>
                 <div class="range-group">
-                    <label for="endCol">End Column:</label>
-                    <input type="text" id="endCol" value="" placeholder="Auto" maxlength="3">
+                    <label for="endCol">終了列:</label>
+                    <input type="text" id="endCol" value="" placeholder="自動" maxlength="3">
                 </div>
             </div>
             <div class="range-actions">
-                <button id="applyRangeBtn" class="btn btn-outline">Apply Range</button>
-                <button id="resetRangeBtn" class="btn btn-outline">Auto Arrange</button>
+                <button id="applyRangeBtn" class="btn btn-outline">範囲適用</button>
+                <button id="resetRangeBtn" class="btn btn-outline">自動配置</button>
             </div>
         </div>
 
         <div class="info-section" id="infoSection" style="display: none;">
             <div class="info-card">
-                <h3>Sheet Information</h3>
+                <h3>シート情報</h3>
                 <div id="sheetInfo"></div>
             </div>
         </div>
 
         <div class="error-section" id="errorSection" style="display: none;">
             <div class="error-message">
-                <h3>Error</h3>
+                <h3>エラー</h3>
                 <p id="errorText"></p>
             </div>
         </div>
@@ -137,8 +140,8 @@
                                     <polyline points="7,10 12,15 17,10"></polyline>
                                     <line x1="12" y1="15" x2="12" y2="3"></line>
                                 </svg>
-                                <h3>Drop shipping data file here or click to browse</h3>
-                                <p>Supported formats: .csv, .xlsx, .xls, .md</p>
+                                <h3>出荷データファイルをここにドロップするかクリックして参照</h3>
+                                <p>対応形式: .csv, .xlsx, .xls, .md</p>
                                 <input type="file" id="shippingFileInput" accept=".csv,.xlsx,.xls,.md" style="display: none;">
                             </div>
                         </div>
@@ -146,49 +149,49 @@
 
                     <div class="shipping-info-section" id="shippingInfoSection" style="display: none;">
                         <div class="info-card">
-                            <h3>Shipping Data Information</h3>
+                            <h3>出荷データ情報</h3>
                             <div id="shippingInfo"></div>
                         </div>
 
                         <div class="info-card" id="shippingMappingCard" style="display: none; margin-top: 16px;">
-                            <h3>Column Mapping</h3>
+                            <h3>列マッピング</h3>
                             <div class="mapping-controls">
                                 <div class="mapping-group">
-                                    <label for="locationColumnSelect">Location Column</label>
+                                    <label for="locationColumnSelect">ロケーション列</label>
                                     <select id="locationColumnSelect"></select>
                                 </div>
                                 <div class="mapping-group">
-                                    <label for="volumeColumnSelect">Shipping Volume Column</label>
+                                    <label for="volumeColumnSelect">出荷量列</label>
                                     <select id="volumeColumnSelect"></select>
                                 </div>
                                 
                                 <div class="location-mapping-section">
-                                    <h4>Location Character Mapping</h4>
-                                    <p class="mapping-description">Specify which characters from the shipping location should match the layout location.</p>
+                                    <h4>ロケーション文字マッピング</h4>
+                                    <p class="mapping-description">出荷データのロケーションからどの文字をレイアウトのロケーションと一致させるかを指定します。</p>
                                     <div class="mapping-example">
-                                        <strong>Example:</strong> Shipping data: "C-02-03" → Layout: "C-02" (characters 1-4)
+                                        <strong>例:</strong> 出荷データ: "C-02-03" → レイアウト: "C-02" (文字1-4)
                                     </div>
                                     <div class="location-mapping-controls">
                                         <div class="mapping-group">
-                                            <label for="locationStartChar">Start Character Position:</label>
+                                            <label for="locationStartChar">開始文字位置:</label>
                                             <input type="number" id="locationStartChar" min="1" value="1" placeholder="1">
                                         </div>
                                         <div class="mapping-group">
-                                            <label for="locationEndChar">End Character Position:</label>
-                                            <input type="number" id="locationEndChar" min="1" value="" placeholder="Auto">
+                                            <label for="locationEndChar">終了文字位置:</label>
+                                            <input type="number" id="locationEndChar" min="1" value="" placeholder="自動">
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <div class="mapping-actions">
-                                    <button id="applyMappingBtn" class="btn btn-primary">Apply Mapping</button>
+                                    <button id="applyMappingBtn" class="btn btn-primary">マッピング適用</button>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="shipping-preview-section" id="shippingPreviewSection" style="display: none;">
                             <div class="info-card">
-                                <h3>Data Preview</h3>
+                                <h3>データプレビュー</h3>
                                 <div id="shippingPreview" class="data-preview"></div>
                             </div>
                         </div>
@@ -198,120 +201,120 @@
                 <div id="heatmap-tab" class="tab-panel" role="tabpanel" aria-labelledby="tab-heatmap">
                     <div class="heatmap-section" id="heatmapSection" style="display: none;">
                         <div class="heatmap-header">
-                            <h3>Warehouse Heatmap Visualization</h3>
+                            <h3>倉庫ヒートマップ可視化</h3>
                             <div class="heatmap-info" id="heatmapInfo">
-                                <p>No heatmap data available. Please import layout and shipping data first.</p>
+                                <p>ヒートマップデータがありません。まずレイアウトと出荷データをインポートしてください。</p>
                             </div>
                         </div>
                         
                         <div class="heatmap-controls" id="heatmapControls" style="display: none;">
                             <div class="heatmap-options">
                                 <div class="option-group">
-                                    <label for="heatmapScaleFactor">Scale Factor:</label>
+                                    <label for="heatmapScaleFactor">スケール係数:</label>
                                     <input type="range" id="heatmapScaleFactor" min="0.1" max="3" step="0.1" value="0.5">
                                     <span id="heatmapScaleValue">0.5</span>
                                 </div>
                                 <div class="option-group">
-                                    <label for="heatmapCellSize">Cell Size:</label>
-                                    <input type="number" id="heatmapCellSize" min="10" max="200" value="20" placeholder="Auto">
+                                    <label for="heatmapCellSize">セルサイズ:</label>
+                                    <input type="number" id="heatmapCellSize" min="10" max="200" value="20" placeholder="自動">
                                 </div>
                                 <div class="option-group">
                                     <label>
                                         <input type="checkbox" id="heatmapShowGrid" checked>
-                                        Show Grid
+                                        グリッド表示
                                     </label>
                                 </div>
                                 <div class="option-group">
                                     <label>
                                         <input type="checkbox" id="heatmapShowTitle" checked>
-                                        Show Title
+                                        タイトル表示
                                     </label>
                                 </div>
                             </div>
                             <div class="heatmap-actions">
-                                <button id="heatmapGenerateBtn" class="btn btn-primary">Generate Heatmap</button>
-                                <button id="heatmapDownloadBtn" class="btn btn-secondary" disabled>Download Heatmap</button>
-                                <button id="heatmapToggleBtn" class="btn btn-outline">Show Original Layout</button>
+                                <button id="heatmapGenerateBtn" class="btn btn-primary">ヒートマップ生成</button>
+                                <button id="heatmapDownloadBtn" class="btn btn-secondary" disabled>ヒートマップダウンロード</button>
+                                <button id="heatmapToggleBtn" class="btn btn-outline">元のレイアウト表示</button>
                             </div>
                         </div>
                         
                         <div class="heatmap-svg-section" id="heatmapSvgSection" style="display: none;">
                             <div class="svg-container">
-                                <h3>Heatmap Visualization</h3>
+                                <h3>ヒートマップ可視化</h3>
                                 <div id="heatmapSvgDisplay" class="svg-display"></div>
                             </div>
                         </div>
                         
                         <div class="heatmap-legend" id="heatmapLegend" style="display: none;">
-                            <h4>Activity Level Legend</h4>
+                            <h4>アクティビティレベル凡例</h4>
                             <div class="legend-description">
-                                <p><strong>Color Scale:</strong> Gray = No activity, Green = Low activity, Yellow = Medium activity, Red = High activity.</p>
-                                <p><strong>Percentile Scale:</strong> Colors are based on percentile ranking of your data (bottom 5% to top 2%).</p>
+                                <p><strong>カラースケール:</strong> グレー = アクティビティなし、緑 = 低アクティビティ、黄 = 中アクティビティ、赤 = 高アクティビティ。</p>
+                                <p><strong>パーセンタイルスケール:</strong> 色はデータのパーセンタイルランキングに基づきます（下位5%から上位2%）。</p>
                             </div>
                             <div class="legend-items">
                                 <div class="legend-item">
                                     <div class="legend-color heat-0"></div>
-                                    <span>No Activity (0%)</span>
+                                    <span>アクティビティなし (0%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-1"></div>
-                                    <span>Very Low (Bottom 5%)</span>
+                                    <span>非常に低い (下位5%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-2"></div>
-                                    <span>Low (5-10%)</span>
+                                    <span>低い (5-10%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-3"></div>
-                                    <span>Low-Medium (10-15%)</span>
+                                    <span>低-中 (10-15%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-4"></div>
-                                    <span>Medium-Low (15-20%)</span>
+                                    <span>中-低 (15-20%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-5"></div>
-                                    <span>Medium (20-30%)</span>
+                                    <span>中 (20-30%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-6"></div>
-                                    <span>Medium-High (30-40%)</span>
+                                    <span>中-高 (30-40%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-7"></div>
-                                    <span>High (40-50%)</span>
+                                    <span>高い (40-50%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-8"></div>
-                                    <span>Very High (50-60%)</span>
+                                    <span>非常に高い (50-60%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-9"></div>
-                                    <span>Extremely High (60-70%)</span>
+                                    <span>極めて高い (60-70%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-10"></div>
-                                    <span>Maximum-High (70-80%)</span>
+                                    <span>最大-高 (70-80%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-11"></div>
-                                    <span>Critical (80-90%)</span>
+                                    <span>クリティカル (80-90%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-12"></div>
-                                    <span>Maximum (90-95%)</span>
+                                    <span>最大 (90-95%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-13"></div>
-                                    <span>Peak (95-98%)</span>
+                                    <span>ピーク (95-98%)</span>
                                 </div>
                                 <div class="legend-item">
                                     <div class="legend-color heat-14"></div>
-                                    <span>Extreme (Top 2%)</span>
+                                    <span>極限 (上位2%)</span>
                                 </div>
                             </div>
                             <div class="legend-note">
-                                <p><em>💡 Tip: Hover over cells to see exact activity values. The scale automatically adapts to your data range for optimal visualization.</em></p>
+                                <p><em>💡 ヒント: セルにマウスを重ねると正確なアクティビティ値が表示されます。スケールは最適な可視化のためにデータ範囲に自動的に適応します。</em></p>
                             </div>
                         </div>
                     </div>

@@ -30,6 +30,10 @@ class SVGGeneratorApp {
         this.heatmapDownloadBtn = document.getElementById('heatmapDownloadBtn');
         this.heatmapToggleBtn = document.getElementById('heatmapToggleBtn');
         
+        // Language switcher
+        this.langSwitch = document.getElementById('langSwitch');
+        this.currentLanguage = 'ja'; // Default to Japanese
+        
         // File upload elements
         this.fileUploadArea = document.getElementById('fileUploadArea');
         this.fileInput = document.getElementById('fileInput');
@@ -109,6 +113,9 @@ class SVGGeneratorApp {
         this.heatmapGenerateBtn.addEventListener('click', () => this.generateHeatmap());
         this.heatmapDownloadBtn.addEventListener('click', () => this.downloadHeatmap());
         this.heatmapToggleBtn.addEventListener('click', () => this.toggleHeatmapView());
+        
+        // Language switcher
+        this.langSwitch.addEventListener('click', () => this.switchLanguage());
         
         // File upload events
         this.fileUploadArea.addEventListener('click', () => this.fileInput.click());
@@ -829,6 +836,211 @@ class SVGGeneratorApp {
                 this.heatmapLegend.style.display = 'block';
             }
         }
+    }
+
+    switchLanguage() {
+        this.currentLanguage = this.currentLanguage === 'ja' ? 'en' : 'ja';
+        this.updateLanguage();
+    }
+
+    updateLanguage() {
+        const translations = {
+            ja: {
+                title: '倉庫ヒートマップ生成器',
+                description: 'ファイルをアップロードして倉庫レイアウトのヒートマップ可視化を生成',
+                langButton: 'English',
+                tabs: {
+                    layout: 'レイアウトインポート',
+                    shipping: '出荷情報',
+                    heatmap: 'ヒートマップ表示'
+                },
+                upload: {
+                    layout: 'Excelファイルをここにドロップするかクリックして参照',
+                    shipping: '出荷データファイルをここにドロップするかクリックして参照',
+                    formats: '対応形式: .xlsx, .xls'
+                },
+                controls: {
+                    sheetSelect: 'シート選択',
+                    scaleFactor: 'スケール係数',
+                    cellSize: 'セルサイズ',
+                    showGrid: 'グリッド表示',
+                    showTitle: 'タイトル表示',
+                    generate: 'SVG生成',
+                    download: 'SVGダウンロード',
+                    reset: 'リセット'
+                },
+                range: {
+                    title: 'データ範囲選択',
+                    startRow: '開始行',
+                    endRow: '終了行',
+                    startCol: '開始列',
+                    endCol: '終了列',
+                    apply: '範囲適用',
+                    autoArrange: '自動配置'
+                },
+                info: {
+                    sheet: 'シート情報',
+                    shipping: '出荷データ情報',
+                    preview: 'データプレビュー'
+                },
+                mapping: {
+                    title: '列マッピング',
+                    location: 'ロケーション列',
+                    volume: '出荷量列',
+                    charMapping: 'ロケーション文字マッピング',
+                    charDescription: '出荷データのロケーションからどの文字をレイアウトのロケーションと一致させるかを指定します。',
+                    example: '例: 出荷データ: "C-02-03" → レイアウト: "C-02" (文字1-4)',
+                    startChar: '開始文字位置',
+                    endChar: '終了文字位置',
+                    apply: 'マッピング適用'
+                },
+                heatmap: {
+                    title: '倉庫ヒートマップ可視化',
+                    noData: 'ヒートマップデータがありません。まずレイアウトと出荷データをインポートしてください。',
+                    generate: 'ヒートマップ生成',
+                    download: 'ヒートマップダウンロード',
+                    toggle: '元のレイアウト表示',
+                    legend: 'アクティビティレベル凡例',
+                    colorScale: 'カラースケール: グレー = アクティビティなし、緑 = 低アクティビティ、黄 = 中アクティビティ、赤 = 高アクティビティ。',
+                    percentileScale: 'パーセンタイルスケール: 色はデータのパーセンタイルランキングに基づきます（下位5%から上位2%）。',
+                    tip: '💡 ヒント: セルにマウスを重ねると正確なアクティビティ値が表示されます。スケールは最適な可視化のためにデータ範囲に自動的に適応します。'
+                }
+            },
+            en: {
+                title: 'Warehouse Heatmap Generator',
+                description: 'Upload files to generate warehouse layout heatmap visualizations',
+                langButton: '日本語',
+                tabs: {
+                    layout: 'Layout Import',
+                    shipping: 'Shipping Information',
+                    heatmap: 'Heatmap View'
+                },
+                upload: {
+                    layout: 'Drop Excel file here or click to browse',
+                    shipping: 'Drop shipping data file here or click to browse',
+                    formats: 'Supported formats: .xlsx, .xls'
+                },
+                controls: {
+                    sheetSelect: 'Select Sheet:',
+                    scaleFactor: 'Scale Factor:',
+                    cellSize: 'Cell Size:',
+                    showGrid: 'Show Grid',
+                    showTitle: 'Show Title',
+                    generate: 'Generate SVG',
+                    download: 'Download SVG',
+                    reset: 'Reset'
+                },
+                range: {
+                    title: 'Data Range Selection',
+                    startRow: 'Start Row:',
+                    endRow: 'End Row:',
+                    startCol: 'Start Column:',
+                    endCol: 'End Column:',
+                    apply: 'Apply Range',
+                    autoArrange: 'Auto Arrange'
+                },
+                info: {
+                    sheet: 'Sheet Information',
+                    shipping: 'Shipping Data Information',
+                    preview: 'Data Preview'
+                },
+                mapping: {
+                    title: 'Column Mapping',
+                    location: 'Location Column',
+                    volume: 'Shipping Volume Column',
+                    charMapping: 'Location Character Mapping',
+                    charDescription: 'Specify which characters from the shipping location should match the layout location.',
+                    example: 'Example: Shipping data: "C-02-03" → Layout: "C-02" (characters 1-4)',
+                    startChar: 'Start Character Position:',
+                    endChar: 'End Character Position:',
+                    apply: 'Apply Mapping'
+                },
+                heatmap: {
+                    title: 'Warehouse Heatmap Visualization',
+                    noData: 'No heatmap data available. Please import layout and shipping data first.',
+                    generate: 'Generate Heatmap',
+                    download: 'Download Heatmap',
+                    toggle: 'Show Original Layout',
+                    legend: 'Activity Level Legend',
+                    colorScale: 'Color Scale: Gray = No activity, Green = Low activity, Yellow = Medium activity, Red = High activity.',
+                    percentileScale: 'Percentile Scale: Colors are based on percentile ranking of your data (bottom 5% to top 2%).',
+                    tip: '💡 Tip: Hover over cells to see exact activity values. The scale automatically adapts to your data range for optimal visualization.'
+                }
+            }
+        };
+
+        const t = translations[this.currentLanguage];
+        
+        // Update document title and header
+        document.title = t.title;
+        document.querySelector('h1').textContent = t.title;
+        document.querySelector('header p').textContent = t.description;
+        this.langSwitch.textContent = t.langButton;
+        
+        // Update tab buttons
+        document.querySelector('[data-tab="layout"]').textContent = t.tabs.layout;
+        document.querySelector('[data-tab="shipping"]').textContent = t.tabs.shipping;
+        document.querySelector('[data-tab="heatmap"]').textContent = t.tabs.heatmap;
+        
+        // Update upload areas
+        document.querySelector('#fileUploadArea h3').textContent = t.upload.layout;
+        document.querySelector('#shippingFileUploadArea h3').textContent = t.upload.shipping;
+        document.querySelector('#fileUploadArea p').textContent = t.upload.formats;
+        document.querySelector('#shippingFileUploadArea p').textContent = '.csv, .xlsx, .xls, .md';
+        
+        // Update controls
+        document.querySelector('label[for="sheetSelect"]').textContent = t.controls.sheetSelect;
+        document.querySelector('label[for="scaleFactor"]').textContent = t.controls.scaleFactor;
+        document.querySelector('label[for="cellSize"]').textContent = t.controls.cellSize;
+        document.querySelector('label[for="showGrid"]').textContent = t.controls.showGrid;
+        document.querySelector('label[for="showTitle"]').textContent = t.controls.showTitle;
+        document.getElementById('generateBtn').textContent = t.controls.generate;
+        document.getElementById('downloadBtn').textContent = t.controls.download;
+        document.getElementById('resetBtn').textContent = t.controls.reset;
+        
+        // Update range controls
+        document.querySelector('.range-controls h4').textContent = t.range.title;
+        document.querySelector('label[for="startRow"]').textContent = t.range.startRow;
+        document.querySelector('label[for="endRow"]').textContent = t.range.endRow;
+        document.querySelector('label[for="startCol"]').textContent = t.range.startCol;
+        document.querySelector('label[for="endCol"]').textContent = t.range.endCol;
+        document.getElementById('applyRangeBtn').textContent = t.range.apply;
+        document.getElementById('resetRangeBtn').textContent = t.range.autoArrange;
+        
+        // Update info sections
+        document.querySelector('#infoSection h3').textContent = t.info.sheet;
+        document.querySelector('#shippingInfoSection h3').textContent = t.info.shipping;
+        document.querySelector('#shippingPreviewSection h3').textContent = t.info.preview;
+        
+        // Update mapping section
+        document.querySelector('#shippingMappingCard h3').textContent = t.mapping.title;
+        document.querySelector('label[for="locationColumnSelect"]').textContent = t.mapping.location;
+        document.querySelector('label[for="volumeColumnSelect"]').textContent = t.mapping.volume;
+        document.querySelector('.location-mapping-section h4').textContent = t.mapping.charMapping;
+        document.querySelector('.mapping-description').textContent = t.mapping.charDescription;
+        document.querySelector('.mapping-example').innerHTML = `<strong>${t.mapping.example.split(':')[0]}:</strong> ${t.mapping.example.split(':')[1]}`;
+        document.querySelector('label[for="locationStartChar"]').textContent = t.mapping.startChar;
+        document.querySelector('label[for="locationEndChar"]').textContent = t.mapping.endChar;
+        document.getElementById('applyMappingBtn').textContent = t.mapping.apply;
+        
+        // Update heatmap section
+        document.querySelector('#heatmapSection h3').textContent = t.heatmap.title;
+        document.querySelector('#heatmapInfo p').textContent = t.heatmap.noData;
+        document.querySelector('label[for="heatmapScaleFactor"]').textContent = t.controls.scaleFactor;
+        document.querySelector('label[for="heatmapCellSize"]').textContent = t.controls.cellSize;
+        document.querySelector('label[for="heatmapShowGrid"]').textContent = t.controls.showGrid;
+        document.querySelector('label[for="heatmapShowTitle"]').textContent = t.controls.showTitle;
+        document.getElementById('heatmapGenerateBtn').textContent = t.heatmap.generate;
+        document.getElementById('heatmapDownloadBtn').textContent = t.heatmap.download;
+        document.getElementById('heatmapToggleBtn').textContent = t.heatmap.toggle;
+        document.querySelector('#heatmapSvgSection h3').textContent = t.heatmap.title;
+        document.querySelector('#heatmapLegend h4').textContent = t.heatmap.legend;
+        document.querySelector('.legend-description p:first-child').innerHTML = `<strong>${t.heatmap.colorScale.split(':')[0]}:</strong> ${t.heatmap.colorScale.split(':')[1]}`;
+        document.querySelector('.legend-description p:last-child').innerHTML = `<strong>${t.heatmap.percentileScale.split(':')[0]}:</strong> ${t.heatmap.percentileScale.split(':')[1]}`;
+        document.querySelector('.legend-note p').innerHTML = `<em>${t.heatmap.tip}</em>`;
+        
+        // Update document language attribute
+        document.documentElement.lang = this.currentLanguage;
     }
 
     escapeHtml(text) {
