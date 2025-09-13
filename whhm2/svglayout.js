@@ -92,7 +92,10 @@ class SVGLayoutGenerator {
                     width: colWidths[c] || (this.DEFAULT_COLUMN_WIDTH * 7),
                     height: rowHeights[r] || (this.DEFAULT_ROW_HEIGHT * 1.33),
                     mergeInfo: mergeInfo,
-                    hasData: !!cell
+                    hasData: !!cell,
+                    // Extract alignment information from cell styles
+                    textAlign: this.getTextAlignment(cell),
+                    verticalAlign: this.getVerticalAlignment(cell)
                 };
                 
                 cells.push(cellInfo);
@@ -174,6 +177,109 @@ class SVGLayoutGenerator {
             }
         }
         return null;
+    }
+
+    getTextAlignment(cell) {
+        if (!cell || !cell.s || !cell.s.alignment) {
+            return 'center'; // Default alignment
+        }
+        
+        const alignment = cell.s.alignment.horizontal;
+        switch (alignment) {
+            case 'left':
+                return 'left';
+            case 'right':
+                return 'right';
+            case 'center':
+                return 'center';
+            case 'justify':
+                return 'justify';
+            default:
+                return 'center';
+        }
+    }
+
+    getVerticalAlignment(cell) {
+        if (!cell || !cell.s || !cell.s.alignment) {
+            return 'middle'; // Default vertical alignment
+        }
+        
+        const alignment = cell.s.alignment.vertical;
+        switch (alignment) {
+            case 'top':
+                return 'top';
+            case 'middle':
+            case 'center':
+                return 'middle';
+            case 'bottom':
+                return 'bottom';
+            default:
+                return 'middle';
+        }
+    }
+
+    getTextAnchor(textAlign) {
+        switch (textAlign) {
+            case 'left':
+                return 'start';
+            case 'right':
+                return 'end';
+            case 'center':
+                return 'middle';
+            case 'justify':
+                return 'middle'; // Justify is handled by text wrapping
+            default:
+                return 'middle';
+        }
+    }
+
+    getDominantBaseline(verticalAlign) {
+        switch (verticalAlign) {
+            case 'top':
+                return 'text-before-edge';
+            case 'middle':
+                return 'central';
+            case 'bottom':
+                return 'text-after-edge';
+            default:
+                return 'central';
+        }
+    }
+
+    calculateTextPosition(x, y, width, height, textAlign, verticalAlign, lines, lineHeight) {
+        let textX, textY;
+        
+        // Calculate horizontal position
+        switch (textAlign) {
+            case 'left':
+                textX = x + 5; // Small padding from left edge
+                break;
+            case 'right':
+                textX = x + width - 5; // Small padding from right edge
+                break;
+            case 'center':
+            case 'justify':
+            default:
+                textX = x + width / 2;
+                break;
+        }
+        
+        // Calculate vertical position
+        const totalTextHeight = lines.length * lineHeight;
+        switch (verticalAlign) {
+            case 'top':
+                textY = y + lineHeight; // Start from top with line height offset
+                break;
+            case 'bottom':
+                textY = y + height - (lines.length - 1) * lineHeight; // Align to bottom
+                break;
+            case 'middle':
+            default:
+                textY = y + height / 2 - (lines.length - 1) * lineHeight / 2; // Center vertically
+                break;
+        }
+        
+        return { x: textX, y: textY };
     }
 
     // Find the actual data range by detecting cells with borders or data
@@ -321,8 +427,6 @@ class SVGLayoutGenerator {
                 .cell-text { 
                     font-family: Arial, sans-serif; 
                     font-size: ${Math.max(8, 10 * scaleFactor)}px; 
-                    text-anchor: middle; 
-                    dominant-baseline: central;
                     fill: #000000;
                 }
                 .title { 
@@ -436,16 +540,21 @@ class SVGLayoutGenerator {
                                  class="merged-cell warehouse-cell${heatClass}" data-location="${cell.text}" data-row="${cell.row}" data-col="${cell.col}"${heatmapData ? ` data-activity="${activity}"` : ''}/>`;
                     }
                     
-                    // Add text in center of merged cell with wrapping
+                    // Add text in merged cell with proper alignment
                     if (cell.text && cell.text.trim()) {
                         const fontSize = Math.max(8, 10 * scaleFactor);
                         const lines = this.wrapText(cell.text, mergeWidth, fontSize);
                         const lineHeight = fontSize * 1.2;
-                        const startY = y + mergeHeight/2 - (lines.length - 1) * lineHeight/2;
+                        
+                        // Calculate text position based on alignment
+                        const textPos = this.calculateTextPosition(x, y, mergeWidth, mergeHeight, cell.textAlign, cell.verticalAlign, lines, lineHeight);
                         
                         lines.forEach((line, index) => {
-                            svg += `<text x="${x + mergeWidth/2}" y="${startY + index * lineHeight}" 
-                                     class="cell-text">${this.escapeHtml(line)}</text>`;
+                            const textAnchor = this.getTextAnchor(cell.textAlign);
+                            const dominantBaseline = this.getDominantBaseline(cell.verticalAlign);
+                            
+                            svg += `<text x="${textPos.x}" y="${textPos.y + index * lineHeight}" 
+                                     class="cell-text" text-anchor="${textAnchor}" dominant-baseline="${dominantBaseline}">${this.escapeHtml(line)}</text>`;
                         });
                     }
                 }
@@ -458,15 +567,20 @@ class SVGLayoutGenerator {
                         svg += `<rect x="${x}" y="${y}" width="${width}" height="${height}" 
                                  class="cell-border warehouse-cell${heatClass}" data-location="${cell.text}" data-row="${cell.row}" data-col="${cell.col}"${heatmapData ? ` data-activity="${activity}"` : ''}/>`;
                         
-                        // Add text with wrapping
+                        // Add text with proper alignment
                         const fontSize = Math.max(8, 10 * scaleFactor);
                         const lines = this.wrapText(cell.text, width, fontSize);
                         const lineHeight = fontSize * 1.2;
-                        const startY = y + height/2 - (lines.length - 1) * lineHeight/2;
+                        
+                        // Calculate text position based on alignment
+                        const textPos = this.calculateTextPosition(x, y, width, height, cell.textAlign, cell.verticalAlign, lines, lineHeight);
                         
                         lines.forEach((line, index) => {
-                            svg += `<text x="${x + width/2}" y="${startY + index * lineHeight}" 
-                                     class="cell-text">${this.escapeHtml(line)}</text>`;
+                            const textAnchor = this.getTextAnchor(cell.textAlign);
+                            const dominantBaseline = this.getDominantBaseline(cell.verticalAlign);
+                            
+                            svg += `<text x="${textPos.x}" y="${textPos.y + index * lineHeight}" 
+                                     class="cell-text" text-anchor="${textAnchor}" dominant-baseline="${dominantBaseline}">${this.escapeHtml(line)}</text>`;
                         });
                     }
                 }
@@ -539,8 +653,6 @@ class SVGLayoutGenerator {
                 .cell-text { 
                     font-family: Arial, sans-serif; 
                     font-size: ${Math.max(8, 10 * scaleFactor)}px; 
-                    text-anchor: middle; 
-                    dominant-baseline: central;
                     fill: #000000;
                 }
                 .title { 
