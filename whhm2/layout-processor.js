@@ -1,7 +1,5 @@
-// SVG Layout Generator Module
-// Generates SVG-based warehouse layouts with exact Excel dimensions and merged cells
-
-class SVGLayoutGenerator {
+// Layout Processor - Handles Excel layout files
+class LayoutProcessor {
     constructor() {
         this.workbookData = null;
         this.currentSheetData = null;
@@ -586,7 +584,6 @@ class SVGLayoutGenerator {
         return this.generateSVGLayout(options, heatmapData);
     }
 
-
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
@@ -628,8 +625,6 @@ class SVGLayoutGenerator {
         
         return lines.length > 0 ? lines : [''];
     }
-
-
 
     downloadSVG(filename = null) {
         if (!this.generatedSVG) return;
@@ -766,5 +761,5 @@ class SVGLayoutGenerator {
         console.log('Converted layout locations:', layoutData.locations.length);
         console.log('Location IDs:', layoutData.locations.map(l => l.id));
     }
-
 }
+

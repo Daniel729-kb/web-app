@@ -4,7 +4,6 @@ class SVGGeneratorApp {
         this.svgGenerator = new SVGLayoutGenerator();
         this.currentFile = null;
         this.currentSheet = null;
-        this.isHeatmapShown = false;
         
         this.initializeElements();
         this.attachEventListeners();
@@ -67,7 +66,6 @@ class SVGGeneratorApp {
         this.cellSize = document.getElementById('cellSize');
         this.showGrid = document.getElementById('showGrid');
         this.showTitle = document.getElementById('showTitle');
-        // Horizontal scroll controls removed
         
         // Range control elements
         this.startRow = document.getElementById('startRow');
@@ -131,7 +129,6 @@ class SVGGeneratorApp {
         this.shippingFileUploadArea.addEventListener('click', () => this.shippingFileInput.click());
         this.shippingFileInput.addEventListener('change', (e) => this.handleShippingFileUpload(e));
         this.applyMappingBtn.addEventListener('click', () => this.applyShippingMapping());
-        this.toggleHeatmapBtn.addEventListener('click', () => this.toggleHeatmapView());
         
         // Drag and drop events
         this.fileUploadArea.addEventListener('dragover', (e) => this.handleDragOver(e));
@@ -145,8 +142,6 @@ class SVGGeneratorApp {
         this.scaleFactor.addEventListener('input', (e) => {
             this.scaleValue.textContent = parseFloat(e.target.value).toFixed(1);
         });
-        
-        // Horizontal scroll controls removed
         
         // Range control buttons
         this.applyRangeBtn.addEventListener('click', () => this.applyRange());
@@ -907,46 +902,6 @@ class SVGGeneratorApp {
         this.showSuccess('Heatmap downloaded successfully.');
     }
 
-    toggleHeatmapView() {
-        if (!this.currentHeatmapData || !this.svgGenerator || !this.svgGenerator.currentSheetData) {
-            this.showError('No heatmap data available.');
-            return;
-        }
-        
-        const isShowingHeatmap = this.heatmapToggleBtn.textContent === '元のレイアウト表示' || this.heatmapToggleBtn.textContent === 'Show Original Layout';
-        
-        if (isShowingHeatmap) {
-            // Show original layout
-            const options = this.currentHeatmapOptions || {
-                scaleFactor: parseFloat(this.heatmapScaleFactor.value),
-                showGrid: this.heatmapShowGrid.checked,
-                showTitle: this.heatmapShowTitle.checked,
-                cellSize: this.heatmapCellSize.value ? parseInt(this.heatmapCellSize.value) : null
-            };
-            
-            const svg = this.svgGenerator.generateSVGLayout(options);
-            if (svg) {
-                this.displayHeatmap(svg);
-                this.heatmapToggleBtn.textContent = this.currentLanguage === 'ja' ? 'ヒートマップ表示' : 'Show Heatmap';
-                this.heatmapLegend.style.display = 'none';
-            }
-        } else {
-            // Show heatmap
-            const options = this.currentHeatmapOptions || {
-                scaleFactor: parseFloat(this.heatmapScaleFactor.value),
-                showGrid: this.heatmapShowGrid.checked,
-                showTitle: this.heatmapShowTitle.checked,
-                cellSize: this.heatmapCellSize.value ? parseInt(this.heatmapCellSize.value) : null
-            };
-            
-            const svg = this.svgGenerator.generateSVGWithHeatmap(this.currentHeatmapData, options);
-            if (svg) {
-                this.displayHeatmap(svg);
-                this.heatmapToggleBtn.textContent = this.currentLanguage === 'ja' ? '元のレイアウト表示' : 'Show Original Layout';
-                this.heatmapLegend.style.display = 'block';
-            }
-        }
-    }
 
     switchLanguage() {
         this.currentLanguage = this.currentLanguage === 'ja' ? 'en' : 'ja';
@@ -1102,8 +1057,8 @@ class SVGGeneratorApp {
         document.querySelector('label[for="sheetSelect"]').textContent = t.controls.sheetSelect;
         document.querySelector('label[for="scaleFactor"]').textContent = t.controls.scaleFactor;
         document.querySelector('label[for="cellSize"]').textContent = t.controls.cellSize;
-        document.querySelector('label[for="showGrid"]').textContent = t.controls.showGrid;
-        document.querySelector('label[for="showTitle"]').textContent = t.controls.showTitle;
+        document.querySelector('input[id="showGrid"]').parentElement.textContent = t.controls.showGrid;
+        document.querySelector('input[id="showTitle"]').parentElement.textContent = t.controls.showTitle;
         document.getElementById('generateBtn').textContent = t.controls.generate;
         document.getElementById('downloadBtn').textContent = t.controls.download;
         document.getElementById('resetBtn').textContent = t.controls.reset;
@@ -1138,8 +1093,8 @@ class SVGGeneratorApp {
         document.querySelector('#heatmapInfo p').textContent = t.heatmap.noData;
         document.querySelector('label[for="heatmapScaleFactor"]').textContent = t.controls.scaleFactor;
         document.querySelector('label[for="heatmapCellSize"]').textContent = t.controls.cellSize;
-        document.querySelector('label[for="heatmapShowGrid"]').textContent = t.controls.showGrid;
-        document.querySelector('label[for="heatmapShowTitle"]').textContent = t.controls.showTitle;
+        document.querySelector('input[id="heatmapShowGrid"]').parentElement.textContent = t.controls.showGrid;
+        document.querySelector('input[id="heatmapShowTitle"]').parentElement.textContent = t.controls.showTitle;
         document.getElementById('heatmapGenerateBtn').textContent = t.heatmap.generate;
         document.getElementById('heatmapDownloadBtn').textContent = t.heatmap.download;
         document.getElementById('heatmapToggleBtn').textContent = t.heatmap.toggle;
@@ -1224,7 +1179,6 @@ class SVGGeneratorApp {
         this.svgSection.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Horizontal scroll controls removed
 
     downloadSVG() {
         if (this.svgGenerator.generatedSVG) {
